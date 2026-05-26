@@ -1,5 +1,6 @@
 # Mengabaikan folder pustaka raksasa milik Composer
 /vendor/
+node_modules/
 
 # Mengabaikan file konfigurasi database lokal yang berisi password
 .env
