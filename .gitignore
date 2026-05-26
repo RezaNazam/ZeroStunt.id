@@ -1,0 +1,11 @@
+# Mengabaikan folder pustaka raksasa milik Composer
+/vendor/
+
+# Mengabaikan file konfigurasi database lokal yang berisi password
+.env
+config.local.php
+
+# Mengabaikan file sampah sistem operasi
+Thumbs.db
+.DS_Store
+*.log
