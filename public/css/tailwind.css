@@ -1,0 +1,10 @@
+/*! tailwindcss v4.3.0 | MIT License | https://tailwindcss.com */
+.flex {
+  display: flex;
+}
+.table {
+  display: table;
+}
+.flex-1 {
+  flex: 1;
+}
