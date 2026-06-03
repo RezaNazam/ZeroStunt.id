@@ -1,0 +1,14 @@
+{
+  "name": "zerostunt",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/tailwind.css --minify",
+    "dev:css": "tailwindcss -i ./public/css/input.css -o ./public/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.0"
+  }
+}
