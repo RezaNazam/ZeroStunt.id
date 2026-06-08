@@ -1,0 +1,374 @@
+================================================================================
+CONTEXT COMPRESSION — ZeroStunt.id
+FILE: 01_CONTEXT_COMPRESSION.txt
+PURPOSE: Konseptual & arsitektur proyek untuk dibaca AI lain (LLM)
+VERSION: FINAL
+================================================================================
+
+## 1. IDENTITAS & TARGET PROYEK
+
+- **Nama Proyek:** ZeroStunt.id
+- **Tujuan:** Sistem web pencegahan stunting yang mengintegrasikan supply chain pangan lokal (kelompok tani → puskesmas → posyandu → ibu/anak) dengan tracking pertumbuhan anak berbasis Z-Score WHO 2006, sekaligus mengeliminasi tengkulak (middlemen) untuk meningkatkan pendapatan petani.
+- **Inovasi Alignment:** RIRN 2017–2045 (ketahanan pangan, diversifikasi pertanian lokal) + SDGs Goal 2 (Zero Hunger) + Goal 3 (Good Health)
+- **Arsitektur:** MVC PHP Native (zero backend framework), Vanilla JS, Tailwind CSS
+- **Deadline:** Minggu ke-2 Juli 2025
+- **Tim:** 4 orang, Semester 2, Teknologi Rekayasa Perangkat Lunak, ASTRATECH
+- **Status Saat Ini:** Struktur folder + GitHub setup selesai, Tailwind setup in progress, belum mulai coding logic
+
+---
+
+## 2. ENVIRONMENT & DEPENDENSI
+
+| Komponen | Spesifikasi | Catatan |
+|---|---|---|
+| **Backend** | PHP 8.0+ Native | No Laravel/Slim/CodeIgniter |
+| **Database** | MySQL 5.7+ atau 8.0 | Both support triggers, views, stored procedures |
+| **Web Server** | Apache 2.4 | XAMPP (2 anggota) & Laragon (2 anggota) |
+| **Local Dev** | `php -S localhost:8000 -t public/` | Built-in PHP server |
+| **CSS** | Tailwind CSS 3.x | via npm compile, output committed to Git |
+| **JavaScript** | Vanilla ES6+ | Fetch API (NO jQuery), async/await |
+| **Charts** | Chart.js (CDN) | `<script src="https://cdn.jsdelivr.net/npm/chart.js">` |
+| **Version Control** | Git + GitHub | Direct Collaboration model (bukan Fork) |
+| **Node.js** | 16+ LTS | Hanya untuk compile Tailwind |
+
+---
+
+## 3. STAKEHOLDER & GEOGRAPHIC SCOPE
+
+```
+STAKEHOLDER:
+├─ Admin Puskesmas (1 orang): Super user, full access
+├─ Kader Posyandu (3-5 orang): 1 Kader = 1 Gudang Posyandu (relasi 1:1)
+├─ Kelompok Tani Lokal (3-5 kelompok): Per komoditas
+└─ Ibu/Anak (~150-250 beneficiary): Read-only + chatbot v2
+
+GEOGRAPHIC SCOPE:
+├─ 1 Puskesmas = Gudang Pusat (central warehouse)
+└─ 3-5 Posyandu = Gudang Lokal (distribution points)
+   └─ Pilot: 1 Kecamatan / 1 Wilayah Kerja Puskesmas
+
+OPERATION CYCLE:
+├─ Screening:     1x/bulan per posyandu
+├─ Pengadaan:     1-2x/bulan
+├─ Distribusi:    1x/bulan (berdasarkan hasil screening)
+└─ Reporting:     Akhir bulan
+```
+
+---
+
+## 4. KOMODITAS & PAKET GIZI (HARDCODED v1)
+
+**Komoditas (3-4 jenis):**
+1. Ikan Nila Segar (Kg) — Protein Hewani
+2. Telur Ayam Kampung (Butir) — Protein + Micronutrient
+3. Sayur Hijau (Kg) — Vitamin & Mineral
+4. Kacang-kacangan (optional, Kg)
+
+**Paket Gizi (HARDCODED, bukan tabel dinamis):**
+
+| Paket | Target | Isi |
+|---|---|---|
+| Prioritas 1 | Balita 0-24 bulan berisiko stunting + Ibu Hamil | 1.5kg ikan + 10 telur |
+| Prioritas 2 | Balita 0-24 bulan gizi kurang | 1.0kg ikan + 8 telur |
+| Prioritas 3 | Anak 2-5 tahun, monitoring | 0.5kg sayur + 3 telur |
+
+**Prioritas Assignment Logic (via Trigger):**
+```
+is_pregnant = TRUE      → PRIORITAS 1 (auto)
+Z-Score < -3 SD         → PRIORITAS 1 (Berisiko Stunting)
+Z-Score -2 s/d -3 SD   → PRIORITAS 2 (Gizi Kurang)
+Z-Score > -2 SD         → PRIORITAS 3 (Normal)
+```
+
+---
+
+## 5. OUT-OF-SCOPE (v1 — TIDAK BOLEH DIKERJAKAN)
+
+```
+❌ Mobile app untuk Ibu
+❌ AI Chatbot / Gemini API (v2)
+❌ Real-time GPS tracking kurir
+❌ Payment gateway (Midtrans/Xendit)
+❌ Quality check fisik barang
+❌ Auto-allocation algorithm (manual v1)
+❌ EMR/SIMPUS integration
+❌ Predictive demand planning
+❌ Docker / containerization
+❌ Staging branch (develop = staging)
+❌ Laravel/framework apapun
+❌ jQuery / Vue / React / Angular
+```
+
+---
+
+## 6. DATABASE SCHEMA (15 TABEL FINAL)
+
+### Master Tables (8)
+
+| Tabel | PK | Key Columns | Catatan |
+|---|---|---|---|
+| `users` | id_user (AI) | username (UNIQUE), password (bcrypt), role (ENUM: Admin/Kader/Petani/Ibu), is_active | Auth & authorization |
+| `ibu` | id_ibu (FK→users) | NIK_ibu (CHAR16, UNIQUE), nama_ibu, no_telp, alamat, is_pregnant (BOOL) | Shared PK dengan users |
+| `anak` | id_anak (AI) | id_ibu (FK), NIK_anak (nullable), nama_anak, tgl_lahir, jenis_kelamin (ENUM:L/P), st_gizi_skrg, skala_prioritas | ON DELETE CASCADE dari ibu |
+| `petani_lokal` | id_petani (FK→users) | nama_lahan, alamat_lahan, no_rekening, kapasitas_panen_bulan | ON DELETE RESTRICT |
+| `gudang` | id_gudang (AI) | nama_gudang, lokasi_gudang, jenis_gudang (ENUM: Pusat/Posyandu), alamat_lengkap, nama_pengelola | 1 Pusat + 3-5 Posyandu |
+| `komoditas_pangan` | id_komoditas (AI) | nama_komoditas (UNIQUE), kategori_gizi, id_satuan (FK), deskripsi | |
+| `satuan` | id_satuan (AI) | nama_satuan (UNIQUE), singkat | Kg, Butir, Liter, Paket |
+| `standar_pertumbuhan` | PK(usia_bulan, jenis_kelamin, tipe_standar) | median, sd_plus_1, sd_minus_1, sd_minus_2, sd_minus_3 | WHO 2006, static 0-60 bulan |
+
+### Transaksi Tables (7)
+
+| Tabel | Type | Trigger | Purpose |
+|---|---|---|---|
+| `transaksi_pemeriksaan` | Header | ✅ after_insert → hitung Z-Score, set status+prioritas | Child screening |
+| `transaksi_pengadaan` | Header | - | Kontrak supply dari petani |
+| `pengadaan_detail` | Detail | ✅ after_insert → +qty_in di stok_log gudang pusat | Item kontrak |
+| `transaksi_distribusi_internal` | Header | - | Alokasi barang pusat → posyandu |
+| `distribusi_detail` | Detail | ✅ before_insert validate, after_insert → deduct asal + add tujuan | Item distribusi |
+| `transaksi_penyerahan_bantuan` | Header | - | Aid distribution ke ibu |
+| `penyerahan_detail` | Detail | ✅ before_insert validate, after_insert → deduct stok posyandu | Item penyerahan |
+
+### Support Tables (2)
+
+| Tabel | Purpose | Update |
+|---|---|---|
+| `stok_log` | Real-time inventory (qty_in, qty_out, qty_current GENERATED) | Auto via triggers |
+| `activity_log` | Audit trail | Manual via helper |
+
+---
+
+## 7. TRIGGERS (5 — CRITICAL BUSINESS LOGIC)
+
+### Trigger 1: after_insert_pemeriksaan
+```
+Event: AFTER INSERT ON transaksi_pemeriksaan
+Logic:
+  1. Hitung usia_bulan dari tgl_lahir anak
+  2. Lookup standar_pertumbuhan (usia_bulan, jenis_kelamin, 'BB/U' dan 'TB/U')
+  3. Z-Score = (actual - median) / sd
+  4. Set status_gizi:
+     - Z < -3 SD  → 'Berisiko Stunting'
+     - Z -2 to -3 → 'Gizi Kurang'
+     - Z > -2 SD  → 'Normal'
+  5. Set skala_prioritas: 1/2/3 sesuai status
+  6. UPDATE anak SET st_gizi_skrg, skala_prioritas
+  7. SIGNAL jika usia invalid atau standar tidak ditemukan
+```
+
+### Trigger 2: after_insert_pengadaan_detail
+```
+Event: AFTER INSERT ON pengadaan_detail
+Logic:
+  1. UPDATE stok_log SET qty_in += jumlah_pasok
+     WHERE id_gudang = gudang_pusat AND id_komoditas = NEW.id_komoditas
+  2. INSERT stok_log jika record belum ada (UPSERT pattern)
+```
+
+### Trigger 3: distribusi_detail (Before + After)
+```
+BEFORE INSERT:
+  VALIDATE stok_log.qty_current (gudang asal) >= jumlah_kirim
+  SIGNAL SQLSTATE '45000' jika insufficient
+
+AFTER INSERT:
+  UPDATE stok_log (asal): qty_out += jumlah_kirim
+  UPDATE stok_log (tujuan): qty_in += jumlah_kirim
+```
+
+### Trigger 4: penyerahan_detail (Before + After)
+```
+BEFORE INSERT:
+  VALIDATE stok_log.qty_current (gudang posyandu) >= jumlah_serah
+  SIGNAL SQLSTATE '45000' jika insufficient
+
+AFTER INSERT:
+  UPDATE stok_log (posyandu): qty_out += jumlah_serah
+```
+
+### Trigger 5: after_update_distribusi_status
+```
+Event: AFTER UPDATE ON transaksi_distribusi_internal
+       WHERE status_kirim berubah ke 'Diterima'
+Logic:
+  Confirm receipt, lock stock, update activity_log
+```
+
+---
+
+## 8. DATABASE VIEWS (4 — UNTUK REPORTS)
+
+```
+v_penyerapan_komoditas:
+  SELECT komoditas, total_masuk(pengadaan), total_keluar(penyerahan), sisa_stok
+  → Report 1: Penyerapan komoditas
+
+v_stok_gudang_realtime:
+  SELECT gudang, komoditas, qty_current FROM stok_log JOIN gudang JOIN komoditas
+  → Report 2: Stok realtime per gudang
+
+v_tren_pertumbuhan_wilayah:
+  SELECT gudang, bulan, AVG(bb), AVG(tb), COUNT(anak) FROM pemeriksaan GROUP BY gudang, month
+  → Report 3: Tren pertumbuhan
+
+v_ekonomi_mitra:
+  SELECT petani, SUM(total_bayar), SUM(CASE Lunas), SUM(CASE Pending) FROM pengadaan GROUP BY petani
+  → Report 4: Ekonomi mitra petani
+```
+
+---
+
+## 9. RBAC MATRIX
+
+| Fitur | Admin | Kader | Petani | Ibu |
+|---|---|---|---|---|
+| Master CRUD | Full CRUD all | Read-only (own posyandu) | Update own profile | Read own data |
+| Pemeriksaan | Read all | Create + View (own posyandu) | No access | No access |
+| Pengadaan | Create, Update status | No access | Read own (read-only) | No access |
+| Distribusi | Create, Update status | Confirm receipt (own) | No access | No access |
+| Penyerahan | Read all | Create (own posyandu) | No access | Read own history |
+| Report 1 | ✅ | ❌ | ❌ | ❌ |
+| Report 2 | ✅ | ✅ (own posyandu) | ❌ | ❌ |
+| Report 3 | ✅ | ✅ (own posyandu) | ❌ | ❌ |
+| Report 4 | ✅ | ❌ | ✅ (own data) | ❌ |
+| Dashboard | Admin | Kader | Petani | Ibu |
+
+**Data Isolation:**
+```
+Kader  → filter by gudang_id = $_SESSION['gudang_id']
+Petani → filter by id_petani = $_SESSION['user_id']
+Ibu    → filter by id_ibu = $_SESSION['user_id']
+```
+
+---
+
+## 10. ROUTING PATTERN (public/index.php)
+
+```
+URL: /dashboard             → DashboardController->index()
+URL: /master/ibu/list       → MasterController->list('ibu')
+URL: /master/ibu/create     → MasterController->create('ibu')
+URL: /master/ibu/store      → MasterController->store('ibu') [POST]
+URL: /master/ibu/view/5     → MasterController->view('ibu', 5)
+URL: /master/ibu/edit/5     → MasterController->edit('ibu', 5)
+URL: /master/ibu/update/5   → MasterController->update('ibu', 5) [POST]
+URL: /master/ibu/delete/5   → MasterController->delete('ibu', 5)
+URL: /pemeriksaan/list      → PemeriksaanController->list()
+URL: /pemeriksaan/create    → PemeriksaanController->create()
+URL: /pemeriksaan/store     → PemeriksaanController->store() [POST]
+URL: /auth/login            → AuthController->login()
+URL: /auth/logout           → AuthController->logout()
+URL: /report/penyerapan     → ReportController->penyerapan()
+```
+
+---
+
+## 11. TEMPLATE RENDERING PATTERN
+
+**BUKAN static HTML. PHP Native template via include:**
+
+```
+Request masuk → public/index.php (router)
+→ Dispatch ke Controller
+→ Controller call $this->render('transaksi/pemeriksaan/form', $data)
+→ BaseController::render() extract $data → include view file
+→ View file (HTML campur PHP) dieksekusi
+→ base.html di-include sebagai wrapper (navbar, sidebar, footer)
+```
+
+**Mirip konsep Blade Laravel, tapi MANUAL menggunakan `<?php include ?>`**
+
+---
+
+## 12. GITHUB WORKFLOW
+
+```
+BRANCH STRUCTURE:
+main     ← Final submission only (PROTECTED)
+develop  ← Integration branch (merge via PR only)
+feature/* ← Per person per task
+
+NAMING CONVENTION:
+feature/person-1-database
+feature/person-2-frontend
+feature/person-3-backend
+feature/person-4-testing
+
+DAILY WORKFLOW:
+git checkout develop && git pull origin develop
+git checkout -b feature/person-{name}-{task}
+[code, commit 1-2x/day]
+git push origin feature/person-{name}-{task}
+[Create PR on GitHub, base: develop]
+[Get reviewed by 1 other person]
+[Merge after approval]
+git checkout develop && git pull origin develop
+git branch -d feature/...
+
+COMMIT FORMAT (Conventional Commits):
+feat: Add Z-Score calculation trigger
+fix: Correct form validation error
+docs: Add database setup guide
+chore: Update .gitignore
+```
+
+---
+
+## 13. DATABASE SYNC STRATEGY
+
+```
+SETUP (One-time per developer):
+mysql -u root -p -e "CREATE DATABASE zerostunt_db CHARACTER SET utf8mb4;"
+mysql -u root -p zerostunt_db < database/01_schema.sql
+mysql -u root -p zerostunt_db < database/02_triggers.sql
+mysql -u root -p zerostunt_db < database/03_views.sql
+mysql -u root -p zerostunt_db < database/04_test_data.sql
+
+SCHEMA CHANGES (During development):
+❌ JANGAN: Full export setiap ada perubahan (menyebabkan Git conflict)
+✅ LAKUKAN: Buat migration file: database/migrations/YYYYMMDD_description.sql
+            Contoh: ALTER TABLE users ADD COLUMN phone VARCHAR(15);
+            Commit file → team lain pull → import migration file
+
+.env: Jangan pernah push ke GitHub (ada di .gitignore)
+tailwind.css: HARUS di-commit ke Git (compiled output)
+node_modules/: JANGAN di-commit (ada di .gitignore)
+```
+
+---
+
+## 14. TEAM STRUCTURE
+
+| Person | Role | Minggu 1 | Minggu 2 | Minggu 3 | Minggu 4 |
+|---|---|---|---|---|---|
+| Person 1 | Backend/DB Lead | Database 100% | Support 20% | Support 20% | Backup + support |
+| Person 2 | Frontend Lead | Tailwind setup | 8 master CRUD views | Transaksi + Report views | 4 dashboards + polish |
+| Person 3 | Backend Logic | Preparation | Base classes + Auth | Transaksi controllers | Report + Dashboard controllers |
+| Person 4 | QA Lead | Test plan docs | DB + Auth testing | Integration testing | UAT + bug tracking |
+
+**Catatan:** Person 2, 3, 4 adalah PEMULA.
+- Wajib pair programming
+- Wajib code review sebelum merge
+- Dilarang copy-paste AI tanpa memahami kode
+- Enforce: "Explain kode ini per baris" sebelum approve PR
+
+---
+
+## 15. CRITICAL DECISIONS (FINAL, TIDAK BOLEH DIUBAH)
+
+| Keputusan | Pilihan | Status |
+|---|---|---|
+| Backend framework | PHP Native (no Laravel) | FINAL |
+| Frontend framework | Vanilla JS (no jQuery/Vue/React) | FINAL |
+| CSS | Tailwind CSS via npm compile | FINAL |
+| Database | MySQL lokal per developer | FINAL |
+| Schema sync | Migration files (bukan full export) | FINAL |
+| GitHub model | Direct Collaboration | FINAL |
+| Docker | Tidak digunakan | FINAL |
+| Staging branch | Tidak ada (develop = staging) | FINAL |
+| Paket gizi | Hardcoded di constants.php | FINAL |
+| Template engine | PHP Native include (bukan Blade) | FINAL |
+| Charts | Chart.js via CDN | FINAL |
+
+================================================================================
+END OF FILE 01_CONTEXT_COMPRESSION.txt
+================================================================================
