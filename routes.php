@@ -31,9 +31,10 @@ return [
     '/master/gudang/store' => [MasterController::class, 'storeGudang'],
     '/master/gudang/edit' => [MasterController::class, 'editGudang'],
     '/master/gudang/update' => [MasterController::class, 'updateGudang'],
-    '/master/gudang/delete' => [MasterController::class, 'deleteGudang']
+    '/master/gudang/delete' => [MasterController::class, 'deleteGudang'],
 
 
     // --- (tambahkan route lain di sini saat development) ---
+    '/landing' => [LandingController::class, 'index']
 
 ];

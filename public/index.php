@@ -31,7 +31,7 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 // --- Redirect root ke login ---
 if ($uri === '/') {
-    header('Location: /auth/login');
+    header('Location: /landing');
     exit;
 }
 
