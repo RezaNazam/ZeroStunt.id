@@ -43,6 +43,12 @@ class DashboardController
             exit;
         }
 
+        // Kalo rolenya kader, redirect ke dashboard kader
+        if ($_SESSION['role'] === ROLE_KADER) {
+            require '../views/dashboard/kader.php';
+            exit;
+        }
+
         // Default to admin dashboard
         require '../views/dashboard/admin.php';
     }
