@@ -252,4 +252,146 @@ class MasterController
         header('Location: /master/gudang');
         exit;
     }
+
+        // --- Master: Komoditas Pangan ---
+
+    public function indexKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $komoditas = (new Komoditas())->all();
+        require '../views/master/komoditas/index.php';
+    }
+
+    public function createKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $satuanModel = new Satuan();
+        $satuans = $satuanModel->all();
+
+        require '../views/master/komoditas/create.php';
+    }
+
+    public function storeKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $nama_komoditas = trim($_POST['nama_komoditas'] ?? '');
+            $kategori_gizi = trim($_POST['kategori_gizi'] ?? '');
+            $id_satuan = isset($_POST['id_satuan']) ? (int) $_POST['id_satuan'] : 0;
+            $deskripsi = trim($_POST['deskripsi'] ?? '');
+
+            if ($nama_komoditas === '' || $kategori_gizi === '' || $id_satuan <= 0) {
+                $_SESSION['error'] = 'Nama komoditas, kategori gizi, dan satuan wajib diisi.';
+                header('Location: /master/komoditas/create');
+                exit;
+            }
+
+            $komoditasModel = new Komoditas();
+
+            if ($komoditasModel->create($nama_komoditas, $kategori_gizi, $id_satuan, $deskripsi)) {
+                $_SESSION['success'] = 'Komoditas berhasil ditambahkan.';
+                header('Location: /master/komoditas');
+                exit;
+            }
+
+            $_SESSION['error'] = 'Gagal menyimpan komoditas.';
+            header('Location: /master/komoditas/create');
+            exit;
+        }
+
+        header('Location: /master/komoditas/create');
+        exit;
+    }
+
+    public function editKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_komoditas = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+        if (!$id_komoditas) {
+            header('Location: /master/komoditas');
+            exit;
+        }
+
+        $komoditas = (new Komoditas())->findById($id_komoditas);
+
+        if (!$komoditas) {
+            $_SESSION['error'] = 'Data komoditas tidak ditemukan.';
+            header('Location: /master/komoditas');
+            exit;
+        }
+
+        require '../views/master/komoditas/edit.php';
+    }
+
+    public function updateKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id_komoditas = isset($_POST['id_komoditas']) ? (int) $_POST['id_komoditas'] : null;
+            $nama_komoditas = trim($_POST['nama_komoditas'] ?? '');
+            $kategori_gizi = trim($_POST['kategori_gizi'] ?? '');
+            $id_satuan = isset($_POST['id_satuan']) ? (int) $_POST['id_satuan'] : 0;
+            $deskripsi = trim($_POST['deskripsi'] ?? '');
+
+            if (!$id_komoditas || $nama_komoditas === '' || $kategori_gizi === '' || $id_satuan <= 0) {
+                $_SESSION['error'] = 'Data komoditas tidak lengkap.';
+                header("Location: /master/komoditas/edit?id={$id_komoditas}");
+                exit;
+            }
+
+            $komoditasModel = new Komoditas();
+
+            if ($komoditasModel->update($id_komoditas, $nama_komoditas, $kategori_gizi, $id_satuan, $deskripsi)) {
+                $_SESSION['success'] = 'Komoditas berhasil diperbarui.';
+                header('Location: /master/komoditas');
+                exit;
+            }
+
+            $_SESSION['error'] = 'Gagal memperbarui komoditas.';
+            header("Location: /master/komoditas/edit?id={$id_komoditas}");
+            exit;
+        }
+
+        header('Location: /master/komoditas');
+        exit;
+    }
+
+    public function deleteKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_komoditas = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+        if ($id_komoditas) {
+            (new Komoditas())->delete($id_komoditas);
+            $_SESSION['success'] = 'Komoditas berhasil dihapus.';
+        }
+
+        header('Location: /master/komoditas');
+        exit;
+    }
 }

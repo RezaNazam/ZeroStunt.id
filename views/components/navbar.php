@@ -1,10 +1,12 @@
 <header class="sticky top-0 z-30 bg-white border-b border-gray-100">
     <div class="h-20 px-6 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <button id="openSidebar"
-                class="w-11 h-11 rounded-2xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
-                ☰
-            </button>
+            <?php if (empty($hideSidebar)): ?>
+                <button id="openSidebar"
+                    class="w-11 h-11 rounded-2xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                    ☰
+                </button>
+            <?php endif; ?>
 
             <div>
                 <h1 class="text-2xl font-extrabold text-gray-900">
