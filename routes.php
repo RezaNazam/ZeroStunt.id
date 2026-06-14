@@ -43,6 +43,9 @@ return [
     '/master/satuan/update' => [MasterController::class, 'updateSatuan'],
     '/master/satuan/delete' => [MasterController::class, 'deleteSatuan'],
 
+    // --- Additional ----
+    '/riwayat-ekonomi' => [DashboardController::class, 'riwayatEkonomi'],
+    '/profil-lahan' => [DashboardController::class, 'profilLahan'],
 
     // --- (tambahkan route lain di sini saat development) ---
     '/landing' => [LandingController::class, 'index']
