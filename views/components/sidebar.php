@@ -19,6 +19,8 @@ if ($isAdmin) {
         ['label' => 'Penyerahan', 'href' => '#', 'icon' => '🤝'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '📈'],
         ['label' => 'Master Data', 'href' => '#', 'icon' => '🗂️'],
+        ['label' => 'Master Gudang', 'href' => '/master/gudang', 'icon' => '🏢'],
+        ['label' => 'Master Satuan', 'href' => '/master/satuan', 'icon' => '⚖️'],
     ];
 } elseif ($isKader) {
     $menus = [
@@ -31,7 +33,7 @@ if ($isAdmin) {
 } elseif ($isPetani) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '📊'],
-        ['label' => 'Pengadaan Saya', 'href' => '#', 'icon' => '📦'],
+        ['label' => 'Pengadaan Saya', 'href' => '/pengadaan', 'icon' => '📦'],
         ['label' => 'Riwayat Ekonomi', 'href' => '#', 'icon' => '💰'],
         ['label' => 'Profil Lahan', 'href' => '#', 'icon' => '🌾'],
     ];
