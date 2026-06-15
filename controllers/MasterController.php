@@ -252,4 +252,236 @@ class MasterController
         header('Location: /master/gudang');
         exit;
     }
+
+    // --- Master: Anak ---
+    public function indexAnak()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $anakModel = new Anak();
+
+        // Jika role Ibu: tampilkan hanya anak miliknya sendiri
+        // Jika role Admin/Kader: tampilkan semua anak
+        if ($_SESSION['role'] === ROLE_IBU) {
+            $id_ibu = $_SESSION['user_id'];
+            $anaks = $anakModel->findByIbu($id_ibu);
+        } else {
+            $anaks = $anakModel->all();
+        }
+
+        require '../views/master/anak/index.php';
+    }
+
+    public function createAnak()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        // Jika Ibu: kirim data ibu sendiri agar form langsung terkunci ke akunnya
+        // Jika Admin/Kader: kirim semua data ibu untuk dropdown pilihan
+        if ($_SESSION['role'] === ROLE_IBU) {
+            $ibuModel = new Ibu();
+            $ibu_login = $ibuModel->findByIdIbu($_SESSION['user_id']);
+            $ibus = [];
+        } else {
+            $ibu_login = null;
+            $ibuModel = new Ibu();
+            $ibus = $ibuModel->all();
+        }
+
+        require '../views/master/anak/create.php';
+    }
+
+    public function storeAnak()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // KEAMANAN: Jika role Ibu, id_ibu WAJIB dari session (tidak bisa dimanipulasi)
+            // Jika Admin/Kader, id_ibu diambil dari form dropdown pilihan
+            if ($_SESSION['role'] === ROLE_IBU) {
+                $id_ibu = (int) $_SESSION['user_id'];
+            } else {
+                $id_ibu = (int) ($_POST['id_ibu'] ?? 0);
+            }
+
+            $nik_anak      = trim($_POST['NIK_anak'] ?? '');
+            $nama_anak     = trim($_POST['nama_anak'] ?? '');
+            $tgl_lahir     = trim($_POST['tgl_lahir'] ?? '');
+            $jenis_kelamin = $_POST['jenis_kelamin'] ?? '';
+
+            // validasi input anak
+            if ($id_ibu === 0 || $nik_anak === '' || $nama_anak === '' || $tgl_lahir === '' || $jenis_kelamin === '') {
+                $_SESSION['error'] = 'Semua field wajib diisi.';
+                header('Location: /master/anak/create');
+                exit;
+            }
+
+            // insert data anak ke tabel anak
+            $anakModel = new Anak();
+            if ($anakModel->create($id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)) {
+                $_SESSION['success'] = 'Data anak berhasil disimpan.';
+                header('Location: /master/anak');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan data anak.';
+                header('Location: /master/anak/create');
+                exit;
+            }
+        }
+
+        header('Location: /master/anak/create');
+        exit;
+    }
+
+    public function editAnak()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_anak = isset($_GET['id']) ? (int) $_GET['id'] : null;
+        if (!$id_anak) {
+            $_SESSION['error'] = 'ID Anak tidak valid.';
+            header('Location: /master/anak');
+            exit;
+        }
+
+        $anakModel = new Anak();
+        $anak = $anakModel->findById($id_anak);
+        if (!$anak) {
+            $_SESSION['error'] = 'Data anak tidak ditemukan.';
+            header('Location: /master/anak');
+            exit;
+        }
+
+        // Keamanan: Jika role Ibu, pastikan anak ini adalah miliknya
+        if ($_SESSION['role'] === ROLE_IBU && (int)$anak['id_ibu'] !== (int)$_SESSION['user_id']) {
+            $_SESSION['error'] = 'Anda tidak memiliki akses ke data anak ini.';
+            header('Location: /master/anak');
+            exit;
+        }
+
+        // Siapkan data ibu untuk form
+        if ($_SESSION['role'] === ROLE_IBU) {
+            $ibuModel = new Ibu();
+            $ibu_login = $ibuModel->findByIdIbu($_SESSION['user_id']);
+            $ibus = [];
+        } else {
+            $ibu_login = null;
+            $ibuModel = new Ibu();
+            $ibus = $ibuModel->all();
+        }
+
+        require '../views/master/anak/edit.php';
+    }
+
+    public function updateAnak()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id_anak = isset($_POST['id_anak']) ? (int) $_POST['id_anak'] : null;
+            if (!$id_anak) {
+                $_SESSION['error'] = 'ID Anak tidak valid.';
+                header('Location: /master/anak');
+                exit;
+            }
+
+            $anakModel = new Anak();
+            $anak = $anakModel->findById($id_anak);
+            if (!$anak) {
+                $_SESSION['error'] = 'Data anak tidak ditemukan.';
+                header('Location: /master/anak');
+                exit;
+            }
+
+            // Keamanan: Jika role Ibu, pastikan anak ini adalah miliknya dan id_ibu dipaksa dari session
+            if ($_SESSION['role'] === ROLE_IBU) {
+                if ((int)$anak['id_ibu'] !== (int)$_SESSION['user_id']) {
+                    $_SESSION['error'] = 'Anda tidak memiliki akses ke data anak ini.';
+                    header('Location: /master/anak');
+                    exit;
+                }
+                $id_ibu = (int)$_SESSION['user_id'];
+            } else {
+                $id_ibu = (int)($_POST['id_ibu'] ?? $anak['id_ibu']);
+            }
+
+            $nik_anak      = trim($_POST['NIK_anak'] ?? '');
+            $nama_anak     = trim($_POST['nama_anak'] ?? '');
+            $tgl_lahir     = trim($_POST['tgl_lahir'] ?? '');
+            $jenis_kelamin = $_POST['jenis_kelamin'] ?? '';
+
+            if ($id_ibu === 0 || $nik_anak === '' || $nama_anak === '' || $tgl_lahir === '' || $jenis_kelamin === '') {
+                $_SESSION['error'] = 'Semua field wajib diisi.';
+                header("Location: /master/anak/edit?id={$id_anak}");
+                exit;
+            }
+
+            if ($anakModel->update($id_anak, $id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)) {
+                $_SESSION['success'] = 'Data anak berhasil diperbarui.';
+                header("Location: /master/anak/edit?id={$id_anak}");
+                exit;
+            } else {
+                $_SESSION['error'] = 'Gagal memperbarui data anak.';
+                header("Location: /master/anak/edit?id={$id_anak}");
+                exit;
+            }
+        }
+
+        header('Location: /master/anak');
+        exit;
+    }
+
+    public function deleteAnak()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_anak = isset($_GET['id']) ? (int) $_GET['id'] : null;
+        if (!$id_anak) {
+            $_SESSION['error'] = 'ID Anak tidak valid.';
+            header('Location: /master/anak');
+            exit;
+        }
+
+        $anakModel = new Anak();
+        $anak = $anakModel->findById($id_anak);
+        if (!$anak) {
+            $_SESSION['error'] = 'Data anak tidak ditemukan.';
+            header('Location: /master/anak');
+            exit;
+        }
+
+        // Keamanan: Jika role Ibu, pastikan anak ini adalah miliknya
+        if ($_SESSION['role'] === ROLE_IBU && (int)$anak['id_ibu'] !== (int)$_SESSION['user_id']) {
+            $_SESSION['error'] = 'Anda tidak memiliki akses untuk menghapus data anak ini.';
+            header('Location: /master/anak');
+            exit;
+        }
+
+        if ($anakModel->delete($id_anak)) {
+            $_SESSION['success'] = 'Data anak berhasil dihapus.';
+        } else {
+            $_SESSION['error'] = 'Gagal menghapus data anak.';
+        }
+
+        header('Location: /master/anak');
+        exit;
+    }
 }
