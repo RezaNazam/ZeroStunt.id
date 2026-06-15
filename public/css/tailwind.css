@@ -172,6 +172,8 @@
   --color-blue-900: oklch(37.9% 0.146 265.522);
   --color-purple-50: oklch(97.7% 0.014 308.299);
   --color-purple-700: oklch(49.6% 0.265 301.924);
+  --color-pink-100: oklch(94.8% 0.028 342.258);
+  --color-pink-700: oklch(52.5% 0.223 3.958);
   --color-gray-200: oklch(92.8% 0.006 264.531);
   --color-gray-400: oklch(70.7% 0.022 261.325);
   --color-gray-600: oklch(44.6% 0.03 256.802);
@@ -186,6 +188,7 @@
   --container-2xl: 42rem;
   --container-3xl: 48rem;
   --container-4xl: 56rem;
+  --container-6xl: 72rem;
   --container-7xl: 80rem;
   --text-xs: 0.75rem;
   --text-xs--line-height: calc(1 / 0.75);
@@ -695,6 +698,9 @@
   .shrink-0 {
     flex-shrink: 0;
   }
+  .border-collapse {
+    border-collapse: collapse;
+  }
   .-translate-x-full {
     --tw-translate-x: -100%;
     translate: var(--tw-translate-x) var(--tw-translate-y);
@@ -987,6 +993,9 @@
   .bg-red-500 {
     background-color: var(--color-red-500);
   }
+  .bg-red-600 {
+    background-color: var(--red-600);
+  }
   .bg-teal-50 {
     background-color: var(--teal-50);
   }
@@ -1094,6 +1103,12 @@
   .p-8 {
     padding: calc(var(--spacing) * 8);
   }
+  .px-2 {
+    padding-inline: calc(var(--spacing) * 2);
+  }
+  .px-2\.5 {
+    padding-inline: calc(var(--spacing) * 2.5);
+  }
   .px-3 {
     padding-inline: calc(var(--spacing) * 3);
   }
@@ -1157,8 +1172,14 @@
   .pt-6 {
     padding-top: calc(var(--spacing) * 6);
   }
+  .pr-4 {
+    padding-right: calc(var(--spacing) * 4);
+  }
   .pr-14 {
     padding-right: calc(var(--spacing) * 14);
+  }
+  .pb-3 {
+    padding-bottom: calc(var(--spacing) * 3);
   }
   .pl-4 {
     padding-left: calc(var(--spacing) * 4);
@@ -1322,6 +1343,9 @@
   .text-red-500 {
     color: var(--color-red-500);
   }
+  .text-red-600 {
+    color: var(--red-600);
+  }
   .text-red-700 {
     color: var(--red-700);
   }
@@ -1397,6 +1421,10 @@
     transition-property: opacity;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .duration-200 {
+    --tw-duration: 200ms;
+    transition-duration: 200ms;
   }
   .duration-300 {
     --tw-duration: 300ms;
@@ -1564,6 +1592,13 @@
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--white) 10%, transparent);
         }
+      }
+    }
+  }
+  .hover\:text-red-800 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-red-800);
       }
     }
   }
