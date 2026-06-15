@@ -253,7 +253,7 @@ class MasterController
         exit;
     }
 
-        // --- Master: Komoditas Pangan ---
+    // --- Master: Komoditas Pangan ---
 
     public function indexKomoditas()
     {
@@ -336,6 +336,9 @@ class MasterController
             header('Location: /master/komoditas');
             exit;
         }
+
+        $satuanModel = new Satuan();
+        $satuans = $satuanModel->all();
 
         require '../views/master/komoditas/edit.php';
     }

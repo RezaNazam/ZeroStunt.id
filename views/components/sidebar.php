@@ -15,6 +15,7 @@ if ($isAdmin) {
         ['label' => 'Ibu & Anak', 'href' => '#', 'icon' => '👩‍👧'],
         ['label' => 'Gudang', 'href' => '/master/gudang', 'icon' => '🛖'],
         ['label' => 'Komoditas Pangan', 'href' => '/master/komoditas', 'icon' => '🥬'],
+        ['label' => 'Satuan', 'href' => '/master/satuan', 'icon' => '⚖️'],
         ['label' => 'Pengguna', 'href' => '/master/users', 'icon' => '👤'],
         ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '🩺'],
         ['label' => 'Pengadaan', 'href' => '#', 'icon' => '📦'],
