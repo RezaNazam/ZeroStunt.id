@@ -21,6 +21,14 @@ return [
     '/master/ibu/create' => [MasterController::class, 'createIbu'],
     '/master/ibu/store' => [MasterController::class, 'storeIbu'],
 
+    // --- Master: Anak ---
+    '/master/anak' => [MasterController::class, 'indexAnak'],
+    '/master/anak/create' => [MasterController::class, 'createAnak'],
+    '/master/anak/store' => [MasterController::class, 'storeAnak'],
+    '/master/anak/edit' => [MasterController::class, 'editAnak'],
+    '/master/anak/update' => [MasterController::class, 'updateAnak'],
+    '/master/anak/delete' => [MasterController::class, 'deleteAnak'],
+
     // --- Master: Petani ---
     '/master/petani/create' => [MasterController::class, 'createPetani'],
     '/master/petani/store' => [MasterController::class, 'storePetani'],

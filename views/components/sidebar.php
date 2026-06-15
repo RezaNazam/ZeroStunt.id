@@ -40,7 +40,7 @@ if ($isAdmin) {
 } elseif ($isIbu) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '📊'],
-        ['label' => 'Data Anak', 'href' => '#', 'icon' => '👶'],
+        ['label' => 'Data Anak', 'href' => '/master/anak', 'icon' => '👶'],
         ['label' => 'Histori Bantuan', 'href' => '#', 'icon' => '🎁'],
         ['label' => 'Riwayat Periksa', 'href' => '#', 'icon' => '🩺'],
     ];

@@ -23,7 +23,7 @@ class Ibu
 
         mysqli_stmt_bind_param(
             $stmt,
-            'issssi',
+            'issssii', // i=id_ibu, s=NIK, s=nama, s=telp, s=alamat, i=id_gudang, i=is_pregnant
             $id_ibu,
             $nik,
             $nama,
@@ -57,5 +57,15 @@ class Ibu
         mysqli_stmt_close($stmt);
 
         return $data;
+    }
+
+    public function all()
+    {
+        $result = mysqli_query($this->db, "SELECT * FROM ibu ORDER BY nama_ibu ASC");
+        $ibus = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $ibus[] = $row;
+        }
+        return $ibus;
     }
 }
