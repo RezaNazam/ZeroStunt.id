@@ -24,6 +24,7 @@ return [
     // --- Master: Petani ---
     '/master/petani/create' => [MasterController::class, 'createPetani'],
     '/master/petani/store' => [MasterController::class, 'storePetani'],
+    '/pengadaan' => [DashboardController::class, 'pengadaan'],
 
     // --- Master: Gudang ---
     '/master/gudang' => [MasterController::class, 'indexGudang'],
@@ -33,6 +34,18 @@ return [
     '/master/gudang/update' => [MasterController::class, 'updateGudang'],
     '/master/gudang/delete' => [MasterController::class, 'deleteGudang'],
 
+    
+    // --- Master: Satuan ---
+    '/master/satuan' => [MasterController::class, 'indexSatuan'],
+    '/master/satuan/create' => [MasterController::class, 'createSatuan'],
+    '/master/satuan/store' => [MasterController::class, 'storeSatuan'],
+    '/master/satuan/edit' => [MasterController::class, 'editSatuan'],
+    '/master/satuan/update' => [MasterController::class, 'updateSatuan'],
+    '/master/satuan/delete' => [MasterController::class, 'deleteSatuan'],
+
+    // --- Additional ----
+    '/riwayat-ekonomi' => [DashboardController::class, 'riwayatEkonomi'],
+    '/profil-lahan' => [DashboardController::class, 'profilLahan'],
 
     // --- (tambahkan route lain di sini saat development) ---
     '/landing' => [LandingController::class, 'index']

@@ -252,4 +252,94 @@ class MasterController
         header('Location: /master/gudang');
         exit;
     }
+
+    public function indexSatuan()
+{
+    if (empty($_SESSION['user_id']) ||
+        $_SESSION['role'] !== ROLE_ADMIN) {
+        header('Location: /auth/login');
+        exit;
+    }
+
+    $satuanModel = new Satuan();
+    $satuans = $satuanModel->all();
+
+    require '../views/master/satuan/index.php';
+}
+
+public function createSatuan()
+{
+    if (empty($_SESSION['user_id']) ||
+        $_SESSION['role'] !== ROLE_ADMIN) {
+        header('Location: /auth/login');
+        exit;
+    }
+
+    require '../views/master/satuan/create.php';
+}
+
+public function storeSatuan()
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+        $nama = trim($_POST['nama_satuan']);
+        $singkat = trim($_POST['singkat']);
+
+        $satuanModel = new Satuan();
+
+        if ($satuanModel->create($nama, $singkat)) {
+
+            $_SESSION['success'] =
+                'Satuan berhasil ditambahkan';
+
+            header('Location: /master/satuan');
+            exit;
+        }
+    }
+
+    header('Location: /master/satuan/create');
+}
+
+public function editSatuan()
+{
+    $id = $_GET['id'] ?? 0;
+
+    $satuanModel = new Satuan();
+
+    $satuan = $satuanModel->find($id);
+
+    require '../views/master/satuan/edit.php';
+}
+
+public function updateSatuan()
+{
+    $id = $_POST['id_satuan'];
+
+    $nama = trim($_POST['nama_satuan']);
+    $singkat = trim($_POST['singkat']);
+
+    $satuanModel = new Satuan();
+
+    $satuanModel->update(
+        $id,
+        $nama,
+        $singkat
+    );
+
+    header('Location: /master/satuan');
+    exit;
+}
+
+public function deleteSatuan()
+{
+    $id = $_GET['id'] ?? 0;
+
+    $satuanModel = new Satuan();
+
+    $satuanModel->delete($id);
+
+    header('Location: /master/satuan');
+    exit;
+}
+
 }
