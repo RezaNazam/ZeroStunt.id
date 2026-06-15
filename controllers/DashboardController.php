@@ -52,4 +52,20 @@ class DashboardController
         // Default to admin dashboard
         require '../views/dashboard/admin.php';
     }
+
+    public function pengadaan()
+    {
+    require '../views/dashboard/pengadaan.php';
+    }
+
+    public function riwayatEkonomi()
+{
+    require '../views/dashboard/riwayat-ekonomi.php';
+}
+
+public function profilLahan()
+{
+    require '../views/dashboard/profil-lahan.php';
+}
+
 }

@@ -37,7 +37,7 @@ CREATE TABLE `anak` (
   `st_gizi_skrg` varchar(50) DEFAULT NULL,
   `skala_prioritas` enum('1','2','3') DEFAULT NULL,
   `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -53,7 +53,7 @@ CREATE TABLE `gudang` (
   `alamat_lengkap` text,
   `nama_pengelola` varchar(100) DEFAULT NULL,
   `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -70,7 +70,7 @@ CREATE TABLE `ibu` (
   `id_gudang` int DEFAULT NULL,
   `is_pregnant` tinyint(1) NOT NULL DEFAULT '0',
   `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -85,7 +85,7 @@ CREATE TABLE `komoditas_pangan` (
   `id_satuan` int NOT NULL,
   `deskripsi` text,
   `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -100,7 +100,7 @@ CREATE TABLE `petani_lokal` (
   `no_rekening` varchar(30) DEFAULT NULL,
   `kapasitas_panen_bulan` decimal(10,2) DEFAULT NULL,
   `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -113,7 +113,7 @@ CREATE TABLE `satuan` (
   `nama_satuan` varchar(50) NOT NULL,
   `singkat` varchar(10) NOT NULL,
   `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -130,7 +130,7 @@ CREATE TABLE `standar_pertumbuhan` (
   `sd_minus_1` decimal(6,3) NOT NULL,
   `sd_minus_2` decimal(6,3) NOT NULL,
   `sd_minus_3` decimal(6,3) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -146,7 +146,7 @@ CREATE TABLE `users` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Indexes for dumped tables

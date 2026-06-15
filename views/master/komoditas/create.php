@@ -84,7 +84,7 @@ ob_start();
 
                         <?php foreach (($satuans ?? []) as $satuan): ?>
                             <option value="<?= htmlspecialchars($satuan['id_satuan']); ?>">
-                                <?= htmlspecialchars($satuan['nama_satuan']); ?>
+                                <?= htmlspecialchars($satuan['nama_satuan']); ?> (<?= htmlspecialchars($satuan['singkat'] ?? '-'); ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>

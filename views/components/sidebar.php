@@ -34,9 +34,9 @@ if ($isAdmin) {
 } elseif ($isPetani) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '📊'],
-        ['label' => 'Pengadaan Saya', 'href' => '#', 'icon' => '📦'],
-        ['label' => 'Riwayat Ekonomi', 'href' => '#', 'icon' => '💰'],
-        ['label' => 'Profil Lahan', 'href' => '#', 'icon' => '🌾'],
+        ['label' => 'Pengadaan Saya', 'href' => '/pengadaan', 'icon' => '📦'],
+        ['label' => 'Riwayat Ekonomi', 'href' => '/riwayat-ekonomi', 'icon' => '💰'],
+        ['label' => 'Profil Lahan', 'href' => '/profil-lahan', 'icon' => '🌾'],
     ];
 } elseif ($isIbu) {
     $menus = [

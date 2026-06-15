@@ -12,15 +12,82 @@ class Satuan
 
     public function all()
     {
-        $query = "SELECT * FROM satuan ORDER BY nama_satuan ASC";
-        $result = mysqli_query($this->db, $query);
+        $query = mysqli_query(
+            $this->db,
+            "SELECT * FROM satuan ORDER BY nama_satuan ASC"
+        );
 
-        $data = [];
-        while ($row = mysqli_fetch_assoc($result)) {
-            $data[] = $row;
-        }
-
-        return $data;
+        return mysqli_fetch_all($query, MYSQLI_ASSOC);
     }
+
+    public function create($nama, $singkat)
+    {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "INSERT INTO satuan (nama_satuan, singkat)
+             VALUES (?, ?)"
+        );
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "ss",
+            $nama,
+            $singkat
+        );
+
+        return mysqli_stmt_execute($stmt);
+    }
+
+    public function find($id)
+{
+    $stmt = mysqli_prepare(
+        $this->db,
+        "SELECT * FROM satuan WHERE id_satuan = ?"
+    );
+
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    return mysqli_fetch_assoc($result);
 }
 
+public function update($id, $nama, $singkat)
+{
+    $stmt = mysqli_prepare(
+        $this->db,
+        "UPDATE satuan
+         SET nama_satuan = ?, singkat = ?
+         WHERE id_satuan = ?"
+    );
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "ssi",
+        $nama,
+        $singkat,
+        $id
+    );
+
+    return mysqli_stmt_execute($stmt);
+}
+
+public function delete($id)
+{
+    $stmt = mysqli_prepare(
+        $this->db,
+        "DELETE FROM satuan
+         WHERE id_satuan = ?"
+    );
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "i",
+        $id
+    );
+
+    return mysqli_stmt_execute($stmt);
+}
+
+}
