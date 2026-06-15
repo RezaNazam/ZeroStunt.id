@@ -120,6 +120,16 @@ class MasterController
         exit;
     }
 
+        public function riwayatEkonomi()
+    {
+        require '../views/master/petani/riwayat-ekonomi.php';
+    }
+
+    public function profilLahan()
+    {
+        require '../views/master/petani/profil-lahan.php';
+    }
+
     // --- Master: Gudang ---
     public function createGudang()
     {
@@ -250,6 +260,244 @@ class MasterController
         }
 
         header('Location: /master/gudang');
+        exit;
+    }
+
+    // --- Master: Komoditas Pangan ---
+    public function indexKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $komoditas = (new Komoditas())->all();
+        require '../views/master/komoditas/index.php';
+    }
+
+    public function createKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $satuanModel = new Satuan();
+        $satuans = $satuanModel->all();
+
+        require '../views/master/komoditas/create.php';
+    }
+
+    public function storeKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $nama_komoditas = trim($_POST['nama_komoditas'] ?? '');
+            $kategori_gizi = trim($_POST['kategori_gizi'] ?? '');
+            $id_satuan = isset($_POST['id_satuan']) ? (int) $_POST['id_satuan'] : 0;
+            $deskripsi = trim($_POST['deskripsi'] ?? '');
+
+            if ($nama_komoditas === '' || $kategori_gizi === '' || $id_satuan <= 0) {
+                $_SESSION['error'] = 'Nama komoditas, kategori gizi, dan satuan wajib diisi.';
+                header('Location: /master/komoditas/create');
+                exit;
+            }
+
+            $komoditasModel = new Komoditas();
+
+            if ($komoditasModel->create($nama_komoditas, $kategori_gizi, $id_satuan, $deskripsi)) {
+                $_SESSION['success'] = 'Komoditas berhasil ditambahkan.';
+                header('Location: /master/komoditas');
+                exit;
+            }
+
+            $_SESSION['error'] = 'Gagal menyimpan komoditas.';
+            header('Location: /master/komoditas/create');
+            exit;
+        }
+
+        header('Location: /master/komoditas/create');
+        exit;
+    }
+
+    public function editKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_komoditas = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+        if (!$id_komoditas) {
+            header('Location: /master/komoditas');
+            exit;
+        }
+
+        $komoditas = (new Komoditas())->findById($id_komoditas);
+
+        if (!$komoditas) {
+            $_SESSION['error'] = 'Data komoditas tidak ditemukan.';
+            header('Location: /master/komoditas');
+            exit;
+        }
+
+        $satuanModel = new Satuan();
+        $satuans = $satuanModel->all();
+
+        require '../views/master/komoditas/edit.php';
+    }
+
+    public function updateKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id_komoditas = isset($_POST['id_komoditas']) ? (int) $_POST['id_komoditas'] : null;
+            $nama_komoditas = trim($_POST['nama_komoditas'] ?? '');
+            $kategori_gizi = trim($_POST['kategori_gizi'] ?? '');
+            $id_satuan = isset($_POST['id_satuan']) ? (int) $_POST['id_satuan'] : 0;
+            $deskripsi = trim($_POST['deskripsi'] ?? '');
+
+            if (!$id_komoditas || $nama_komoditas === '' || $kategori_gizi === '' || $id_satuan <= 0) {
+                $_SESSION['error'] = 'Data komoditas tidak lengkap.';
+                header("Location: /master/komoditas/edit?id={$id_komoditas}");
+                exit;
+            }
+
+            $komoditasModel = new Komoditas();
+
+            if ($komoditasModel->update($id_komoditas, $nama_komoditas, $kategori_gizi, $id_satuan, $deskripsi)) {
+                $_SESSION['success'] = 'Komoditas berhasil diperbarui.';
+                header('Location: /master/komoditas');
+                exit;
+            }
+
+            $_SESSION['error'] = 'Gagal memperbarui komoditas.';
+            header("Location: /master/komoditas/edit?id={$id_komoditas}");
+            exit;
+        }
+
+        header('Location: /master/komoditas');
+        exit;
+    }
+
+    public function deleteKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_komoditas = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+        if ($id_komoditas) {
+            (new Komoditas())->delete($id_komoditas);
+            $_SESSION['success'] = 'Komoditas berhasil dihapus.';
+        }
+
+        header('Location: /master/komoditas');
+        exit;
+    }
+
+    // --- Master: Satuan ---
+    public function indexSatuan()
+    {
+        if (
+            empty($_SESSION['user_id']) ||
+            $_SESSION['role'] !== ROLE_ADMIN
+        ) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $satuanModel = new Satuan();
+        $satuans = $satuanModel->all();
+
+        require '../views/master/satuan/index.php';
+    }
+
+    public function createSatuan()
+    {
+        if (
+            empty($_SESSION['user_id']) ||
+            $_SESSION['role'] !== ROLE_ADMIN
+        ) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        require '../views/master/satuan/create.php';
+    }
+
+    public function storeSatuan()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+            $nama = trim($_POST['nama_satuan']);
+            $singkat = trim($_POST['singkat']);
+
+            $satuanModel = new Satuan();
+
+            if ($satuanModel->create($nama, $singkat)) {
+
+                $_SESSION['success'] =
+                    'Satuan berhasil ditambahkan';
+
+                header('Location: /master/satuan');
+                exit;
+            }
+        }
+
+        header('Location: /master/satuan/create');
+    }
+
+    public function editSatuan()
+    {
+        $id = $_GET['id'] ?? 0;
+
+        $satuanModel = new Satuan();
+
+        $satuan = $satuanModel->find($id);
+
+        require '../views/master/satuan/edit.php';
+    }
+
+    public function updateSatuan()
+    {
+        $id = $_POST['id_satuan'];
+
+        $nama = trim($_POST['nama_satuan']);
+        $singkat = trim($_POST['singkat']);
+
+        $satuanModel = new Satuan();
+
+        $satuanModel->update(
+            $id,
+            $nama,
+            $singkat
+        );
+
+        header('Location: /master/satuan');
+        exit;
+    }
+
+    public function deleteSatuan()
+    {
+        $id = $_GET['id'] ?? 0;
+
+        $satuanModel = new Satuan();
+
+        $satuanModel->delete($id);
+
+        header('Location: /master/satuan');
         exit;
     }
 
@@ -484,93 +732,4 @@ class MasterController
         header('Location: /master/anak');
         exit;
     }
-    public function indexSatuan()
-{
-    if (empty($_SESSION['user_id']) ||
-        $_SESSION['role'] !== ROLE_ADMIN) {
-        header('Location: /auth/login');
-        exit;
-    }
-
-    $satuanModel = new Satuan();
-    $satuans = $satuanModel->all();
-
-    require '../views/master/satuan/index.php';
-}
-
-public function createSatuan()
-{
-    if (empty($_SESSION['user_id']) ||
-        $_SESSION['role'] !== ROLE_ADMIN) {
-        header('Location: /auth/login');
-        exit;
-    }
-
-    require '../views/master/satuan/create.php';
-}
-
-public function storeSatuan()
-{
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-        $nama = trim($_POST['nama_satuan']);
-        $singkat = trim($_POST['singkat']);
-
-        $satuanModel = new Satuan();
-
-        if ($satuanModel->create($nama, $singkat)) {
-
-            $_SESSION['success'] =
-                'Satuan berhasil ditambahkan';
-
-            header('Location: /master/satuan');
-            exit;
-        }
-    }
-
-    header('Location: /master/satuan/create');
-}
-
-public function editSatuan()
-{
-    $id = $_GET['id'] ?? 0;
-
-    $satuanModel = new Satuan();
-
-    $satuan = $satuanModel->find($id);
-
-    require '../views/master/satuan/edit.php';
-}
-
-public function updateSatuan()
-{
-    $id = $_POST['id_satuan'];
-
-    $nama = trim($_POST['nama_satuan']);
-    $singkat = trim($_POST['singkat']);
-
-    $satuanModel = new Satuan();
-
-    $satuanModel->update(
-        $id,
-        $nama,
-        $singkat
-    );
-
-    header('Location: /master/satuan');
-    exit;
-}
-
-public function deleteSatuan()
-{
-    $id = $_GET['id'] ?? 0;
-
-    $satuanModel = new Satuan();
-
-    $satuanModel->delete($id);
-
-    header('Location: /master/satuan');
-    exit;
-}
-
 }

@@ -13,14 +13,15 @@ if ($isAdmin) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '📊'],
         ['label' => 'Ibu & Anak', 'href' => '#', 'icon' => '👩‍👧'],
+        ['label' => 'Gudang', 'href' => '/master/gudang', 'icon' => '🛖'],
+        ['label' => 'Komoditas Pangan', 'href' => '/master/komoditas', 'icon' => '🥬'],
+        ['label' => 'Satuan', 'href' => '/master/satuan', 'icon' => '⚖️'],
+        ['label' => 'Pengguna', 'href' => '/master/users', 'icon' => '👤'],
         ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '🩺'],
         ['label' => 'Pengadaan', 'href' => '#', 'icon' => '📦'],
         ['label' => 'Distribusi', 'href' => '#', 'icon' => '🚚'],
         ['label' => 'Penyerahan', 'href' => '#', 'icon' => '🤝'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '📈'],
-        ['label' => 'Master Data', 'href' => '#', 'icon' => '🗂️'],
-        ['label' => 'Master Gudang', 'href' => '/master/gudang', 'icon' => '🏢'],
-        ['label' => 'Master Satuan', 'href' => '/master/satuan', 'icon' => '⚖️'],
     ];
 } elseif ($isKader) {
     $menus = [
@@ -33,9 +34,9 @@ if ($isAdmin) {
 } elseif ($isPetani) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '📊'],
-        ['label' => 'Pengadaan Saya', 'href' => '/pengadaan', 'icon' => '📦'],
-        ['label' => 'Riwayat Ekonomi', 'href' => '/riwayat-ekonomi', 'icon' => '💰'],
-        ['label' => 'Profil Lahan', 'href' => '/profil-lahan', 'icon' => '🌾'],
+        ['label' => 'Pengadaan Saya', 'href' => '/transaksi/pengadaan', 'icon' => '📦'],
+        ['label' => 'Riwayat Ekonomi', 'href' => '/master/petani/riwayat-ekonomi', 'icon' => '💰'],
+        ['label' => 'Profil Lahan', 'href' => '/master/petani/profil-lahan', 'icon' => '🌾'],
     ];
 } elseif ($isIbu) {
     $menus = [
@@ -77,7 +78,7 @@ if ($isAdmin) {
         </div>
 
         <!-- Menu -->
-        <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto">
+        <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto no-scrollbar">
             <?php foreach ($menus as $menu): ?>
                 <?php $isActive = $menu['href'] !== '#' && $currentUri === $menu['href']; ?>
 

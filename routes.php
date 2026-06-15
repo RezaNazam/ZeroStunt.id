@@ -32,7 +32,8 @@ return [
     // --- Master: Petani ---
     '/master/petani/create' => [MasterController::class, 'createPetani'],
     '/master/petani/store' => [MasterController::class, 'storePetani'],
-    '/pengadaan' => [DashboardController::class, 'pengadaan'],
+    '/master/petani/riwayat-ekonomi' => [MasterController::class, 'riwayatEkonomi'],
+    '/master/petani/profil-lahan' => [MasterController::class, 'profilLahan'],
 
     // --- Master: Gudang ---
     '/master/gudang' => [MasterController::class, 'indexGudang'],
@@ -42,6 +43,13 @@ return [
     '/master/gudang/update' => [MasterController::class, 'updateGudang'],
     '/master/gudang/delete' => [MasterController::class, 'deleteGudang'],
 
+    // --- Master: Komoditas ---
+    '/master/komoditas' => [MasterController::class, 'indexKomoditas'],
+    '/master/komoditas/create' => [MasterController::class, 'createKomoditas'],
+    '/master/komoditas/store' => [MasterController::class, 'storeKomoditas'],
+    '/master/komoditas/edit' => [MasterController::class, 'editKomoditas'],
+    '/master/komoditas/update' => [MasterController::class, 'updateKomoditas'],
+    '/master/komoditas/delete' => [MasterController::class, 'deleteKomoditas'],
     
     // --- Master: Satuan ---
     '/master/satuan' => [MasterController::class, 'indexSatuan'],
@@ -51,9 +59,8 @@ return [
     '/master/satuan/update' => [MasterController::class, 'updateSatuan'],
     '/master/satuan/delete' => [MasterController::class, 'deleteSatuan'],
 
-    // --- Additional ----
-    '/riwayat-ekonomi' => [DashboardController::class, 'riwayatEkonomi'],
-    '/profil-lahan' => [DashboardController::class, 'profilLahan'],
+    // --- Transaksi ---
+    '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan'],
 
     // --- (tambahkan route lain di sini saat development) ---
     '/landing' => [LandingController::class, 'index']
