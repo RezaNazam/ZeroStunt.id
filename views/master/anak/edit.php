@@ -69,7 +69,7 @@ ob_start();
                         <!-- NIK Anak -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">NIK Anak</label>
-                            <input type="text" name="NIK_anak" value="<?= htmlspecialchars($anak['NIK_anak'] ?? ''); ?>" maxlength="16" required placeholder="Masukkan 16 digit NIK" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none text-sm transition">
+                            <input type="text" name="NIK_anak" value="<?= htmlspecialchars($anak['NIK_anak'] ?? ''); ?>" inputmode="numeric"pattern="[0-9]{16}" minlength="16" maxlength="16" required placeholder="Masukkan 16 digit NIK" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none text-sm transition">
                         </div>
 
                         <!-- Nama Anak -->
