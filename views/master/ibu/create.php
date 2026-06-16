@@ -122,6 +122,9 @@
                                 id="nik_ibu"
                                 type="text"
                                 name="nik_ibu"
+                                inputmode="numeric"
+                                pattern="[0-9]{16}" 
+                                minlength="16"
                                 maxlength="16"
                                 required
                                 placeholder="Masukkan 16 digit NIK"

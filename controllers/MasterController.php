@@ -46,6 +46,12 @@ class MasterController
                 exit;
             }
 
+            if (!preg_match('/^\d{16}$/', $nik)) {
+                $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
+                header('Location: /master/ibu/create');
+                exit;
+            }
+
             // insert data ibu ke tabel ibu
             $ibuModel = new Ibu();
             if ($ibuModel->create($id_ibu, $nik, $nama, $telp, $alamat, $is_pregnant, $id_gudang)) {
@@ -573,6 +579,12 @@ class MasterController
                 exit;
             }
 
+            if (!preg_match('/^\d{16}$/', $nik_anak)) {
+                $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
+                header('Location: /master/anak/create');
+                exit;
+            }   
+
             // insert data anak ke tabel anak
             $anakModel = new Anak();
             if ($anakModel->create($id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)) {
@@ -678,6 +690,12 @@ class MasterController
                 header("Location: /master/anak/edit?id={$id_anak}");
                 exit;
             }
+
+            if (!preg_match('/^\d{16}$/', $nik_anak)) {
+                $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
+                header("Location: /master/anak/edit?id={$id_anak}");
+                exit;
+            }  
 
             if ($anakModel->update($id_anak, $id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)) {
                 $_SESSION['success'] = 'Data anak berhasil diperbarui.';
