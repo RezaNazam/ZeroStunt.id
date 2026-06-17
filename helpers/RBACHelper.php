@@ -48,8 +48,24 @@ class RBACHelper
     {
         self::require_login();
         if ($_SESSION['role'] !== $required_role) {
-            http_response_code(403);
-            die("403 - Access Denied: You don't have permission to access this page.");
+            ErrorHelper::show(
+                403,
+                'Akunmu tidak memiliki izin untuk mengakses halaman ini.'
+            );
+        }
+    }
+
+    public static function require_any_role(array $allowed_roles)
+    {
+        self::require_login();
+
+        $currentRole = $_SESSION['role'] ?? null;
+
+        if (!in_array($currentRole, $allowed_roles, true)) {
+            ErrorHelper::show(
+                403,
+                'Fitur ini tidak tersedia untuk role akun yang sedang kamu gunakan.'
+            );
         }
     }
 
@@ -80,9 +96,10 @@ class RBACHelper
     public static function enforce($action)
     {
         if (!self::can($action)) {
-            http_response_code(403);
-            die("403 - Access Denied.");
+            ErrorHelper::show(
+                403,
+                'Akunmu tidak memiliki izin untuk mengakses halaman ini.'
+            );
         }
     }
 }
-?>
