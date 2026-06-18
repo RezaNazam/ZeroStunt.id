@@ -117,28 +117,28 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-teal-50 p-6 rounded-3xl border border-teal-100">
-                        <div class="text-3xl mb-4">🐟</div>
+                        <div class="text-3xl mb-4 text-teal-600"><i class="fa-solid fa-fish-fins"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Ikan Nila Segar</h3>
                         <p class="text-sm text-gray-500 mb-3">Protein Hewani</p>
                         <span class="text-xs bg-white text-teal-700 px-3 py-1 rounded-full font-semibold">Satuan: Kg</span>
                     </div>
 
                     <div class="bg-amber-50 p-6 rounded-3xl border border-amber-100">
-                        <div class="text-3xl mb-4">🥚</div>
+                        <div class="text-3xl mb-4 text-amber-600"><i class="fa-solid fa-egg"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Telur Ayam Kampung</h3>
                         <p class="text-sm text-gray-500 mb-3">Protein + Mikronutrien</p>
                         <span class="text-xs bg-white text-amber-700 px-3 py-1 rounded-full font-semibold">Satuan: Butir</span>
                     </div>
 
                     <div class="bg-green-50 p-6 rounded-3xl border border-green-100">
-                        <div class="text-3xl mb-4">🥬</div>
+                        <div class="text-3xl mb-4 text-green-600"><i class="fa-solid fa-leaf"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Sayur Hijau</h3>
                         <p class="text-sm text-gray-500 mb-3">Vitamin & Mineral</p>
                         <span class="text-xs bg-white text-green-700 px-3 py-1 rounded-full font-semibold">Satuan: Kg</span>
                     </div>
 
                     <div class="bg-blue-50 p-6 rounded-3xl border border-blue-100">
-                        <div class="text-3xl mb-4">🌱</div>
+                        <div class="text-3xl mb-4 text-blue-600"><i class="fa-solid fa-seedling"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Kacang-kacangan</h3>
                         <p class="text-sm text-gray-500 mb-3">Protein Nabati</p>
                         <span class="text-xs bg-white text-blue-700 px-3 py-1 rounded-full font-semibold">Satuan: Kg</span>
@@ -166,9 +166,9 @@
 
                 <!-- Supply Chain Steps -->
                 <div class="grid md:grid-cols-4 gap-6">
-                    <div class="relative bg-white rounded-3xl p-6 border border-amber-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-3xl mb-5">
-                            🌾
+                    <div class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
+                        <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-3xl mb-5">
+                            <i class="fa-solid fa-wheat-awn"></i>
                         </div>
 
                         <span class="inline-block px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold mb-4">
@@ -188,9 +188,9 @@
                         </div>
                     </div>
 
-                    <div class="relative bg-white rounded-3xl p-6 border border-teal-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center text-3xl mb-5">
-                            📦
+                    <div class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
+                        <div class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-3xl mb-5">
+                            <i class="fa-solid fa-box-archive"></i>
                         </div>
 
                         <span class="inline-block px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-bold mb-4">
@@ -210,9 +210,9 @@
                         </div>
                     </div>
 
-                    <div class="relative bg-white rounded-3xl p-6 border border-green-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center text-3xl mb-5">
-                            🚚
+                    <div class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
+                        <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-3xl mb-5">
+                            <i class="fa-solid fa-truck"></i>
                         </div>
 
                         <span class="inline-block px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold mb-4">
@@ -232,9 +232,9 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-3xl mb-5">
-                            👩‍👧
+                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
+                        <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl mb-5">
+                            <i class="fa-solid fa-person-breastfeeding"></i>
                         </div>
 
                         <span class="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-4">
@@ -359,8 +359,8 @@
                     <!-- Feature 1 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center text-3xl">
-                                📈
+                            <div class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-3xl">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
                             </div>
 
                             <span class="px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-bold">
@@ -381,8 +381,8 @@
                     <!-- Feature 2 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center text-3xl">
-                                🌱
+                            <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-3xl">
+                                <i class="fa-solid fa-seedling"></i>
                             </div>
 
                             <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold">
@@ -403,8 +403,8 @@
                     <!-- Feature 3 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-3xl">
-                                📦
+                            <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-3xl">
+                                <i class="fa-solid fa-box-archive"></i>
                             </div>
 
                             <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">
@@ -425,8 +425,8 @@
                     <!-- Feature 4 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-3xl">
-                                📊
+                            <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl">
+                                <i class="fa-solid fa-chart-simple"></i>
                             </div>
 
                             <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
@@ -447,8 +447,8 @@
                     <!-- Feature 5 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-3xl">
-                                🛡️
+                            <div class="w-14 h-14 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-3xl">
+                                <i class="fa-solid fa-shield-halved"></i>
                             </div>
 
                             <span class="px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-bold">
@@ -469,8 +469,8 @@
                     <!-- Feature 6 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-3xl">
-                                ❤️
+                            <div class="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-3xl">
+                                <i class="fa-solid fa-hand-holding-heart"></i>
                             </div>
 
                             <span class="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold">
@@ -511,9 +511,9 @@
                 <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Role 1 -->
                     <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
-                        <div class="bg-gradient-to-br from-teal-600 to-teal-800 p-6">
+                        <div class="bg-gradient-to-br from-teal-700 to-teal-900 p-6">
                             <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
-                                🛡️
+                                <i class="fa-solid fa-user-shield"></i>
                             </div>
 
                             <h3 class="text-xl font-bold text-white">
@@ -545,9 +545,9 @@
 
                     <!-- Role 2 -->
                     <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
-                        <div class="bg-gradient-to-br from-green-500 to-green-700 p-6">
+                        <div class="bg-gradient-to-br from-green-600 to-green-800 p-6">
                             <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
-                                👥
+                                <i class="fa-solid fa-users"></i>
                             </div>
 
                             <h3 class="text-xl font-bold text-white">
@@ -579,9 +579,9 @@
 
                     <!-- Role 3 -->
                     <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
-                        <div class="bg-gradient-to-br from-amber-500 to-amber-700 p-6">
+                        <div class="bg-gradient-to-br from-amber-600 to-amber-800 p-6">
                             <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
-                                🌾
+                                <i class="fa-solid fa-wheat-awn"></i>
                             </div>
 
                             <h3 class="text-xl font-bold text-white">
@@ -613,9 +613,9 @@
 
                     <!-- Role 4 -->
                     <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-700 p-6">
+                        <div class="bg-gradient-to-br from-blue-600 to-blue-800 p-6">
                             <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
-                                👩‍👧
+                                <i class="fa-solid fa-person-breastfeeding"></i>
                             </div>
 
                             <h3 class="text-xl font-bold text-white">

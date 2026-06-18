@@ -1,5 +1,4 @@
 /*! tailwindcss v4.3.0 | MIT License | https://tailwindcss.com */
-@import url("https://unpkg.com/lucide-static@latest/font/lucide.css");
 @layer properties;
 :root {
   --font-size: 16px;
@@ -616,6 +615,9 @@
   .h-4 {
     height: calc(var(--spacing) * 4);
   }
+  .h-5 {
+    height: calc(var(--spacing) * 5);
+  }
   .h-6 {
     height: calc(var(--spacing) * 6);
   }
@@ -654,6 +656,9 @@
   }
   .w-4 {
     width: calc(var(--spacing) * 4);
+  }
+  .w-5 {
+    width: calc(var(--spacing) * 5);
   }
   .w-6 {
     width: calc(var(--spacing) * 6);
@@ -1520,6 +1525,13 @@
   .peer-checked\:ring-teal-100 {
     &:is(:where(.peer):checked ~ *) {
       --tw-ring-color: var(--teal-100);
+    }
+  }
+  .hover\:border-teal-500 {
+    &:hover {
+      @media (hover: hover) {
+        border-color: var(--teal-500);
+      }
     }
   }
   .hover\:border-teal-600 {

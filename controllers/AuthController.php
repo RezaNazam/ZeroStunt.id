@@ -22,6 +22,7 @@ class AuthController
                 exit;
             }
 
+            // validasi simbol di username
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
                 $_SESSION['error'] = 'Username hanya boleh berisi huruf, angka, dan underscore.';
                 header('Location: /auth/register');
@@ -62,6 +63,7 @@ class AuthController
 
             $role = $_POST['role'] ?? 'Ibu';
 
+            // penentuan role Ibu/Petani   
             if (!in_array($role, ['Ibu', 'Petani'])) {
                 $_SESSION['error'] = 'Role tidak valid.';
                 header('Location: /auth/register');
