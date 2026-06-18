@@ -19,6 +19,15 @@ return [
     '/dashboard' => [DashboardController::class, 'index'],
 
     // --- MASTER DATA ---
+
+    // --- Master: User ---
+    '/master/users' => [MasterController::class, 'indexUsers', [ROLE_ADMIN]],
+    '/master/users/create' => [MasterController::class, 'createUsers', [ROLE_ADMIN]],
+    '/master/users/store' => [MasterController::class, 'storeUsers', [ROLE_ADMIN]],
+    '/master/users/edit' => [MasterController::class, 'editUsers', [ROLE_ADMIN]],
+    '/master/users/update' => [MasterController::class, 'updateUsers', [ROLE_ADMIN]],
+    '/master/users/delete' => [MasterController::class, 'deleteUsers', [ROLE_ADMIN]],
+
     // -- Master: Ibu ---
     '/master/ibu/create' => [MasterController::class, 'createIbu', [ROLE_IBU]],
     '/master/ibu/store' => [MasterController::class, 'storeIbu', [ROLE_IBU]],

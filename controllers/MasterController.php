@@ -5,6 +5,185 @@ class MasterController
 
     // --- MASTER DATA ---
 
+
+    // --- Master: User ---
+
+    // fungsi tampilin semua pengguna
+    public function indexUsers()
+    {
+        // validasi biar cuma Admin yang bisa masuk
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $userModel = new User();
+        $users = $userModel->all();
+
+        require '../views/master/user/index.php';
+    }
+
+    // form tambah user baru (admin bisa tambah kader, admin bisa tambah admin laionnya)
+    public function createUsers()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        require '../views/master/user/create.php';
+    }
+
+
+    // fungsi stor ke database
+    public function storeUsers()
+    {
+        // pastiiin yg login admin
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $username = trim($_POST['username'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $roleInput = $_POST['role'] ?? 'Admin';
+
+            // Validasi input kosong
+            if ($username === '' || $password === '') {
+                $_SESSION['error'] = 'Username dan Password wajib diisi.';
+                header('Location: /master/users/create');
+                exit;
+            }
+
+            // Validasi keamanan: Kunci role input hanya boleh Admin atau Kader
+            if (!in_array($roleInput, ['Admin', 'Kader'])) {
+                $_SESSION['error'] = 'Role tidak valid.';
+                header('Location: /master/users/create');
+                exit;
+            }
+
+            $userModel = new User();
+
+            // Validasi duplikasi, Cek apakah username sudah terdaftar
+            if ($userModel->findByUsername($username)) {
+                $_SESSION['error'] = 'Username sudah digunakan, silakan cari nama lain.';
+                header('Location: /master/users/create');
+                exit;
+            }
+
+            // fungsi buat akun create di model user
+            if ($userModel->create($username, $password, $roleInput)) {
+                $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
+                header('Location: /master/users');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Gagal menyimpan data pengguna.';
+                header('Location: /master/users/create');
+                exit;
+            }
+        }
+    }
+
+    // nampilin form edit user
+    public function editUsers()
+    {
+        // pastiin yg login admin
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        // Ambil ID User dari parameter URL (?id=...)
+        $id_user = isset($_GET['id']) ? (int) $_GET['id'] : null;
+        if (!$id_user) {
+            header('Location: /master/users');
+            exit;
+        }
+
+        $userModel = new User();
+        $user = $userModel->findById($id_user);
+
+        if (!$user) {
+            $_SESSION['error'] = 'Data pengguna tidak ditemukan.';
+            header('Location: /master/users');
+            exit;
+        }
+
+        require '../views/master/user/edit.php';
+    }
+
+    // proses updatdata user
+    public function updateUsers()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id_user = (int) ($_POST['id_user'] ?? 0);
+            $username = trim($_POST['username'] ?? '');
+            $roleInput = $_POST['role'] ?? '';
+
+            if ($id_user === 0 || $username === '' || !in_array($roleInput, ['Admin', 'Kader'])) {
+                $_SESSION['error'] = 'Data input tidak valid.';
+                header("Location: /master/users/edit?id={$id_user}");
+                exit;
+            }
+
+            $userModel = new User();
+
+            // cegah Admin yang sedang aktif menurunkan role-nya sendiri secara tidak sengaja
+            if ($id_user === (int) $_SESSION['user_id'] && $roleInput !== 'Admin') {
+                $_SESSION['error'] = 'Anda tidak diperbolehkan menurunkan hak akses akun Anda sendiri.';
+                header("Location: /master/users/edit?id={$id_user}");
+                exit;
+            }
+
+            if ($userModel->update($id_user, $username, $roleInput)) {
+                $_SESSION['success'] = 'Data pengguna berhasil diperbarui.';
+                header('Location: /master/users');
+                exit;
+            }
+
+            $_SESSION['error'] = 'Gagal memperbarui data pengguna.';
+            header("Location: /master/users/edit?id={$id_user}");
+            exit;
+        }
+    }
+
+    // hapus user (admin/kader)
+    public function deleteUsers()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_user = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+        // cegah Admin menghapus dirinya sendiri
+        if ($id_user === (int) $_SESSION['user_id']) {
+            $_SESSION['error'] = 'Anda tidak bisa menghapus akun Anda sendiri yang sedang digunakan.';
+            header('Location: /master/users');
+            exit;
+        }
+
+        if ($id_user) {
+            $userModel = new User();
+            if ($userModel->delete($id_user)) {
+                $_SESSION['success'] = 'Pengguna berhasil dihapus dari sistem.';
+            } else {
+                $_SESSION['error'] = 'Gagal menghapus pengguna.';
+            }
+        }
+
+        header('Location: /master/users');
+        exit;
+    }
+
+
     // --- Master: Ibu ---
 
     // fungsi create ibu
@@ -126,7 +305,7 @@ class MasterController
         exit;
     }
 
-        public function riwayatEkonomi()
+    public function riwayatEkonomi()
     {
         require '../views/master/petani/riwayat-ekonomi.php';
     }
@@ -144,6 +323,10 @@ class MasterController
             exit;
         }
 
+        $userModel = new User();
+        $allUsers = $userModel->all();
+        $kaders = array_filter($allUsers, fn($user) => $user['role'] === ROLE_KADER);
+
         require '../views/master/gudang/create.php';
     }
 
@@ -159,7 +342,9 @@ class MasterController
             $lokasi_gudang = trim($_POST['lokasi_gudang'] ?? '');
             $jenis_gudang = $_POST['jenis_gudang'] ?? 'Pusat';
             $alamat_lengkap = trim($_POST['alamat_lengkap'] ?? '');
-            $nama_pengelola = trim($_POST['nama_pengelola'] ?? '');
+            $nama_pengelola_select = $_POST['nama_pengelola_select'] ?? '';
+            $nama_pengelola_text = trim($_POST['nama_pengelola_text'] ?? '');
+            $nama_pengelola = ($nama_pengelola_select === 'other') ? $nama_pengelola_text : $nama_pengelola_select;
 
             if ($nama_gudang === '' || $lokasi_gudang === '' || $alamat_lengkap === '') {
                 $_SESSION['error'] = 'Nama gudang, lokasi, dan alamat wajib diisi.';
@@ -170,7 +355,7 @@ class MasterController
             $gudangModel = new Gudang();
             if ($gudangModel->create($nama_gudang, $lokasi_gudang, $jenis_gudang, $alamat_lengkap, $nama_pengelola)) {
                 $_SESSION['success'] = 'Gudang berhasil ditambahkan.';
-                header('Location: /dashboard');
+                header('Location: /master/gudang');
                 exit;
             }
 
@@ -213,6 +398,10 @@ class MasterController
             exit;
         }
 
+        $userModel = new User();
+        $allUsers = $userModel->all();
+        $kaders = array_filter($allUsers, fn($user) => $user['role'] === ROLE_KADER);
+
         require '../views/master/gudang/edit.php';
     }
 
@@ -229,7 +418,9 @@ class MasterController
             $lokasi_gudang = trim($_POST['lokasi_gudang'] ?? '');
             $jenis_gudang = $_POST['jenis_gudang'] ?? 'Pusat';
             $alamat_lengkap = trim($_POST['alamat_lengkap'] ?? '');
-            $nama_pengelola = trim($_POST['nama_pengelola'] ?? '');
+            $nama_pengelola_select = $_POST['nama_pengelola_select'] ?? '';
+            $nama_pengelola_text = trim($_POST['nama_pengelola_text'] ?? '');
+            $nama_pengelola = ($nama_pengelola_select === 'other') ? $nama_pengelola_text : $nama_pengelola_select;
 
             if (!$id_gudang || $nama_gudang === '' || $lokasi_gudang === '' || $alamat_lengkap === '') {
                 $_SESSION['error'] = 'Data gudang tidak lengkap.';
@@ -567,9 +758,9 @@ class MasterController
                 $id_ibu = (int) ($_POST['id_ibu'] ?? 0);
             }
 
-            $nik_anak      = trim($_POST['NIK_anak'] ?? '');
-            $nama_anak     = trim($_POST['nama_anak'] ?? '');
-            $tgl_lahir     = trim($_POST['tgl_lahir'] ?? '');
+            $nik_anak = trim($_POST['NIK_anak'] ?? '');
+            $nama_anak = trim($_POST['nama_anak'] ?? '');
+            $tgl_lahir = trim($_POST['tgl_lahir'] ?? '');
             $jenis_kelamin = $_POST['jenis_kelamin'] ?? '';
 
             // validasi input anak
@@ -583,7 +774,7 @@ class MasterController
                 $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
                 header('Location: /master/anak/create');
                 exit;
-            }   
+            }
 
             // insert data anak ke tabel anak
             $anakModel = new Anak();
@@ -625,7 +816,7 @@ class MasterController
         }
 
         // Keamanan: Jika role Ibu, pastikan anak ini adalah miliknya
-        if ($_SESSION['role'] === ROLE_IBU && (int)$anak['id_ibu'] !== (int)$_SESSION['user_id']) {
+        if ($_SESSION['role'] === ROLE_IBU && (int) $anak['id_ibu'] !== (int) $_SESSION['user_id']) {
             $_SESSION['error'] = 'Anda tidak memiliki akses ke data anak ini.';
             header('Location: /master/anak');
             exit;
@@ -670,19 +861,19 @@ class MasterController
 
             // Keamanan: Jika role Ibu, pastikan anak ini adalah miliknya dan id_ibu dipaksa dari session
             if ($_SESSION['role'] === ROLE_IBU) {
-                if ((int)$anak['id_ibu'] !== (int)$_SESSION['user_id']) {
+                if ((int) $anak['id_ibu'] !== (int) $_SESSION['user_id']) {
                     $_SESSION['error'] = 'Anda tidak memiliki akses ke data anak ini.';
                     header('Location: /master/anak');
                     exit;
                 }
-                $id_ibu = (int)$_SESSION['user_id'];
+                $id_ibu = (int) $_SESSION['user_id'];
             } else {
-                $id_ibu = (int)($_POST['id_ibu'] ?? $anak['id_ibu']);
+                $id_ibu = (int) ($_POST['id_ibu'] ?? $anak['id_ibu']);
             }
 
-            $nik_anak      = trim($_POST['NIK_anak'] ?? '');
-            $nama_anak     = trim($_POST['nama_anak'] ?? '');
-            $tgl_lahir     = trim($_POST['tgl_lahir'] ?? '');
+            $nik_anak = trim($_POST['NIK_anak'] ?? '');
+            $nama_anak = trim($_POST['nama_anak'] ?? '');
+            $tgl_lahir = trim($_POST['tgl_lahir'] ?? '');
             $jenis_kelamin = $_POST['jenis_kelamin'] ?? '';
 
             if ($id_ibu === 0 || $nik_anak === '' || $nama_anak === '' || $tgl_lahir === '' || $jenis_kelamin === '') {
@@ -695,7 +886,7 @@ class MasterController
                 $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
                 header("Location: /master/anak/edit?id={$id_anak}");
                 exit;
-            }  
+            }
 
             if ($anakModel->update($id_anak, $id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)) {
                 $_SESSION['success'] = 'Data anak berhasil diperbarui.';
@@ -735,7 +926,7 @@ class MasterController
         }
 
         // Keamanan: Jika role Ibu, pastikan anak ini adalah miliknya
-        if ($_SESSION['role'] === ROLE_IBU && (int)$anak['id_ibu'] !== (int)$_SESSION['user_id']) {
+        if ($_SESSION['role'] === ROLE_IBU && (int) $anak['id_ibu'] !== (int) $_SESSION['user_id']) {
             $_SESSION['error'] = 'Anda tidak memiliki akses untuk menghapus data anak ini.';
             header('Location: /master/anak');
             exit;
