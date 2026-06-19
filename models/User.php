@@ -14,7 +14,7 @@ class User
     // ambil semua data user
     public function all(): array
     {
-        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users ORDER BY role ASC");
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users WHERE deleted_at IS NULL ORDER BY role ASC");
         if (!$stmt) {
             return [];
         }
@@ -52,7 +52,7 @@ class User
     // ambik data user by id buat edit sama validas
     public function findByid($id_user)
     {
-        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users WHERE id_user = ? LIMIT 1");
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users WHERE id_user = ? AND deleted_at IS NULL LIMIT 1");
         if (!$stmt) {
             return null;
         }
@@ -69,7 +69,7 @@ class User
     // buat updatte user
     public function update($id_user)
     {
-        $stmt = mysqli_prepare($this->db, "UPDATE users SET username = ?, role = ? WHERE id_user = ?");
+        $stmt = mysqli_prepare($this->db, "UPDATE users SET username = ?, role = ? WHERE id_user = ? AND deleted_at IS NULL");
         if (!$stmt) {
             return false;
         }
@@ -84,7 +84,7 @@ class User
     // buat delete user
     public function delete($id_user)
     {
-        $stmt = mysqli_prepare($this->db, "DELETE FROM users WHERE id_user = ?");
+        $stmt = mysqli_prepare($this->db, "UPDATE users SET deleted_at = NOW(), is_active = 0 WHERE id_user = ? AND deleted_at IS NULL");
         if (!$stmt) {
             return false;
         }
@@ -102,7 +102,7 @@ class User
     public function isProfileComplete($userId, $role)
     {
         if ($role === ROLE_IBU) {
-            $stmt = mysqli_prepare($this->db, "SELECT id_ibu FROM ibu WHERE id_ibu = ? ");
+            $stmt = mysqli_prepare($this->db, "SELECT id_ibu FROM ibu WHERE id_ibu = ? AND deleted_at IS NULL LIMIT 1");
 
             if (!$stmt) {
                 return false;
@@ -119,7 +119,7 @@ class User
         }
 
         if ($role === ROLE_PETANI) {
-            $stmt = mysqli_prepare($this->db, "SELECT id_petani FROM petani_lokal WHERE id_petani = ? ");
+            $stmt = mysqli_prepare($this->db, "SELECT id_petani FROM petani_lokal WHERE id_petani = ? LIMIT 1");
 
             if (!$stmt) {
                 return false;
@@ -140,7 +140,7 @@ class User
     // cari by username buat login
     public function findByUsername($username)
     {
-        $stmt = mysqli_prepare($this->db, "SELECT * FROM users WHERE username = ? LIMIT 1");
+        $stmt = mysqli_prepare($this->db, "SELECT * FROM users WHERE username = ? AND deleted_at IS NULL LIMIT 1");
         if (!$stmt) {
             return null;
         }

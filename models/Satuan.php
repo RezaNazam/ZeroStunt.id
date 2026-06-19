@@ -14,7 +14,7 @@ class Satuan
     {
         $query = mysqli_query(
             $this->db,
-            "SELECT * FROM satuan ORDER BY nama_satuan ASC"
+            "SELECT * FROM satuan WHERE is_deleted = 0 ORDER BY nama_satuan ASC"
         );
 
         return mysqli_fetch_all($query, MYSQLI_ASSOC);
@@ -39,55 +39,55 @@ class Satuan
     }
 
     public function find($id)
-{
-    $stmt = mysqli_prepare(
-        $this->db,
-        "SELECT * FROM satuan WHERE id_satuan = ?"
-    );
+    {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "SELECT * FROM satuan WHERE id_satuan = ? AND is_deleted = 0 LIMIT 1"
+        );
 
-    mysqli_stmt_bind_param($stmt, "i", $id);
-    mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        mysqli_stmt_execute($stmt);
 
-    $result = mysqli_stmt_get_result($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
-    return mysqli_fetch_assoc($result);
-}
+        return mysqli_fetch_assoc($result);
+    }
 
-public function update($id, $nama, $singkat)
-{
-    $stmt = mysqli_prepare(
-        $this->db,
-        "UPDATE satuan
+    public function update($id, $nama, $singkat)
+    {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "UPDATE satuan
          SET nama_satuan = ?, singkat = ?
-         WHERE id_satuan = ?"
-    );
+         WHERE id_satuan = ? AND is_deleted = 0"
+        );
 
-    mysqli_stmt_bind_param(
-        $stmt,
-        "ssi",
-        $nama,
-        $singkat,
-        $id
-    );
+        mysqli_stmt_bind_param(
+            $stmt,
+            "ssi",
+            $nama,
+            $singkat,
+            $id
+        );
 
-    return mysqli_stmt_execute($stmt);
-}
+        return mysqli_stmt_execute($stmt);
+    }
 
-public function delete($id)
-{
-    $stmt = mysqli_prepare(
-        $this->db,
-        "DELETE FROM satuan
-         WHERE id_satuan = ?"
-    );
+    public function delete($id)
+    {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "UPDATE satuan
+             SET is_deleted = 1
+             WHERE id_satuan = ?"
+        );
 
-    mysqli_stmt_bind_param(
-        $stmt,
-        "i",
-        $id
-    );
+        mysqli_stmt_bind_param(
+            $stmt,
+            "i",
+            $id
+        );
 
-    return mysqli_stmt_execute($stmt);
-}
-
+        return mysqli_stmt_execute($stmt);
+    }
 }
