@@ -1,5 +1,12 @@
 <?php
 require_once '../views/components/metric-card.php';
+require_once '../models/Pengadaan.php';
+
+
+$pengadaanModel = new Pengadaan();
+$idPetani = $pengadaanModel->getIdPetaniByUsername($_SESSION['username']);
+
+$totalPengadaanAktif = $pengadaanModel->countAktif($idPetani);
 
 $pageTitle = 'Dashboard Petani';
 $pageSubtitle = 'Ringkasan pengadaan, pendapatan, dan komoditas pangan lokal.';
@@ -7,7 +14,7 @@ $pageSubtitle = 'Ringkasan pengadaan, pendapatan, dan komoditas pangan lokal.';
 $metrics = [
     [
         'title' => 'Pengadaan Aktif',
-        'value' => '3',
+        'value' => $totalPengadaanAktif,
         'caption' => 'Kontrak sedang berjalan',
         'icon' => '📦',
         'tone' => 'teal',

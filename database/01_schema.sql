@@ -149,6 +149,35 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Table structure for table `pengadaan`
+--
+
+CREATE TABLE `pengadaan` (
+    id_pengadaan INT AUTO_INCREMENT PRIMARY KEY,
+    id_petani INT NULL,
+    id_komoditas INT NOT NULL,
+    jumlah DECIMAL(10,2) NOT NULL,
+    posyandu VARCHAR(100) NOT NULL,
+
+    status ENUM(
+        'Tersedia',
+        'Sudah Diambil'
+    ) DEFAULT 'Tersedia',
+
+    tanggal_pengadaan TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_pengadaan_petani
+        FOREIGN KEY (id_petani)
+        REFERENCES petani_lokal(id_petani),
+
+    CONSTRAINT fk_pengadaan_komoditas
+        FOREIGN KEY (id_komoditas)
+        REFERENCES komoditas_pangan(id_komoditas)
+);
+
+-- --------------------------------------------------------
+
+--
 -- Indexes for dumped tables
 --
 
