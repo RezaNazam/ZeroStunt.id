@@ -1,24 +1,44 @@
 <?php
+require_once '../models/Pengadaan.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$pengadaanModel = new Pengadaan();
+
+/*
+    HANDLE BUTTON ACC (UPDATE DATABASE)
+*/
+if (isset($_POST['ambil'])) {
+
+    $idPengadaan = (int) $_POST['id_pengadaan'];
+    $idPetani = $_SESSION['user_id']; // FIX INI
+
+    $pengadaanModel->ambil($idPengadaan, $idPetani);
+
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    exit;
+}
+
+/*
+    AMBIL DATA TERBARU DARI DATABASE
+    (INI YANG BIKIN STATUS TIDAK KEMBALI LAGI)
+*/
+$pengadaan = $pengadaanModel->getAll();
 
 $pageTitle = 'Pengadaan Saya';
 $pageSubtitle = 'Pilih pengadaan komoditas yang tersedia dari posyandu.';
 
-$pengadaan = [
-    [
-        'komoditas' => 'Beras Premium',
-        'jumlah' => '100 Kg',
-        'posyandu' => 'Posyandu Mawar',
-        'status' => 'Tersedia',
-        'badge' => 'green'
-    ],
-    [
-        'komoditas' => 'Telur Ayam',
-        'jumlah' => '250 Butir',
-        'posyandu' => 'Posyandu Melati',
-        'status' => 'Sudah Diambil',
-        'badge' => 'red'
-    ]
-];
+$limit = 5;
+
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
+$totalData = $pengadaanModel->countAll();
+$totalPage = ceil($totalData / $limit);
+
+$pengadaan = $pengadaanModel->getAll($limit, $offset);
 
 ob_start();
 ?>
@@ -51,10 +71,10 @@ ob_start();
 
             <tbody class="divide-y divide-gray-100">
 
-                <?php foreach ($pengadaan as $row): ?>
+                <?php foreach ($pengadaan as $index => $row): ?>
 
                     <?php
-                    $badgeClass = $row['badge'] === 'green'
+                    $badgeClass = $row['status'] === 'Tersedia'
                         ? 'bg-green-50 text-green-700'
                         : 'bg-red-50 text-red-700';
                     ?>
@@ -62,7 +82,7 @@ ob_start();
                     <tr class="hover:bg-gray-50 transition">
 
                         <td class="px-6 py-4 font-semibold text-gray-900">
-                            <?= $row['komoditas']; ?>
+                            <?= htmlspecialchars($row['nama_komoditas']); ?>
                         </td>
 
                         <td class="px-6 py-4 text-gray-500">
@@ -82,12 +102,15 @@ ob_start();
                         <td class="px-6 py-4">
 
                             <?php if ($row['status'] === 'Tersedia'): ?>
+                                
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="id_pengadaan" value="<?= $row['id_pengadaan'] ?>">
 
-                                <button
-                                    onclick="openModal()"
-                                    class="px-4 py-2 rounded-xl border border-gray-200">
-                                    ACC
-                                </button>
+                                    <button type="submit" name="ambil"
+                                        class="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
+                                        ACC
+                                    </button>
+                                </form>
 
                             <?php else: ?>
 
@@ -108,71 +131,23 @@ ob_start();
             </tbody>
 
         </table>
+        <div class="flex justify-center gap-2 mt-6">
+
+            <?php for ($i = 1; $i <= $totalPage; $i++): ?>
+                <a href="?page=<?= $i ?>"
+                class="px-3 py-1 rounded-lg border <?= ($i == $page) ? 'bg-green-500 text-white' : 'bg-white' ?>">
+                    <?= $i ?>
+                </a>
+            <?php endfor; ?>
+
+        </div>
 
     </div>
 
 </section>
-
-<!-- Modal -->
-<div id="pengadaanModal"
-    class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-
-    <div class="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md">
-
-        <h2 class="text-xl font-extrabold text-gray-900 mb-4">
-            Konfirmasi Pengadaan
-        </h2>
-
-        <div class="space-y-4 mb-6">
-
-            <div class="bg-green-50 rounded-2xl p-4">
-                <p class="text-sm text-green-700">Komoditas</p>
-                <p class="font-bold text-green-900">Beras Premium</p>
-            </div>
-
-            <div class="bg-blue-50 rounded-2xl p-4">
-                <p class="text-sm text-blue-700">Jumlah</p>
-                <p class="font-bold text-blue-900">100 Kg</p>
-            </div>
-
-            <div class="bg-amber-50 rounded-2xl p-4">
-                <p class="text-sm text-amber-700">Posyandu</p>
-                <p class="font-bold text-amber-900">Posyandu Mawar</p>
-            </div>
-
-        </div>
-
-        <div class="flex justify-end gap-3">
-
-            <button
-                onclick="closeModal()"
-                class="px-4 py-2 rounded-xl border border-gray-200">
-                Batal
-            </button>
-
-            <button
-                class="px-4 py-2 rounded-xl border border-gray-200">
-                Ya, Saya Ambil
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-<script>
-function openModal() {
-    document.getElementById('pengadaanModal').classList.remove('hidden');
-}
-
-function closeModal() {
-    document.getElementById('pengadaanModal').classList.add('hidden');
-}
-</script>
+</div>  
 
 <?php
 $content = ob_get_clean();
 require '../views/layouts/dashboard.php';
 ?>
-```

@@ -694,9 +694,24 @@ class MasterController
 
         $satuanModel->delete($id);
 
-        header('Location: /master/satuan');
-        exit;
-    }
+    header('Location: /master/satuan');
+    exit;
+}
+
+public function ambil()
+{
+    $idPengadaan = $_POST['id_pengadaan'];
+
+    $pengadaanModel = new Pengadaan();
+
+    $pengadaanModel->ambil(
+        $idPengadaan,
+        $_SESSION['id_petani']
+    );
+
+    header('Location: /dashboard/pengadaan');
+    exit;
+}
 
     // --- Master: Anak ---
     public function indexAnak()
