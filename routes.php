@@ -37,6 +37,8 @@ return [
     // -- Master: Ibu ---
     '/master/ibu/create' => [MasterController::class, 'createIbu', [ROLE_IBU]],
     '/master/ibu/store' => [MasterController::class, 'storeIbu', [ROLE_IBU]],
+    '/master/ibu/riwayat-periksa' => [MasterController::class, 'riwayatPeriksa', [ROLE_IBU]],
+    '/master/ibu/histori-bantuan' => [MasterController::class, 'historiBantuan', [ROLE_IBU]],
 
     // --- Master: Anak ---
     '/master/anak' => [MasterController::class, 'indexAnak', [ROLE_IBU]],
@@ -75,6 +77,9 @@ return [
     '/master/satuan/edit' => [MasterController::class, 'editSatuan', [ROLE_ADMIN]],
     '/master/satuan/update' => [MasterController::class, 'updateSatuan', [ROLE_ADMIN]],
     '/master/satuan/delete' => [MasterController::class, 'deleteSatuan', [ROLE_ADMIN]],
+
+    // --- Master: Stok Posyandu ---
+    '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_KADER]],
 
     // --- Transaksi ---
     '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan', [ROLE_PETANI]],

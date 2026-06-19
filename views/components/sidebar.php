@@ -29,7 +29,7 @@ if ($isAdmin) {
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
         ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
         ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
-        ['label' => 'Stok Posyandu', 'href' => '#', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
+        ['label' => 'Stok Posyandu', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isPetani) {
@@ -43,8 +43,8 @@ if ($isAdmin) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
         ['label' => 'Data Anak', 'href' => '/master/anak', 'icon' => '<i class="fa-solid fa-baby"></i>'],
-        ['label' => 'Histori Bantuan', 'href' => '#', 'icon' => '<i class="fa-solid fa-gift"></i>'],
-        ['label' => 'Riwayat Periksa', 'href' => '#', 'icon' => '<i class="fa-solid fa-clipboard-list"></i>'],
+        ['label' => 'Histori Bantuan', 'href' => '/master/ibu/histori-bantuan', 'icon' => '<i class="fa-solid fa-gift"></i>'],
+        ['label' => 'Riwayat Periksa', 'href' => '/master/ibu/riwayat-periksa', 'icon' => '<i class="fa-solid fa-clipboard-list"></i>'],
     ];
 }
 ?>

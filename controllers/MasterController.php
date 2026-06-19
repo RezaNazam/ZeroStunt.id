@@ -259,6 +259,21 @@ class MasterController
         exit;
     }
 
+    public function riwayatPeriksa()
+    {
+        require '../views/master/ibu/riwayat-periksa.php';
+    }
+
+    public function historiBantuan()
+    {
+        require '../views/master/ibu/histori-bantuan.php';
+    }
+
+    public function stokPosyandu()
+    {
+        require '../views/master/kader/stok.php';
+    }
+
     // --- Master: Petani ---
     public function createPetani()
     {
