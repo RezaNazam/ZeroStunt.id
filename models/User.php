@@ -14,7 +14,7 @@ class User
     // ambil semua data user
     public function all(): array
     {
-        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users WHERE deleted_at IS NULL ORDER BY role ASC");
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active, created_at FROM users WHERE deleted_at IS NULL ORDER BY role ASC");
         if (!$stmt) {
             return [];
         }
@@ -52,7 +52,7 @@ class User
     // ambik data user by id buat edit sama validas
     public function findByid($id_user)
     {
-        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users WHERE id_user = ? AND deleted_at IS NULL LIMIT 1");
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active, created_at FROM users WHERE id_user = ? AND deleted_at IS NULL LIMIT 1");
         if (!$stmt) {
             return null;
         }
@@ -180,4 +180,25 @@ class User
 
         return null;
     }
+
+    public function updateProfile($id_user, $username)
+{
+    $stmt = mysqli_prepare(
+        $this->db,
+        "UPDATE users
+         SET username = ?
+         WHERE id_user = ?
+         AND deleted_at IS NULL"
+    );
+
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, 'si', $username, $id_user);
+    $executed = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    return $executed;
+}
 }
