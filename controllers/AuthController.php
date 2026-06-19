@@ -15,6 +15,45 @@ class AuthController
                 exit;
             }
 
+            // validasi username
+            if (strlen($username) < 4 || strlen($username) > 30) {
+                $_SESSION['error'] = 'Username harus terdiri dari 4 sampai 30 karakter.';
+                header('Location: /auth/register');
+                exit;
+            }
+
+            // validasi simbol di username
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+                $_SESSION['error'] = 'Username hanya boleh berisi huruf, angka, dan underscore.';
+                header('Location: /auth/register');
+                exit;
+            }
+
+            // Validasi panjang password
+            $passwordLength = strlen($password);
+
+            if ($passwordLength < 8) {
+                $_SESSION['error'] = 'Password minimal harus terdiri dari 8 karakter.';
+                header('Location: /auth/register');
+                exit;
+            }
+
+            if ($passwordLength > 64) {
+                $_SESSION['error'] = 'Password maksimal terdiri dari 64 karakter.';
+                header('Location: /auth/register');
+                exit;
+            }
+
+            // Password harus mengandung huruf dan angka
+            $hasLetter = preg_match('/[a-zA-Z]/', $password);
+            $hasNumber = preg_match('/[0-9]/', $password);
+
+            if (!$hasLetter || !$hasNumber) {
+                $_SESSION['error'] = 'Password harus mengandung kombinasi huruf dan angka.';
+                header('Location: /auth/register');
+                exit;
+            }
+
             // Validasi konfirmasi password
             if ($password !== $confirmPassword) {
                 $_SESSION['error'] = 'Password dan konfirmasi harus sama.';
@@ -24,6 +63,7 @@ class AuthController
 
             $role = $_POST['role'] ?? 'Ibu';
 
+            // penentuan role Ibu/Petani   
             if (!in_array($role, ['Ibu', 'Petani'])) {
                 $_SESSION['error'] = 'Role tidak valid.';
                 header('Location: /auth/register');

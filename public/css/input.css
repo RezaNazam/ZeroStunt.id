@@ -1,4 +1,3 @@
-@import "./theme.css";
-@import "tailwindcss";
-
+@import './theme.css';
+@import 'tailwindcss';
 @source "../../views";

@@ -9,7 +9,28 @@ class User
         $this->db = $koneksi;
     }
 
-    public function create($username, $password, $role = 'admin')
+    // --- Master User func Model ---
+
+    // ambil semua data user
+    public function all(): array
+    {
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users ORDER BY role ASC");
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $users = mysqli_fetch_all(result: $result, mode: MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt);
+
+        return $users;
+    }
+
+    // func register dengan default role admin
+
+    // fungsi ini bisa buat regis maupun buat admin dan kader
+    public function create($username, $password, $role = 'Admin')
     {
         if ($this->findByUsername($username)) {
             return false;
@@ -28,6 +49,56 @@ class User
         return $executed;
     }
 
+    // ambik data user by id buat edit sama validas
+    public function findByid($id_user)
+    {
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active FROM users WHERE id_user = ? LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $id_user);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $user = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+
+        return $user;
+    }
+
+    // buat updatte user
+    public function update($id_user)
+    {
+        $stmt = mysqli_prepare($this->db, "UPDATE users SET username = ?, role = ? WHERE id_user = ?");
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'ssi', $username, $role, $id_user);
+        $executed = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        return $executed;
+    }
+
+    // buat delete user
+    public function delete($id_user)
+    {
+        $stmt = mysqli_prepare($this->db, "DELETE FROM users WHERE id_user = ?");
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $id_user);
+        $executed = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        return $executed;
+    }
+
+    // --- AUTH N REGIS ---
+
+    // lengkapin profil
     public function isProfileComplete($userId, $role)
     {
         if ($role === ROLE_IBU) {
@@ -66,6 +137,7 @@ class User
         return true;
     }
 
+    // cari by username buat login
     public function findByUsername($username)
     {
         $stmt = mysqli_prepare($this->db, "SELECT * FROM users WHERE username = ? LIMIT 1");
@@ -82,6 +154,8 @@ class User
         return $user;
     }
 
+
+    // seeder admin kalo blom ada
     public function ensureAdminExists()
     {
         $admin = $this->findByUsername('admin');

@@ -1,0 +1,906 @@
+================================================================================
+ZEROSTUNT.ID — REKAPAN BUSINESS CONTEXT
+FILE: REKAPAN_BUSINESS_CONTEXT.txt
+PURPOSE: Problem statement, ERD, PDM, relasi, business logic, constraints
+VERSION: 1.0 FINAL
+================================================================================
+
+## 1. PROBLEM STATEMENT
+
+### Latar Belakang
+```
+Indonesia memiliki tingkat stunting tinggi (~24% pada 2022)
+Stunting = chronic malnutrition (height-for-age < -2 SD WHO 2006)
+Dampak: Kognitif berkembang lambat, produktivitas rendah, biaya healthcare tinggi
+
+ROOT CAUSES:
+├─ Supply chain pangan lokal tidak terkoneksi
+├─ Petani lokal kena tengkulak (margin rendah)
+├─ Posyandu tidak track pertumbuhan secara sistematis
+├─ Data tracking tersebar, tidak terintegrasi
+└─ Ibu tidak tahu anak mereka berisiko stunting sampai terlambat
+```
+
+### Solusi yang Diusulkan
+```
+ZeroStunt.id = Sistem Terpadu:
+
+Supply Chain Integration:
+  Petani Lokal → Puskesmas (Gudang Pusat) → Posyandu → Ibu+Anak
+  (eliminasi tengkulak, transparansi harga, stabilitas pendapatan petani)
+
+Growth Tracking:
+  Kader screening anak (BB, TB, LK) → Auto-hitung Z-Score WHO 2006
+  → Auto-set status gizi (Berisiko/Kurang/Normal)
+  → Auto-set prioritas paket gizi (1/2/3)
+
+Distribution:
+  Otomatis alokasi paket gizi sesuai prioritas
+  Tracking distribusi real-time
+  Laporan konsumsi & tren pertumbuhan
+
+Innovation Alignment:
+  ✅ RIRN 2017-2045: Ketahanan pangan + diversifikasi pertanian lokal
+  ✅ SDG Goal 2: Zero Hunger
+  ✅ SDG Goal 3: Good Health
+```
+
+---
+
+## 2. STAKEHOLDER & GEOGRAPHIC SCOPE
+
+### Stakeholder Matrix
+```
+┌─────────────────┬──────────────────────────────────┬─────────────────────┐
+│ STAKEHOLDER     │ PERAN                            │ ACCESS SYSTEM       │
+├─────────────────┼──────────────────────────────────┼─────────────────────┤
+│ Admin Puskesmas │ Super user, master data mgmt     │ ROLE_ADMIN (Full)   │
+│ Kader Posyandu  │ Screening anak, distribusi paket │ ROLE_KADER (Own)    │
+│ Petani Lokal    │ Supply komoditas pangan          │ ROLE_PETANI (Own)   │
+│ Ibu/Anak        │ Beneficiary, track growth        │ ROLE_IBU (Read-only)│
+└─────────────────┴──────────────────────────────────┴─────────────────────┘
+```
+
+### Geographic Scope (Pilot Phase)
+```
+1 Puskesmas = Gudang Pusat (Central Warehouse)
+  │
+  ├─ 1 Kader = 1 Posyandu (Gudang Lokal)
+  │  └─ 30-50 Ibu + Anak per Posyandu
+  │
+  ├─ Posyandu Melati (Kader: Sari)
+  │  └─ ~40 Ibu+Anak
+  │
+  ├─ Posyandu Mawar (Kader: Dewi)
+  │  └─ ~45 Ibu+Anak
+  │
+  └─ Posyandu Anggrek (Kader: Tini)
+     └─ ~35 Ibu+Anak
+
+Total: 1 Puskesmas + 3 Posyandu + ~120 Ibu+Anak + 3-5 Petani
+
+Operational Cycle:
+  Screening: 1x/bulan per posyandu
+  Pengadaan: 1-2x/bulan
+  Distribusi: 1x/bulan sesuai hasil screening
+  Reporting: Akhir bulan
+```
+
+---
+
+## 3. ENTITY RELATIONSHIP DIAGRAM (ERD)
+
+### Simplified ERD (Text Format)
+
+```
+USERS (Auth Layer)
+  ├─ 1 ─── M ─→ IBU (Shared PK: id_user)
+  ├─ 1 ─── M ─→ PETANI_LOKAL (Shared PK: id_user)
+  └─ 1 ─── M ─→ ACTIVITY_LOG
+
+IBU
+  ├─ 1 ─── M ─→ ANAK (Parent-Child)
+  ├─ N ─── 1 ─→ GUDANG (Belong to Posyandu)
+  ├─ 1 ─── M ─→ TRANSAKSI_PENYERAHAN_BANTUAN
+  └─ is_pregnant: trigger prioritas 1
+
+ANAK
+  ├─ N ─── 1 ─→ IBU
+  ├─ 1 ─── M ─→ TRANSAKSI_PEMERIKSAAN
+  └─ st_gizi_skrg, skala_prioritas (auto-set by trigger)
+
+PETANI_LOKAL
+  ├─ 1 (User) ─── M ─→ TRANSAKSI_PENGADAAN
+  └─ no_rekening, kapasitas_panen_bulan
+
+GUDANG
+  ├─ 1 ─── M ─→ IBU (Posyandu warehouse assignment)
+  ├─ 1 ─── M ─→ STOK_LOG
+  ├─ jenis_gudang: 'Pusat' (1) atau 'Posyandu' (many)
+  ├─ Dapat menerima distribusi (dari Pusat ke Posyandu)
+  └─ Dapat mengirim distribusi (dari Pusat)
+
+KOMODITAS_PANGAN
+  ├─ N ─── 1 ─→ SATUAN
+  ├─ 1 ─── M ─→ PENGADAAN_DETAIL
+  ├─ 1 ─── M ─→ DISTRIBUSI_DETAIL
+  ├─ 1 ─── M ─→ PENYERAHAN_DETAIL
+  ├─ 1 ─── M ─→ STOK_LOG
+  └─ kategori_gizi: 'Protein Hewani', 'Vitamin', 'Mineral', etc
+
+SATUAN
+  ├─ 1 ─── M ─→ KOMODITAS_PANGAN
+  └─ nama_satuan: Kg, Butir, Liter, Paket
+
+STANDAR_PERTUMBUHAN (WHO 2006 Static Data)
+  ├─ PK: (usia_bulan, jenis_kelamin, tipe_standar)
+  ├─ tipe_standar: 'BB/U' (Weight-for-Age), 'TB/U' (Height-for-Age)
+  ├─ Lookup dari: TRANSAKSI_PEMERIKSAAN trigger
+  └─ Age range: 0-60 bulan
+
+TRANSAKSI_PEMERIKSAAN (Screening Header)
+  ├─ N ─── 1 ─→ ANAK
+  ├─ N ─── 1 ─→ GUDANG (posyandu yang screening)
+  ├─ Trigger: after_insert → hitung Z-Score, set status_gizi + prioritas
+  ├─ Z-Score BB/U: (actual_bb - median) / sd_1
+  ├─ Z-Score TB/U: (actual_tb - median) / sd_1
+  ├─ status_gizi: 'Berisiko Stunting' | 'Gizi Kurang' | 'Normal'
+  └─ skala_prioritas: 1 | 2 | 3 (untuk alokasi paket gizi)
+
+TRANSAKSI_PENGADAAN (Supply from Farmer Header)
+  ├─ N ─── 1 ─→ PETANI_LOKAL
+  ├─ N ─── 1 ─→ GUDANG (Gudang Pusat only)
+  ├─ 1 ─── M ─→ PENGADAAN_DETAIL
+  ├─ status_bayar: 'Pending' | 'Lunas'
+  └─ Trigger: after_insert_detail → increment stok_log qty_in
+
+PENGADAAN_DETAIL (Supply Items)
+  ├─ N ─── 1 ─→ TRANSAKSI_PENGADAAN
+  ├─ N ─── 1 ─→ KOMODITAS_PANGAN
+  └─ Trigger: after_insert → stok_log.qty_in += jumlah_pasok
+
+TRANSAKSI_DISTRIBUSI_INTERNAL (Internal Transfer Header)
+  ├─ N ─── 1 ─→ GUDANG (id_gudang_asal = Gudang Pusat)
+  ├─ N ─── 1 ─→ GUDANG (id_gudang_tujuan = Gudang Posyandu)
+  ├─ 1 ─── M ─→ DISTRIBUSI_DETAIL
+  ├─ status_kirim: 'Proses' | 'Diterima'
+  └─ Constraint: id_gudang_asal ≠ id_gudang_tujuan
+
+DISTRIBUSI_DETAIL (Transfer Items)
+  ├─ N ─── 1 ─→ TRANSAKSI_DISTRIBUSI_INTERNAL
+  ├─ N ─── 1 ─→ KOMODITAS_PANGAN
+  ├─ Trigger before: validasi stok asal cukup
+  └─ Trigger after: deduct asal qty_out, add tujuan qty_in
+
+TRANSAKSI_PENYERAHAN_BANTUAN (Aid Distribution to Mother Header)
+  ├─ N ─── 1 ─→ IBU
+  ├─ N ─── 1 ─→ GUDANG (Posyandu warehouse)
+  ├─ 1 ─── M ─→ PENYERAHAN_DETAIL
+  ├─ skala_prioritas: 1 | 2 | 3 (auto-lookup dari anak.skala_prioritas)
+  └─ Paket gizi auto-mapped berdasarkan prioritas
+
+PENYERAHAN_DETAIL (Aid Items to Mother)
+  ├─ N ─── 1 ─→ TRANSAKSI_PENYERAHAN_BANTUAN
+  ├─ N ─── 1 ─→ KOMODITAS_PANGAN
+  ├─ Trigger before: validasi stok posyandu cukup
+  └─ Trigger after: deduct stok posyandu qty_out
+
+STOK_LOG (Real-time Inventory)
+  ├─ Composite PK: (id_gudang, id_komoditas)
+  ├─ N ─── 1 ─→ GUDANG
+  ├─ N ─── 1 ─→ KOMODITAS_PANGAN
+  ├─ qty_current = qty_in - qty_out (GENERATED ALWAYS)
+  ├─ Updated by triggers (pengadaan, distribusi, penyerahan)
+  └─ Viewed by v_stok_gudang_realtime
+
+ACTIVITY_LOG (Audit Trail)
+  ├─ N ─── 1 ─→ USERS
+  ├─ event: 'CREATE_ANAK', 'UPDATE_STOK', etc
+  └─ For compliance & traceability
+```
+
+---
+
+## 4. PHYSICAL DATA MODEL (PDM) — DETAILED
+
+### Master Tables Detail
+
+```
+TABLE: users
+├─ PK: id_user (SERIAL)
+├─ UNIQUE: username
+├─ Columns:
+│  ├─ username VARCHAR(50) NOT NULL
+│  ├─ password VARCHAR(255) NOT NULL [bcrypt hash]
+│  ├─ role ENUM('Admin','Kader','Petani','Ibu') NOT NULL
+│  ├─ is_active TINYINT(1) DEFAULT 1
+│  └─ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+└─ Used by: Auth flow, RBAC
+
+TABLE: ibu
+├─ PK: id_ibu INT (FK → users.id_user) [Shared PK]
+├─ UNIQUE: NIK_ibu (CHAR16)
+├─ FK: id_gudang → gudang.id_gudang [NULL if not assigned]
+├─ Columns:
+│  ├─ NIK_ibu CHAR(16) NOT NULL
+│  ├─ nama_ibu VARCHAR(100) NOT NULL
+│  ├─ no_telp VARCHAR(15)
+│  ├─ alamat TEXT
+│  ├─ id_gudang INT [FK, nullable]
+│  ├─ is_pregnant TINYINT(1) DEFAULT 0
+│  │  └─ Trigger logic: If is_pregnant=1 → skala_prioritas=1 (auto)
+│  └─ tgl_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+└─ Constraint: ON DELETE RESTRICT (protect if anak exists)
+
+TABLE: anak
+├─ PK: id_anak (SERIAL)
+├─ FK: id_ibu → ibu.id_ibu (ON DELETE CASCADE)
+├─ Columns:
+│  ├─ id_ibu INT NOT NULL
+│  ├─ NIK_anak CHAR(16) [nullable, optional]
+│  ├─ nama_anak VARCHAR(100) NOT NULL
+│  ├─ tgl_lahir DATE NOT NULL
+│  ├─ jenis_kelamin ENUM('L','P') NOT NULL
+│  ├─ st_gizi_skrg VARCHAR(50)
+│  │  └─ Set by: after_insert_pemeriksaan trigger
+│  │     Values: 'Berisiko Stunting', 'Gizi Kurang', 'Normal'
+│  ├─ skala_prioritas ENUM('1','2','3')
+│  │  └─ Set by: after_insert_pemeriksaan trigger
+│  │     Logic: IF parent is_pregnant → 1
+│  │            ELSE IF zscore < -3 → 1
+│  │            ELSE IF zscore < -2 → 2
+│  │            ELSE → 3
+│  └─ tgl_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+└─ Constraint: ON DELETE CASCADE dari ibu
+
+TABLE: gudang
+├─ PK: id_gudang (SERIAL)
+├─ Columns:
+│  ├─ nama_gudang VARCHAR(100) NOT NULL
+│  ├─ lokasi_gudang TEXT
+│  ├─ jenis_gudang ENUM('Pusat','Posyandu') NOT NULL
+│  │  ├─ 'Pusat': Central warehouse (1 per puskesmas)
+│  │  │  └─ Receives from: petani (pengadaan_detail)
+│  │  │  └─ Sends to: posyandu (distribusi_internal)
+│  │  └─ 'Posyandu': Local distribution point (3-5 per region)
+│  │     └─ Receives from: pusat (distribusi_internal)
+│  │     └─ Sends to: ibu (penyerahan_bantuan)
+│  ├─ alamat_lengkap TEXT
+│  ├─ nama_pengelola VARCHAR(100)
+│  └─ tgl_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+└─ Referential: id_gudang referenced by (ibu, stok_log, pemeriksaan, distribusi)
+
+TABLE: komoditas_pangan
+├─ PK: id_komoditas (SERIAL)
+├─ UNIQUE: nama_komoditas
+├─ FK: id_satuan → satuan.id_satuan
+├─ Columns:
+│  ├─ nama_komoditas VARCHAR(100) NOT NULL UNIQUE
+│  ├─ kategori_gizi VARCHAR(50) [Protein, Vitamin, Mineral, etc]
+│  ├─ id_satuan INT NOT NULL
+│  ├─ deskripsi TEXT
+│  └─ tgl_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+├─ Hardcoded Items (v1):
+│  ├─ Ikan Nila Segar (Kg)
+│  ├─ Telur Ayam Kampung (Butir)
+│  ├─ Sayur Hijau (Kg)
+│  └─ Kacang Hijau (Kg)
+└─ Referenced by: pengadaan_detail, distribusi_detail, penyerahan_detail, stok_log
+
+TABLE: satuan
+├─ PK: id_satuan (SERIAL)
+├─ UNIQUE: nama_satuan
+├─ Columns:
+│  ├─ nama_satuan VARCHAR(50) NOT NULL UNIQUE
+│  ├─ singkat VARCHAR(10) NOT NULL
+│  └─ tgl_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+└─ Data: Kg, Butir, Liter, Paket
+
+TABLE: standar_pertumbuhan
+├─ Composite PK: (usia_bulan, jenis_kelamin, tipe_standar)
+├─ WHO 2006 Static Data (0-60 months, both genders, BB/U & TB/U)
+├─ Columns:
+│  ├─ usia_bulan TINYINT UNSIGNED (0-60)
+│  ├─ jenis_kelamin ENUM('L','P')
+│  ├─ tipe_standar ENUM('BB/U','TB/U')
+│  ├─ median DECIMAL(6,3)
+│  ├─ sd_plus_1 DECIMAL(6,3)
+│  ├─ sd_minus_1 DECIMAL(6,3)
+│  ├─ sd_minus_2 DECIMAL(6,3)
+│  └─ sd_minus_3 DECIMAL(6,3)
+└─ Lookup from: after_insert_pemeriksaan trigger
+   For Z-Score calculation
+```
+
+### Transaksi Tables Detail
+
+```
+TABLE: transaksi_pemeriksaan
+├─ PK: id_pemeriksaan (SERIAL)
+├─ FK: id_anak → anak.id_anak
+├─ FK: id_gudang_posyandu → gudang.id_gudang
+├─ Columns:
+│  ├─ id_anak INT NOT NULL
+│  ├─ id_gudang_posyandu INT NOT NULL [Posyandu yang screening]
+│  ├─ tgl_periksa DATE NOT NULL
+│  ├─ berat_badan DECIMAL(5,2) NOT NULL [Input]
+│  ├─ tinggi_badan DECIMAL(5,2) NOT NULL [Input]
+│  ├─ lingkar_kepala DECIMAL(5,2)
+│  ├─ z_score_bb_u DECIMAL(5,3) [Auto-calc by trigger]
+│  ├─ z_score_tb_u DECIMAL(5,3) [Auto-calc by trigger]
+│  ├─ status_gizi VARCHAR(50) [Auto-set by trigger]
+│  ├─ skala_prioritas ENUM('1','2','3') [Auto-set by trigger]
+│  ├─ keterangan TEXT
+│  └─ tgl_created TIMESTAMP
+├─ TRIGGER after_insert:
+│  ├─ Lookup standar_pertumbuhan (usia_bulan, jenis_kelamin, BB/U, TB/U)
+│  ├─ Calculate Z-Score = (actual - median) / (median - sd_minus_1)
+│  ├─ Determine status_gizi + skala_prioritas
+│  └─ UPDATE anak.st_gizi_skrg, anak.skala_prioritas
+└─ Business Logic:
+   IF is_pregnant → prioritas 1
+   ELSE IF z_score < -3 SD → 'Berisiko Stunting', prioritas 1
+   ELSE IF z_score < -2 SD → 'Gizi Kurang', prioritas 2
+   ELSE → 'Normal', prioritas 3
+
+TABLE: transaksi_pengadaan
+├─ PK: id_pengadaan (SERIAL)
+├─ UNIQUE: no_kontrak
+├─ FK: id_petani → petani_lokal.id_petani
+├─ FK: id_gudang → gudang.id_gudang [ALWAYS Pusat]
+├─ 1-to-M: pengadaan_detail
+├─ Columns:
+│  ├─ id_petani INT NOT NULL
+│  ├─ id_gudang INT NOT NULL [Gudang Pusat]
+│  ├─ no_kontrak VARCHAR(30) NOT NULL UNIQUE
+│  ├─ tgl_pengadaan DATE NOT NULL
+│  ├─ total_bayar DECIMAL(12,2) [Sum of pengadaan_detail.subtotal]
+│  ├─ status_bayar ENUM('Pending','Lunas') DEFAULT 'Pending'
+│  ├─ keterangan TEXT
+│  └─ tgl_created, tgl_updated TIMESTAMP
+└─ Trigger: after_insert_pengadaan_detail
+   → INSERT/UPDATE stok_log (gudang pusat, qty_in += amount)
+
+TABLE: pengadaan_detail
+├─ PK: id_det_pengadaan (SERIAL)
+├─ FK: id_pengadaan → transaksi_pengadaan.id_pengadaan (ON DELETE CASCADE)
+├─ FK: id_komoditas → komoditas_pangan.id_komoditas
+├─ Columns:
+│  ├─ id_pengadaan INT NOT NULL
+│  ├─ id_komoditas INT NOT NULL
+│  ├─ jumlah_pasok DECIMAL(10,2) NOT NULL
+│  ├─ harga_satuan DECIMAL(10,2) NOT NULL
+│  └─ subtotal DECIMAL(12,2) GENERATED ALWAYS AS (jumlah_pasok * harga_satuan)
+├─ TRIGGER after_insert:
+│  └─ stok_log.qty_in += jumlah_pasok (gudang pusat)
+└─ Business: Stock in from farmer
+
+TABLE: transaksi_distribusi_internal
+├─ PK: id_distribusi (SERIAL)
+├─ UNIQUE: no_surat_jalan
+├─ FK: id_gudang_asal → gudang.id_gudang [Gudang Pusat]
+├─ FK: id_gudang_tujuan → gudang.id_gudang [Gudang Posyandu]
+├─ 1-to-M: distribusi_detail
+├─ Columns:
+│  ├─ id_gudang_asal INT NOT NULL
+│  ├─ id_gudang_tujuan INT NOT NULL
+│  ├─ tgl_kirim DATE NOT NULL
+│  ├─ no_surat_jalan VARCHAR(30) NOT NULL UNIQUE
+│  ├─ status_kirim ENUM('Proses','Diterima') DEFAULT 'Proses'
+│  ├─ keterangan TEXT
+│  └─ tgl_created TIMESTAMP
+├─ CONSTRAINT: id_gudang_asal <> id_gudang_tujuan
+└─ Trigger: distribusi_detail (before & after)
+   BEFORE: Validate asal stock sufficient
+   AFTER: Deduct asal, add tujuan in stok_log
+
+TABLE: distribusi_detail
+├─ PK: id_det_dist (SERIAL)
+├─ FK: id_distribusi → transaksi_distribusi_internal (ON DELETE CASCADE)
+├─ FK: id_komoditas → komoditas_pangan.id_komoditas
+├─ Columns:
+│  ├─ id_distribusi INT NOT NULL
+│  ├─ id_komoditas INT NOT NULL
+│  └─ jumlah_kirim DECIMAL(10,2) NOT NULL
+├─ TRIGGER before_insert:
+│  └─ SELECT stok_log.qty_current WHERE asal
+│     IF qty_current < jumlah_kirim → SIGNAL ERROR
+├─ TRIGGER after_insert:
+│  ├─ UPDATE stok_log SET qty_out += jumlah_kirim (gudang asal)
+│  └─ INSERT/UPDATE stok_log (gudang tujuan, qty_in += jumlah_kirim)
+└─ Business: Internal warehouse transfer with validation
+
+TABLE: transaksi_penyerahan_bantuan
+├─ PK: id_penyerahan (SERIAL)
+├─ FK: id_ibu → ibu.id_ibu
+├─ FK: id_gudang_posyandu → gudang.id_gudang [Posyandu]
+├─ 1-to-M: penyerahan_detail
+├─ Columns:
+│  ├─ id_ibu INT NOT NULL
+│  ├─ id_gudang_posyandu INT NOT NULL
+│  ├─ tgl_penerimaan DATE NOT NULL
+│  ├─ skala_prioritas ENUM('1','2','3') NOT NULL
+│  │  └─ Auto-lookup dari anak.skala_prioritas (ibu's latest screening)
+│  ├─ paket_gizi VARCHAR(50)
+│  │  └─ Auto-mapped: Prioritas 1→Paket1, Prioritas 2→Paket2, etc
+│  ├─ keterangan TEXT
+│  └─ tgl_created TIMESTAMP
+├─ Hardcoded Paket Mapping:
+│  ├─ Prioritas 1: 1.5kg Ikan + 10 Telur
+│  ├─ Prioritas 2: 1.0kg Ikan + 8 Telur
+│  └─ Prioritas 3: 0.5kg Sayur + 3 Telur
+└─ Trigger: penyerahan_detail (before & after)
+   BEFORE: Validate posyandu stock sufficient
+   AFTER: Deduct stok posyandu
+
+TABLE: penyerahan_detail
+├─ PK: id_det_serah (SERIAL)
+├─ FK: id_penyerahan → transaksi_penyerahan_bantuan (ON DELETE CASCADE)
+├─ FK: id_komoditas → komoditas_pangan.id_komoditas
+├─ Columns:
+│  ├─ id_penyerahan INT NOT NULL
+│  ├─ id_komoditas INT NOT NULL
+│  └─ jumlah_serah DECIMAL(10,2) NOT NULL
+├─ TRIGGER before_insert:
+│  └─ Validate stok_log.qty_current (posyandu) >= jumlah_serah
+├─ TRIGGER after_insert:
+│  └─ UPDATE stok_log SET qty_out += jumlah_serah
+└─ Business: Aid distribution to mother with stock validation
+
+TABLE: stok_log
+├─ Composite PK: (id_gudang, id_komoditas)
+├─ FK: id_gudang → gudang.id_gudang (ON DELETE RESTRICT)
+├─ FK: id_komoditas → komoditas_pangan.id_komoditas (ON DELETE RESTRICT)
+├─ Columns:
+│  ├─ id_gudang INT NOT NULL
+│  ├─ id_komoditas INT NOT NULL
+│  ├─ qty_in DECIMAL(10,2) NOT NULL DEFAULT 0 [Updated by triggers]
+│  ├─ qty_out DECIMAL(10,2) NOT NULL DEFAULT 0 [Updated by triggers]
+│  ├─ qty_current DECIMAL(10,2) GENERATED ALWAYS AS (qty_in - qty_out) STORED
+│  └─ last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+├─ Updated by:
+│  ├─ after_insert_pengadaan_detail → qty_in (pusat)
+│  ├─ after_insert_distribusi_detail → qty_out (asal), qty_in (tujuan)
+│  └─ after_insert_penyerahan_detail → qty_out (posyandu)
+└─ Viewed by: v_stok_gudang_realtime
+
+TABLE: activity_log
+├─ PK: id_log (SERIAL)
+├─ FK: id_user → users.id_user (ON DELETE SET NULL)
+├─ Columns:
+│  ├─ id_user INT [nullable]
+│  ├─ event VARCHAR(100) NOT NULL
+│  ├─ id_ref INT [reference to main table]
+│  ├─ tabel_ref VARCHAR(50)
+│  ├─ keterangan TEXT
+│  └─ tgl_event TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+└─ Purpose: Audit trail for compliance
+```
+
+---
+
+## 5. DATABASE VIEWS (4 UNTUK REPORTING)
+
+### View 1: v_penyerapan_komoditas
+```sql
+Purpose: Track commodity absorption (in vs out)
+
+SELECT
+    k.id_komoditas,
+    k.nama_komoditas,
+    s.singkat AS satuan,
+    COALESCE(SUM(pd.jumlah_pasok), 0) AS total_masuk,
+    COALESCE(SUM(psd.jumlah_serah), 0) AS total_keluar,
+    COALESCE(SUM(pd.jumlah_pasok), 0) - COALESCE(SUM(psd.jumlah_serah), 0) AS sisa_stok
+FROM komoditas_pangan k
+JOIN satuan s ON k.id_satuan = s.id_satuan
+LEFT JOIN pengadaan_detail pd ON k.id_komoditas = pd.id_komoditas
+LEFT JOIN penyerahan_detail psd ON k.id_komoditas = psd.id_komoditas
+GROUP BY k.id_komoditas, k.nama_komoditas, s.singkat;
+
+Used by: ReportController→report1() - Penyerapan Komoditas
+```
+
+### View 2: v_stok_gudang_realtime
+```sql
+Purpose: Real-time inventory per warehouse per commodity
+
+SELECT
+    g.id_gudang,
+    g.nama_gudang,
+    g.jenis_gudang,
+    k.id_komoditas,
+    k.nama_komoditas,
+    s.singkat AS satuan,
+    sl.qty_in,
+    sl.qty_out,
+    sl.qty_current
+FROM stok_log sl
+JOIN gudang g ON sl.id_gudang = g.id_gudang
+JOIN komoditas_pangan k ON sl.id_komoditas = k.id_komoditas
+JOIN satuan s ON k.id_satuan = s.id_satuan
+ORDER BY g.nama_gudang, k.nama_komoditas;
+
+Used by: ReportController→report2() - Stok Gudang Realtime
+Alert zones: qty_current < threshold → Alert
+```
+
+### View 3: v_tren_pertumbuhan_wilayah
+```sql
+Purpose: Growth trend per posyandu per month
+
+SELECT
+    g.id_gudang,
+    g.nama_gudang,
+    YEAR(tp.tgl_periksa) AS tahun,
+    MONTH(tp.tgl_periksa) AS bulan,
+    ROUND(AVG(tp.berat_badan), 2) AS avg_bb,
+    ROUND(AVG(tp.tinggi_badan), 2) AS avg_tb,
+    COUNT(DISTINCT tp.id_anak) AS jumlah_anak,
+    SUM(CASE WHEN tp.status_gizi = 'Berisiko Stunting' THEN 1 ELSE 0 END) AS jml_stunting,
+    SUM(CASE WHEN tp.status_gizi = 'Gizi Kurang' THEN 1 ELSE 0 END) AS jml_gizi_kurang,
+    SUM(CASE WHEN tp.status_gizi = 'Normal' THEN 1 ELSE 0 END) AS jml_normal
+FROM transaksi_pemeriksaan tp
+JOIN gudang g ON tp.id_gudang_posyandu = g.id_gudang
+GROUP BY g.id_gudang, g.nama_gudang, YEAR(tp.tgl_periksa), MONTH(tp.tgl_periksa)
+ORDER BY tahun DESC, bulan DESC;
+
+Used by: ReportController→report3() - Tren Pertumbuhan
+Visualization: Line chart (avg BB, avg TB over time)
+```
+
+### View 4: v_ekonomi_mitra
+```sql
+Purpose: Farmer economic tracking (revenue + payment status)
+
+SELECT
+    pl.id_petani,
+    u.username AS nama_petani,
+    pl.nama_lahan,
+    COUNT(tp.id_pengadaan) AS jumlah_transaksi,
+    COALESCE(SUM(tp.total_bayar), 0) AS total_omzet,
+    COALESCE(SUM(CASE WHEN tp.status_bayar = 'Lunas' THEN tp.total_bayar ELSE 0 END), 0) AS sudah_bayar,
+    COALESCE(SUM(CASE WHEN tp.status_bayar = 'Pending' THEN tp.total_bayar ELSE 0 END), 0) AS belum_bayar
+FROM petani_lokal pl
+JOIN users u ON pl.id_petani = u.id_user
+LEFT JOIN transaksi_pengadaan tp ON pl.id_petani = tp.id_petani
+GROUP BY pl.id_petani, u.username, pl.nama_lahan
+ORDER BY total_omzet DESC;
+
+Used by: ReportController→report4() - Ekonomi Mitra
+Visualization: Bar chart (omzet per farmer)
+```
+
+---
+
+## 6. BUSINESS LOGIC & CONSTRAINTS
+
+### Z-Score Calculation Logic
+
+```
+Formula: Z-Score = (Actual Value - Median) / (Median - SD-1)
+
+Example:
+  Anak: Budi, 6 bulan, L, BB = 5.2 kg
+  Lookup standar (6 month, male, BB/U):
+    median = 7.934 kg
+    sd_minus_1 = 6.940 kg
+  Z-Score = (5.2 - 7.934) / (7.934 - 6.940)
+          = -2.734 / 0.994
+          = -2.75 SD
+  Status: 'Gizi Kurang' (between -2 and -3 SD)
+  Prioritas: 2
+
+Business Rule:
+  IF Z-Score < -3 SD → 'Berisiko Stunting', Prioritas 1
+  IF -3 <= Z-Score < -2 SD → 'Gizi Kurang', Prioritas 2
+  IF Z-Score >= -2 SD → 'Normal', Prioritas 3
+  IF ibu.is_pregnant = 1 → OVERRIDE to Prioritas 1 (regardless of Z-Score)
+```
+
+### Paket Gizi Allocation Logic
+
+```
+HARDCODED (tidak dari database, fixed di application):
+
+Prioritas 1 (Berisiko Stunting / Ibu Hamil):
+  ├─ Ikan Nila Segar: 1.5 kg
+  └─ Telur Ayam: 10 butir
+  Rationale: High protein + micronutrient dense
+
+Prioritas 2 (Gizi Kurang):
+  ├─ Ikan Nila Segar: 1.0 kg
+  └─ Telur Ayam: 8 butir
+  Rationale: Moderate protein support
+
+Prioritas 3 (Normal / Monitoring):
+  ├─ Sayur Hijau: 0.5 kg
+  └─ Telur Ayam: 3 butir
+  Rationale: Maintenance + micronutrient
+```
+
+### Stock Validation & Constraint Logic
+
+```
+BEFORE INSERT pengadaan_detail:
+  └─ No validation (farm supplies usually available)
+
+BEFORE INSERT distribusi_detail:
+  └─ VALIDATE: stok_log.qty_current (gudang_asal) >= jumlah_kirim
+     IF FAIL → SIGNAL SQLSTATE '45000' (prevent insert)
+
+BEFORE INSERT penyerahan_detail:
+  └─ VALIDATE: stok_log.qty_current (gudang_posyandu) >= jumlah_serah
+     IF FAIL → SIGNAL SQLSTATE '45000' (prevent insert)
+
+Purpose: Prevent over-allocation, ensure stock integrity
+```
+
+### Data Isolation Rules (RBAC + DB Level)
+
+```
+KADER:
+  ├─ Can see: Ibu + Anak in own posyandu (WHERE id_gudang = SESSION[gudang_id])
+  ├─ Can see: Own screening, distribution, penyerahan
+  └─ Cannot see: Other posyandu data
+
+PETANI:
+  ├─ Can see: Own pengadaan transactions
+  ├─ Can see: Own revenue (v_ekonomi_mitra)
+  └─ Cannot see: Other farmer data
+
+IBU:
+  ├─ Can see: Own anak + pemeriksaan history
+  ├─ Can see: Own penyerahan history
+  └─ Cannot see: Other ibu/anak data
+
+ADMIN:
+  └─ Can see: All data (no filter)
+
+Implementation:
+  ├─ Application level: WHERE clause in queries
+  ├─ SQL level: No explicit row-level security (v1)
+  └─ Escalation: Code review + RBACHelper enforcement
+```
+
+---
+
+## 7. KEY CONSTRAINTS
+
+### Domain Constraints
+
+```
+users.role:
+  ├─ ENUM('Admin', 'Kader', 'Petani', 'Ibu')
+  └─ Only these 4 values allowed, immutable
+
+gudang.jenis_gudang:
+  ├─ ENUM('Pusat', 'Posyandu')
+  ├─ 'Pusat': Exactly 1 per region (puskesmas)
+  └─ 'Posyandu': 3-5 per region (posyandu)
+
+anak.jenis_kelamin:
+  ├─ ENUM('L', 'P')
+  └─ Binary, required for WHO lookup
+
+anak.st_gizi_skrg:
+  ├─ Set by trigger after_insert_pemeriksaan
+  ├─ Values: 'Berisiko Stunting', 'Gizi Kurang', 'Normal'
+  └─ Immutable by user (auto-calculated)
+
+stok_log.qty_current:
+  ├─ GENERATED ALWAYS AS (qty_in - qty_out) STORED
+  └─ Virtual column, always calculated, never directly set
+```
+
+### Referential Integrity Constraints
+
+```
+ibu.id_gudang → gudang.id_gudang [ON DELETE SET NULL]
+  └─ If posyandu deleted, ibu's gudang becomes NULL (orphaned but not deleted)
+
+anak.id_ibu → ibu.id_ibu [ON DELETE CASCADE]
+  └─ If ibu deleted, all her children also deleted
+
+petani_lokal.id_petani → users.id_user [ON DELETE RESTRICT]
+  └─ Cannot delete user if petani record exists (protect data)
+
+pengadaan_detail.id_pengadaan → transaksi_pengadaan [ON DELETE CASCADE]
+  └─ If pengadaan header deleted, all detail rows also deleted
+
+distribusi_detail.id_distribusi → transaksi_distribusi_internal [ON DELETE CASCADE]
+penyerahan_detail.id_penyerahan → transaksi_penyerahan_bantuan [ON DELETE CASCADE]
+```
+
+### Uniqueness Constraints
+
+```
+users.username: UNIQUE NOT NULL
+  └─ No duplicate usernames
+
+ibu.NIK_ibu: UNIQUE NOT NULL
+  └─ No duplicate NIK (national ID)
+
+gudang: No explicit unique (allow duplicate names for different regions in future)
+
+komoditas_pangan.nama_komoditas: UNIQUE NOT NULL
+  └─ No duplicate commodity names
+
+transaksi_pengadaan.no_kontrak: UNIQUE NOT NULL
+  └─ Contract numbers are unique
+
+transaksi_distribusi_internal.no_surat_jalan: UNIQUE NOT NULL
+  └─ Transfer letter numbers are unique
+```
+
+### Check Constraints
+
+```
+transaksi_distribusi_internal:
+  CHECK (id_gudang_asal <> id_gudang_tujuan)
+  └─ Cannot transfer from warehouse to itself
+
+stok_log.qty_in >= 0, qty_out >= 0
+  └─ Stock cannot be negative (implicit via triggers)
+
+anak.tgl_lahir <= CURRENT_DATE
+  └─ Birth date cannot be in future
+```
+
+---
+
+## 8. SYSTEM SCOPE & LIMITATIONS (v1)
+
+### In Scope
+```
+✅ User registration (Ibu, Petani)
+✅ Role-based access control (4 roles)
+✅ Master data management (CRUD for entities)
+✅ Child screening (pemeriksaan → auto Z-Score)
+✅ Commodity procurement (from farmers)
+✅ Internal distribution (pusat → posyandu)
+✅ Aid distribution (posyandu → ibu)
+✅ Real-time inventory tracking
+✅ 4 reporting views (absorption, stock, trend, economics)
+✅ Multi-dashboard per role
+```
+
+### Out of Scope (v1)
+```
+❌ Mobile app (v2)
+❌ AI chatbot / Gemini integration (v2)
+❌ Real-time GPS tracking (v2)
+❌ Payment gateway integration (v2)
+❌ Physical quality inspection (v2)
+❌ Auto-allocation algorithm (v2)
+❌ EMR/SIMPUS integration (v2)
+❌ Predictive demand planning (v2)
+❌ Row-level security (v2, use code-level RBAC v1)
+❌ Historical audit trail (activity_log basic only)
+```
+
+## 9. RBAC MATRIX — DETAILED ACCESS CONTROL
+
+### Master Tables Access
+
+ADMIN:
+├─ users:            Full CRUD (create, read, update, delete)
+├─ ibu:              Full CRUD
+├─ anak:             Full CRUD (semua anak)
+├─ petani_lokal:     Full CRUD
+├─ gudang:           Full CRUD
+├─ komoditas:        Full CRUD
+├─ satuan:           Full CRUD
+└─ standar_pertumbuhan: Read-only (WHO reference data)
+
+KADER:
+├─ users:            No access
+├─ ibu:              Read-only (own posyandu only)
+├─ anak:             Read-only (anak dari ibu di own posyandu)
+├─ petani_lokal:     No access
+├─ gudang:           Read-only (own posyandu)
+├─ komoditas:        Read-only
+├─ satuan:           Read-only
+└─ standar_pertumbuhan: Read-only
+
+PETANI:
+├─ users:            Update own profile only
+├─ ibu:              No access
+├─ anak:             No access
+├─ petani_lokal:     Read own data only
+├─ gudang:           No access
+├─ komoditas:        No access
+├─ satuan:           No access
+└─ standar_pertumbuhan: No access
+
+IBU:
+├─ users:            Update own profile only
+├─ ibu:              Read own data only
+├─ anak:             Create own anak + Read own anak
+├─ petani_lokal:     No access
+├─ gudang:           No access
+├─ komoditas:        No access
+├─ satuan:           No access
+└─ standar_pertumbuhan: No access
+
+### Transaksi Tables Access
+
+ADMIN:
+├─ pemeriksaan:      Read all (dari semua posyandu)
+├─ pengadaan:        Full CRUD
+├─ distribusi:       Full CRUD
+└─ penyerahan:       Read all
+
+KADER:
+├─ pemeriksaan:      Create + Read own posyandu
+├─ pengadaan:        No access
+├─ distribusi:       Read own + Update status kirim
+└─ penyerahan:       Create + Read own posyandu
+
+PETANI:
+├─ pemeriksaan:      No access
+├─ pengadaan:        Read own contracts only
+├─ distribusi:       No access
+└─ penyerahan:       No access
+
+IBU:
+├─ pemeriksaan:      Read own anak screening history
+├─ pengadaan:        No access
+├─ distribusi:       No access
+└─ penyerahan:       Read own penyerahan history (bantuan yang diterima)
+
+### Report Views Access
+
+ADMIN:
+├─ v_penyerapan_komoditas:     Read (all)
+├─ v_stok_gudang_realtime:     Read (all)
+├─ v_tren_pertumbuhan_wilayah: Read (all)
+└─ v_ekonomi_mitra:            Read (all)
+
+KADER:
+├─ v_penyerapan_komoditas:     No access
+├─ v_stok_gudang_realtime:     Read (own posyandu only)
+├─ v_tren_pertumbuhan_wilayah: Read (own posyandu only)
+└─ v_ekonomi_mitra:            No access
+
+PETANI:
+├─ v_penyerapan_komoditas:     No access
+├─ v_stok_gudang_realtime:     No access
+├─ v_tren_pertumbuhan_wilayah: No access
+└─ v_ekonomi_mitra:            Read (own data only)
+
+IBU:
+├─ v_penyerapan_komoditas:     No access
+├─ v_stok_gudang_realtime:     No access
+├─ v_tren_pertumbuhan_wilayah: No access
+└─ v_ekonomi_mitra:            No access
+
+### Data Isolation Rules
+
+[Paste data isolation per role dengan contoh]
+
+### Multiple Children Handling
+
+Ibu bisa punya banyak record di tabel anak
+Relasi: 1 Ibu → Many Anak (1-to-M)
+
+Contoh:
+id_ibu | id_anak | nama_anak      | tgl_lahir
+-------|---------|----------------|----------
+1      | 10      | Budi Santoso   | 2023-01-15
+1      | 11      | Citra Dewi     | 2022-05-20
+1      | 12      | Dani Pratama   | 2021-11-10
+
+Ibu dengan id_ibu=1 punya 3 anak!
+
+// Di model
+$id_ibu = 5;
+$stmt = mysqli_prepare($koneksi, "SELECT COUNT(*) as jumlah FROM anak WHERE id_ibu = ?");
+mysqli_stmt_bind_param($stmt, 'i', $id_ibu);
+mysqli_stmt_execute($stmt);
+$result = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$jumlah_anak = $result['jumlah']; // Hasil: 3, 2, 1, dll
+---
+
+END OF REKAPAN BUSINESS CONTEXT
+Version: 1.0 FINAL

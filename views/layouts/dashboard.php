@@ -5,9 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle ?? 'Dashboard'); ?> - ZeroStunt.id</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="/css/tailwind.css" rel="stylesheet">
 
     <style>
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
         @media (min-width: 1024px) {
             body.sidebar-collapsed #dashboardSidebar {
                 width: 5rem;
@@ -42,12 +55,17 @@
 </head>
 
 <body class="bg-gray-50 text-gray-900 overflow-x-hidden">
-    <?php include __DIR__ . '/../components/sidebar.php'; ?>
+    <?php $hideSidebar = $hideSidebar ?? false; ?>
 
-    <div id="dashboardContent" class="min-h-screen lg:ml-72 transition-all duration-300">
+    <?php if (!$hideSidebar): ?>
+        <?php include __DIR__ . '/../components/sidebar.php'; ?>
+    <?php endif; ?>
+
+    <div id="dashboardContent" class="min-h-screen transition-all duration-300 <?= !$hideSidebar ? 'lg:ml-72' : ''; ?>">
+
         <?php include __DIR__ . '/../components/navbar.php'; ?>
 
-        <main class="p-6 lg:p-8">
+        <main class="<?= $hideSidebar ? 'p-6 lg:p-8' : 'p-6 lg:p-8'; ?>">
             <?= $content ?? ''; ?>
         </main>
     </div>

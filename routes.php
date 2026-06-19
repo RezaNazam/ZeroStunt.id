@@ -6,6 +6,9 @@
 // ============================================================
 
 return [
+    // --Public Routes--
+    // --- Landing Page ---
+    '/landing' => [LandingController::class, 'index'],
 
     // --- Auth ---
     '/auth/login' => [AuthController::class, 'login'],
@@ -17,37 +20,59 @@ return [
 
     // --- MASTER DATA ---
 
+    // --- Master: User ---
+    '/master/users' => [MasterController::class, 'indexUsers', [ROLE_ADMIN]],
+    '/master/users/create' => [MasterController::class, 'createUsers', [ROLE_ADMIN]],
+    '/master/users/store' => [MasterController::class, 'storeUsers', [ROLE_ADMIN]],
+    '/master/users/edit' => [MasterController::class, 'editUsers', [ROLE_ADMIN]],
+    '/master/users/update' => [MasterController::class, 'updateUsers', [ROLE_ADMIN]],
+    '/master/users/delete' => [MasterController::class, 'deleteUsers', [ROLE_ADMIN]],
+
     // -- Master: Ibu ---
-    '/master/ibu/create' => [MasterController::class, 'createIbu'],
-    '/master/ibu/store' => [MasterController::class, 'storeIbu'],
+    '/master/ibu/create' => [MasterController::class, 'createIbu', [ROLE_IBU]],
+    '/master/ibu/store' => [MasterController::class, 'storeIbu', [ROLE_IBU]],
+
+    // --- Master: Anak ---
+    '/master/anak' => [MasterController::class, 'indexAnak', [ROLE_IBU]],
+    '/master/anak/create' => [MasterController::class, 'createAnak', [ROLE_IBU]],
+    '/master/anak/store' => [MasterController::class, 'storeAnak', [ROLE_IBU]],
+    '/master/anak/edit' => [MasterController::class, 'editAnak', [ROLE_IBU]],
+    '/master/anak/update' => [MasterController::class, 'updateAnak', [ROLE_IBU]],
+    '/master/anak/delete' => [MasterController::class, 'deleteAnak', [ROLE_IBU]],
 
     // --- Master: Petani ---
-    '/master/petani/create' => [MasterController::class, 'createPetani'],
-    '/master/petani/store' => [MasterController::class, 'storePetani'],
-    '/pengadaan' => [DashboardController::class, 'pengadaan'],
+    '/master/petani/create' => [MasterController::class, 'createPetani', [ROLE_PETANI]],
+    '/master/petani/store' => [MasterController::class, 'storePetani', [ROLE_PETANI]],
+    '/master/petani/riwayat-ekonomi' => [MasterController::class, 'riwayatEkonomi', [ROLE_PETANI]],
+    '/master/petani/profil-lahan' => [MasterController::class, 'profilLahan', [ROLE_PETANI]],
 
     // --- Master: Gudang ---
-    '/master/gudang' => [MasterController::class, 'indexGudang'],
-    '/master/gudang/create' => [MasterController::class, 'createGudang'],
-    '/master/gudang/store' => [MasterController::class, 'storeGudang'],
-    '/master/gudang/edit' => [MasterController::class, 'editGudang'],
-    '/master/gudang/update' => [MasterController::class, 'updateGudang'],
-    '/master/gudang/delete' => [MasterController::class, 'deleteGudang'],
+    '/master/gudang' => [MasterController::class, 'indexGudang', [ROLE_ADMIN]],
+    '/master/gudang/create' => [MasterController::class, 'createGudang', [ROLE_ADMIN]],
+    '/master/gudang/store' => [MasterController::class, 'storeGudang', [ROLE_ADMIN]],
+    '/master/gudang/edit' => [MasterController::class, 'editGudang', [ROLE_ADMIN]],
+    '/master/gudang/update' => [MasterController::class, 'updateGudang', [ROLE_ADMIN]],
+    '/master/gudang/delete' => [MasterController::class, 'deleteGudang', [ROLE_ADMIN]],
 
-    
+    // --- Master: Komoditas ---
+    '/master/komoditas' => [MasterController::class, 'indexKomoditas', [ROLE_ADMIN]],
+    '/master/komoditas/create' => [MasterController::class, 'createKomoditas', [ROLE_ADMIN]],
+    '/master/komoditas/store' => [MasterController::class, 'storeKomoditas', [ROLE_ADMIN]],
+    '/master/komoditas/edit' => [MasterController::class, 'editKomoditas', [ROLE_ADMIN]],
+    '/master/komoditas/update' => [MasterController::class, 'updateKomoditas', [ROLE_ADMIN]],
+    '/master/komoditas/delete' => [MasterController::class, 'deleteKomoditas', [ROLE_ADMIN]],
+
     // --- Master: Satuan ---
-    '/master/satuan' => [MasterController::class, 'indexSatuan'],
-    '/master/satuan/create' => [MasterController::class, 'createSatuan'],
-    '/master/satuan/store' => [MasterController::class, 'storeSatuan'],
-    '/master/satuan/edit' => [MasterController::class, 'editSatuan'],
-    '/master/satuan/update' => [MasterController::class, 'updateSatuan'],
-    '/master/satuan/delete' => [MasterController::class, 'deleteSatuan'],
+    '/master/satuan' => [MasterController::class, 'indexSatuan', [ROLE_ADMIN]],
+    '/master/satuan/create' => [MasterController::class, 'createSatuan', [ROLE_ADMIN]],
+    '/master/satuan/store' => [MasterController::class, 'storeSatuan', [ROLE_ADMIN]],
+    '/master/satuan/edit' => [MasterController::class, 'editSatuan', [ROLE_ADMIN]],
+    '/master/satuan/update' => [MasterController::class, 'updateSatuan', [ROLE_ADMIN]],
+    '/master/satuan/delete' => [MasterController::class, 'deleteSatuan', [ROLE_ADMIN]],
 
-    // --- Additional ----
-    '/riwayat-ekonomi' => [DashboardController::class, 'riwayatEkonomi'],
-    '/profil-lahan' => [DashboardController::class, 'profilLahan'],
+    // --- Transaksi ---
+    '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan', [ROLE_PETANI]],
 
     // --- (tambahkan route lain di sini saat development) ---
-    '/landing' => [LandingController::class, 'index']
 
 ];
