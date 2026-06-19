@@ -13,7 +13,8 @@ class Komoditas
     public function all()
     {
         $query = "SELECT komoditas_pangan.*, satuan.nama_satuan FROM komoditas_pangan LEFT JOIN satuan 
-                    ON komoditas_pangan.id_satuan = satuan.id_satuan ORDER BY komoditas_pangan.id_komoditas DESC";
+                    ON komoditas_pangan.id_satuan = satuan.id_satuan AND satuan.is_deleted = 0
+                    WHERE komoditas_pangan.is_deleted = 0 ORDER BY komoditas_pangan.id_komoditas DESC";
         $result = mysqli_query($this->db, $query);
 
         $data = [];
@@ -26,7 +27,7 @@ class Komoditas
 
     public function findById($id_komoditas)
     {
-        $query = "SELECT * FROM komoditas_pangan WHERE id_komoditas = ? LIMIT 1";
+        $query = "SELECT * FROM komoditas_pangan WHERE id_komoditas = ? AND is_deleted = 0 LIMIT 1";
         $stmt = mysqli_prepare($this->db, $query);
 
         mysqli_stmt_bind_param($stmt, "i", $id_komoditas);
@@ -66,7 +67,7 @@ class Komoditas
                 kategori_gizi = ?,
                 id_satuan = ?,
                 deskripsi = ?
-            WHERE id_komoditas = ?
+            WHERE id_komoditas = ? AND is_deleted = 0
         ";
 
         $stmt = mysqli_prepare($this->db, $query);
@@ -85,7 +86,7 @@ class Komoditas
 
     public function delete($id_komoditas)
     {
-        $query = "DELETE FROM komoditas_pangan WHERE id_komoditas = ?";
+        $query = "UPDATE komoditas_pangan SET is_deleted = 1 WHERE id_komoditas = ?";
         $stmt = mysqli_prepare($this->db, $query);
 
         mysqli_stmt_bind_param($stmt, "i", $id_komoditas);

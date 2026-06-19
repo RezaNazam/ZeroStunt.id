@@ -40,7 +40,7 @@ class Ibu
 
     public function findByIdIbu($id_ibu)
     {
-        $stmt = mysqli_prepare($this->db, "SELECT * FROM ibu WHERE id_ibu = ? LIMIT 1");
+        $stmt = mysqli_prepare($this->db, "SELECT * FROM ibu WHERE id_ibu = ? AND deleted_at IS NULL LIMIT 1");
 
         if (!$stmt) {
             return null;
@@ -61,7 +61,7 @@ class Ibu
 
     public function all()
     {
-        $result = mysqli_query($this->db, "SELECT * FROM ibu ORDER BY nama_ibu ASC");
+        $result = mysqli_query($this->db, "SELECT * FROM ibu WHERE deleted_at IS NULL ORDER BY nama_ibu ASC");
         $ibus = [];
         while ($row = mysqli_fetch_assoc($result)) {
             $ibus[] = $row;

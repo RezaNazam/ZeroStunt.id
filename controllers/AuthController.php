@@ -110,6 +110,18 @@ class AuthController
                 exit;
             }
 
+            if ($user && $user['is_active'] == 0) {
+                $_SESSION['error'] = 'Akun anda tidak aktif. Hubungi admin untuk aktivasi.';
+                header('Location: /auth/login');
+                exit;
+            }
+
+            if ($user && $user['deleted_at'] !== null) {
+                $_SESSION['error'] = 'Akun tidak ditemukan. Silahkan register.';
+                header('Location: /auth/login');
+                exit;
+            }
+
             $_SESSION['error'] = 'Login gagal. Periksa username dan password.';
             header('Location: /auth/login');
             exit;
