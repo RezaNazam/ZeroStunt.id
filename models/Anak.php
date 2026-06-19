@@ -10,6 +10,31 @@ class Anak
         $this->db = $koneksi;
     }
 
+    public function isNikExists($nik_anak)
+    {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "SELECT id_anak
+         FROM anak
+         WHERE NIK_anak = ?
+         LIMIT 1"
+        );
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 's', $nik_anak);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $row = mysqli_fetch_assoc($result);
+
+        mysqli_stmt_close($stmt);
+
+        return $row !== null;
+    }
+
     public function create($id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)
     {
         $stmt = mysqli_prepare($this->db, "INSERT INTO anak (id_ibu, NIK_anak, nama_anak, tgl_lahir, jenis_kelamin) VALUES (?, ?, ?, ?, ?)");

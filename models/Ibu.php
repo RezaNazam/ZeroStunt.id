@@ -10,6 +10,31 @@ class Ibu
         $this->db = $koneksi;
     }
 
+    public function isNikExists($nik)
+{
+    $stmt = mysqli_prepare(
+        $this->db,
+        "SELECT id_ibu 
+         FROM ibu 
+         WHERE NIK_ibu = ? 
+         LIMIT 1"
+    );
+
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, 's', $nik);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+
+    mysqli_stmt_close($stmt);
+
+    return $row !== null;
+}
+
     public function create($id_ibu, $nik, $nama, $telp, $alamat, $is_pregnant, $id_gudang = null)
     {
         $stmt = mysqli_prepare(

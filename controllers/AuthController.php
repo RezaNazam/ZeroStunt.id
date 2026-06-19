@@ -86,49 +86,57 @@ class AuthController
     }
 
     public function login()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = trim($_POST['username'] ?? '');
-            $password = $_POST['password'] ?? '';
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-            if ($username === '' || $password === '') {
-                $_SESSION['error'] = 'Username dan password wajib diisi.';
-                header('Location: /auth/login');
-                exit;
-            }
+        if ($username === '' || $password === '') {
+            $_SESSION['error'] = 'Username dan password wajib diisi.';
+            header('Location: /auth/login');
+            exit;
+        }
 
-            $userModel = new User();
-            $userModel->ensureAdminExists();
-            $user = $userModel->findByUsername($username);
-            if ($user && password_verify($password, $user['password'])) {
-                session_regenerate_id(true);
-                $_SESSION['user_id'] = $user['id_user'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
+        $userModel = new User();
+        $userModel->ensureAdminExists();
 
-                header('Location: /dashboard');
-                exit;
-            }
+        $user = $userModel->findByUsername($username);
 
-            if ($user && $user['is_active'] == 0) {
-                $_SESSION['error'] = 'Akun anda tidak aktif. Hubungi admin untuk aktivasi.';
-                header('Location: /auth/login');
-                exit;
-            }
+        if (!$user) {
+            $_SESSION['error'] = 'Akun tidak ditemukan. Silakan register.';
+            header('Location: /auth/login');
+            exit;
+        }
 
-            if ($user && $user['deleted_at'] !== null) {
-                $_SESSION['error'] = 'Akun tidak ditemukan. Silahkan register.';
-                header('Location: /auth/login');
-                exit;
-            }
+        if (!empty($user['deleted_at'])) {
+            $_SESSION['error'] = 'Akun tidak ditemukan. Silakan register.';
+            header('Location: /auth/login');
+            exit;
+        }
 
+        if ((int) $user['is_active'] === 0) {
+            $_SESSION['error'] = 'Akun anda tidak aktif. Hubungi admin untuk aktivasi.';
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if (!password_verify($password, $user['password'])) {
             $_SESSION['error'] = 'Login gagal. Periksa username dan password.';
             header('Location: /auth/login');
             exit;
         }
 
-        require '../views/auth/login.php';
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $user['id_user'];
+        $_SESSION['username'] = $user['username'];
+        $_SESSION['role'] = $user['role'];
+
+        header('Location: /dashboard');
+        exit;
     }
+
+    require '../views/auth/login.php';
+}
 
     public function logout()
     {

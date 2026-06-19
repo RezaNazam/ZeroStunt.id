@@ -18,6 +18,12 @@ return [
     // --- Dashboard ---
     '/dashboard' => [DashboardController::class, 'index'],
 
+    // --- Profile ---
+    '/profile' => [ProfileController::class, 'index', [ROLE_ADMIN, ROLE_KADER, ROLE_PETANI, ROLE_IBU]],
+    '/profile/edit' => [ProfileController::class, 'edit', [ROLE_ADMIN, ROLE_KADER, ROLE_PETANI, ROLE_IBU]],
+    '/profile/update' => [ProfileController::class, 'update', [ROLE_ADMIN, ROLE_KADER, ROLE_PETANI, ROLE_IBU]],
+    '/profile/delete' => [ProfileController::class, 'delete', [ROLE_ADMIN, ROLE_KADER, ROLE_PETANI, ROLE_IBU]],
+
     // --- MASTER DATA ---
 
     // --- Master: User ---

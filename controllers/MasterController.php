@@ -194,6 +194,7 @@ class MasterController
             exit;
         }
 
+
         $gudangModel = new Gudang();
         $gudangs = $gudangModel->all();
         require '../views/master/ibu/create.php';
@@ -227,6 +228,14 @@ class MasterController
 
             if (!preg_match('/^\d{16}$/', $nik)) {
                 $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
+                header('Location: /master/ibu/create');
+                exit;
+            }
+
+            $ibuModel = new Ibu();
+
+            if ($ibuModel->isNikExists($nik)) {
+                $_SESSION['error'] = 'NIK ibu sudah digunakan.';
                 header('Location: /master/ibu/create');
                 exit;
             }
@@ -694,24 +703,24 @@ class MasterController
 
         $satuanModel->delete($id);
 
-    header('Location: /master/satuan');
-    exit;
-}
+        header('Location: /master/satuan');
+        exit;
+    }
 
-public function ambil()
-{
-    $idPengadaan = $_POST['id_pengadaan'];
+    public function ambil()
+    {
+        $idPengadaan = $_POST['id_pengadaan'];
 
-    $pengadaanModel = new Pengadaan();
+        $pengadaanModel = new Pengadaan();
 
-    $pengadaanModel->ambil(
-        $idPengadaan,
-        $_SESSION['id_petani']
-    );
+        $pengadaanModel->ambil(
+            $idPengadaan,
+            $_SESSION['id_petani']
+        );
 
-    header('Location: /dashboard/pengadaan');
-    exit;
-}
+        header('Location: /dashboard/pengadaan');
+        exit;
+    }
 
     // --- Master: Anak ---
     public function indexAnak()
@@ -787,6 +796,14 @@ public function ambil()
 
             if (!preg_match('/^\d{16}$/', $nik_anak)) {
                 $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
+                header('Location: /master/anak/create');
+                exit;
+            }
+
+            $anakModel = new Anak();
+
+            if ($anakModel->isNikExists($nik_anak)) {
+                $_SESSION['error'] = 'NIK anak sudah digunakan. Gunakan NIK lain.';
                 header('Location: /master/anak/create');
                 exit;
             }
