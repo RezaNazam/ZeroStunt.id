@@ -1,0 +1,52 @@
+<header class="sticky top-0 z-30 bg-white border-b border-gray-100">
+    <div class="h-20 px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <?php if (empty($hideSidebar)): ?>
+                <button id="openSidebar"
+                    class="w-11 h-11 rounded-2xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition text-gray-600">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            <?php endif; ?>
+
+            <div>
+                <h1 class="text-2xl font-extrabold text-gray-900">
+                    <?= htmlspecialchars($pageTitle ?? 'Dashboard'); ?>
+                </h1>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    <?= htmlspecialchars($pageSubtitle ?? 'Ringkasan aktivitas sistem ZeroStunt.id'); ?>
+                </p>
+            </div>
+        </div>
+
+        <div class="hidden md:flex items-center gap-4">
+
+            <!-- <button class="w-11 h-11 rounded-2xl bg-gray-50 border border-gray-100 hover:bg-gray-100 flex items-center justify-center text-gray-500">
+                <i class="fa-solid fa-bell"></i>
+            </button> -->
+
+            <?php
+            $username = $_SESSION['username'] ?? 'User';
+            $role = $_SESSION['role'] ?? 'Role';
+            $initial = strtoupper(substr($username, 0, 1));
+            ?>
+
+            <a href="/profile"
+                class="flex items-center gap-3 pl-4 border-l border-gray-100 rounded-2xl px-3 py-2 transition hover:bg-gray-50">
+
+                <div class="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center font-bold">
+                    <?= htmlspecialchars($initial); ?>
+                </div>
+
+                <div class="hidden lg:block">
+                    <p class="text-sm font-bold text-gray-900">
+                        <?= htmlspecialchars($username); ?>
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        <?= htmlspecialchars($role); ?>
+                    </p>
+                </div>
+            </a>
+        </div>
+    </div>
+</header>
