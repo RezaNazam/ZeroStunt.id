@@ -3,6 +3,99 @@ $pageTitle = 'Master Komoditas Pangan';
 $pageSubtitle = 'Kelola data komoditas pangan untuk pengadaan, stok, dan distribusi.';
 
 $komoditas = $komoditas ?? [];
+$tablePagination = $tablePagination ?? [];
+
+/*
+|--------------------------------------------------------------------------
+| Table Config
+|--------------------------------------------------------------------------
+*/
+$tableRows = $komoditas;
+$tableEmptyMessage = 'Belum ada data komoditas.';
+
+$tableColumns = [
+    [
+        'label' => 'No',
+        'type' => 'number',
+        'td_class' => 'text-gray-500 font-semibold'
+    ],
+    [
+        'label' => 'Nama Komoditas',
+        'render' => function ($row) {
+            return '<div class="font-bold text-gray-900">' .
+                htmlspecialchars($row['nama_komoditas']) .
+                '</div>';
+        }
+    ],
+    [
+        'label' => 'Kategori Gizi',
+        'render' => function ($row) {
+            return '<span class="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">' .
+                htmlspecialchars($row['kategori_gizi']) .
+                '</span>';
+        }
+    ],
+    [
+        'label' => 'Satuan',
+        'render' => function ($row) {
+            return htmlspecialchars($row['nama_satuan'] ?? '-');
+        },
+        'td_class' => 'text-gray-500'
+    ],
+    [
+        'label' => 'Deskripsi',
+        'render' => function ($row) {
+            return '<p class="truncate">' .
+                htmlspecialchars($row['deskripsi'] ?: '-') .
+                '</p>';
+        },
+        'td_class' => 'max-w-xs text-gray-500'
+    ],
+    [
+        'label' => 'Tanggal Dibuat',
+        'render' => function ($row) {
+            if (empty($row['tgl_created'])) {
+                return '-';
+            }
+
+            return htmlspecialchars(date('d/m/Y H:i', strtotime($row['tgl_created'])));
+        },
+        'td_class' => 'text-gray-500'
+    ],
+    [
+        'label' => 'Aksi',
+        'th_class' => 'text-right',
+        'td_class' => 'text-right',
+        'render' => function ($row) {
+            $id = urlencode($row['id_komoditas']);
+
+            return '
+                <div class="flex justify-end gap-2">
+                    <a href="/master/komoditas/edit?id=' . $id . '"
+                        class="rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100">
+                        Edit
+                    </a>
+
+                    <a href="/master/komoditas/delete?id=' . $id . '"
+                        onclick="return confirm(\'Yakin ingin menghapus komoditas ini?\')"
+                        class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
+                        Hapus
+                    </a>
+                </div>
+            ';
+        }
+    ],
+];
+
+/*
+|--------------------------------------------------------------------------
+| AJAX Response
+|--------------------------------------------------------------------------
+*/
+if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
+    require '../views/partials/data_table.php';
+    exit;
+}
 
 ob_start();
 ?>
@@ -42,102 +135,30 @@ ob_start();
 
     <!-- Table Card -->
     <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <div class="border-b border-gray-100 px-6 py-5">
-            <h3 class="text-lg font-extrabold text-gray-900">
-                Tabel Komoditas
-            </h3>
-            <p class="text-sm text-gray-500 mt-1">
-                Total data: <?= count($komoditas); ?> komoditas
-            </p>
+        <div class="border-b border-gray-100 px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h3 class="text-lg font-extrabold text-gray-900">
+                    Tabel Komoditas
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                    Total data: <?= $tablePagination['total_data'] ?? count($komoditas); ?> komoditas
+                </p>
+            </div>
+
+            <div class="w-full lg:max-w-md">
+                <?php
+                $searchAction = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+                $searchPlaceholder = 'Cari nama, kategori, satuan, atau deskripsi...';
+                $searchTarget = 'tableResult';
+                $searchParam = 'q';
+                $pageParam = 'page';
+                require '../views/partials/searchbar.php';
+                ?>
+            </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">ID</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Nama Komoditas</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Kategori Gizi</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Satuan</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Deskripsi</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Tanggal Dibuat</th>
-                        <th class="px-6 py-4 text-right font-bold text-gray-600">Aksi</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-gray-100">
-                    <?php if (empty($komoditas)): ?>
-                        <tr>
-                            <td colspan="7" class="px-6 py-12 text-center">
-                                <div class="mx-auto max-w-sm">
-                                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-2xl">
-                                        🥬
-                                    </div>
-                                    <p class="font-bold text-gray-900">
-                                        Belum ada komoditas
-                                    </p>
-                                    <p class="mt-1 text-sm text-gray-500">
-                                        Tambahkan data komoditas pangan pertama untuk mulai mengisi master data.
-                                    </p>
-                                    <a href="/master/komoditas/create"
-                                        class="mt-5 inline-flex rounded-2xl bg-teal-600 px-5 py-3 text-sm font-bold text-white hover:bg-teal-700">
-                                        Tambah Komoditas
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-
-                    <?php foreach ($komoditas as $row): ?>
-                        <tr class="transition hover:bg-gray-50">
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['id_komoditas']); ?>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-900">
-                                    <?= htmlspecialchars($row['nama_komoditas']); ?>
-                                </div>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <span class="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">
-                                    <?= htmlspecialchars($row['kategori_gizi']); ?>
-                                </span>
-                            </td>
-
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['nama_satuan'] ?? '-'); ?>
-                            </td>
-
-                            <td class="max-w-xs px-6 py-4 text-gray-500">
-                                <p class="truncate">
-                                    <?= htmlspecialchars($row['deskripsi'] ?: '-'); ?>
-                                </p>
-                            </td>
-
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['tgl_created'] ?? '-'); ?>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <div class="flex justify-end gap-2">
-                                    <a href="/master/komoditas/edit?id=<?= urlencode($row['id_komoditas']); ?>"
-                                        class="rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100">
-                                        Edit
-                                    </a>
-
-                                    <a href="/master/komoditas/delete?id=<?= urlencode($row['id_komoditas']); ?>"
-                                        onclick="return confirm('Yakin ingin menghapus komoditas ini?')"
-                                        class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
-                                        Hapus
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+        <div id="tableResult">
+            <?php require '../views/partials/data_table.php'; ?>
         </div>
     </div>
 </div>

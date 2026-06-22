@@ -5,19 +5,15 @@ class PaginationHelper
     /**
      * Memotong array data berdasarkan halaman aktif (Pagination Array Global)
      */
-    public static function paginateArray(array $dataArray, int $perHalaman = 30): array
+    public static function paginateArray(array $dataArray, int $perHalaman = 30, string $pageParam = 'page'): array
     {
         $totalData = count($dataArray);
-        $totalHalaman = ceil($totalData / $perHalaman);
+        $totalHalaman = (int) ceil($totalData / $perHalaman);
 
         // Ambil nomor halaman aktif dari URL (?page=X)
-        $halamanAktif = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-        if ($halamanAktif < 1) {
-            $halamanAktif = 1;
-        }
-        if ($halamanAktif > $totalHalaman && $totalHalaman > 0) {
-            $halamanAktif = $totalHalaman;
-        }
+        $halamanAktif = isset($_GET[$pageParam]) ? (int) $_GET[$pageParam] : 1;
+        if ($halamanAktif < 1) {$halamanAktif = 1;}
+        if ($halamanAktif > $totalHalaman && $totalHalaman > 0) {$halamanAktif = $totalHalaman;}
 
         // Hitung index awal pemotongan
         $offset = ($halamanAktif - 1) * $perHalaman;
@@ -31,7 +27,8 @@ class PaginationHelper
             'halaman_aktif' => $halamanAktif,
             'total_halaman' => $totalHalaman,
             'total_data' => $totalData,
-            'per_halaman' => $perHalaman
+            'per_halaman' => $perHalaman,
+            'page_param' => $pageParam
         ];
     }
 }

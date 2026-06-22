@@ -11,14 +11,32 @@ class MasterController
     // fungsi tampilin semua pengguna
     public function indexUsers()
     {
-        // validasi biar cuma Admin yang bisa masuk
-        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
             header('Location: /auth/login');
             exit;
         }
 
         $userModel = new User();
-        $users = $userModel->all();
+        $allUsers = $userModel->all();
+
+        $search = trim($_GET['q'] ?? '');
+
+        $allUsers = array_map(function ($user) {
+            $user['status_label'] = !empty($user['is_active']) ? 'Aktif' : 'Tidak Aktif';
+            return $user;
+        }, $allUsers);
+
+        $searchedUsers = SearchHelper::searchArray($allUsers, $search, [
+            'id_user',
+            'username',
+            'role',
+            'status_label'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedUsers, 25);
+
+        $users = $pagination['data'];
+        $tablePagination = $pagination;
 
         require '../views/master/user/index.php';
     }
@@ -274,7 +292,6 @@ class MasterController
     public function stokPosyandu()
     {
         require '../views/master/kader/stok.php';
-
     }
 
     // --- fungsi nampilih daftar ibu dan anak ---
@@ -288,18 +305,102 @@ class MasterController
 
         global $koneksi;
 
-        $queryIbu = "SELECT i.*, u.username FROM ibu i
-                     JOIN users u ON i.id_ibu = u.id_user
-                     WHERE i.deleted_at IS NULL ORDER BY i.nama_ibu ASC";
-        $hasilIbu = mysqli_query($koneksi, $queryIbu);
-        $data['ibu'] = mysqli_fetch_all($hasilIbu, MYSQLI_ASSOC);
+        // =========================
+        // AMBIL DATA IBU
+        // =========================
+        $queryIbu = "
+        SELECT i.*, u.username 
+        FROM ibu i
+        JOIN users u ON i.id_ibu = u.id_user
+        WHERE i.deleted_at IS NULL 
+        ORDER BY i.nama_ibu ASC
+    ";
 
-        $queryAnak = "SELECT a.*, i.nama_ibu, g.nama_gudang FROM anak a
-                      JOIN ibu i ON a.id_ibu = i.id_ibu
-                      JOIN gudang g ON i.id_gudang = g.id_gudang
-                      WHERE a.deleted_at IS NULL ORDER BY a.nama_anak ASC";
+        $hasilIbu = mysqli_query($koneksi, $queryIbu);
+        $allIbu = mysqli_fetch_all($hasilIbu, MYSQLI_ASSOC);
+
+        // =========================
+        // AMBIL DATA ANAK
+        // =========================
+        $queryAnak = "
+        SELECT a.*, i.nama_ibu, g.nama_gudang 
+        FROM anak a
+        JOIN ibu i ON a.id_ibu = i.id_ibu
+        JOIN gudang g ON i.id_gudang = g.id_gudang
+        WHERE a.deleted_at IS NULL 
+        ORDER BY a.nama_anak ASC
+    ";
+
         $hasilAnak = mysqli_query($koneksi, $queryAnak);
-        $data['anak'] = mysqli_fetch_all($hasilAnak, MYSQLI_ASSOC);
+        $allAnak = mysqli_fetch_all($hasilAnak, MYSQLI_ASSOC);
+
+        // =========================
+        // AMBIL SEARCH PARAM
+        // =========================
+        $searchIbu = trim($_GET['q_ibu'] ?? '');
+        $searchAnak = trim($_GET['q_anak'] ?? '');
+
+        // =========================
+        // TAMBAH FIELD LABEL BIAR SEARCH FLEXIBLE
+        // =========================
+        $allIbu = array_map(function ($ibu) {
+            $ibu['status_kehamilan_label'] = !empty($ibu['is_pregnant'])
+                ? 'Hamil'
+                : 'Tidak Hamil Menyusui';
+
+            return $ibu;
+        }, $allIbu);
+
+        $allAnak = array_map(function ($anak) {
+            $anak['jenis_kelamin_label'] = $anak['jenis_kelamin'] === 'L'
+                ? 'Laki-laki'
+                : 'Perempuan';
+
+            return $anak;
+        }, $allAnak);
+
+        // =========================
+        // SEARCH IBU
+        // =========================
+        $searchedIbu = SearchHelper::searchArray($allIbu, $searchIbu, [
+            'NIK_ibu',
+            'nama_ibu',
+            'no_telp',
+            'status_kehamilan_label',
+            'alamat',
+            'username'
+        ]);
+
+        // =========================
+        // SEARCH ANAK
+        // =========================
+        $searchedAnak = SearchHelper::searchArray($allAnak, $searchAnak, [
+            'NIK_anak',
+            'nama_anak',
+            'jenis_kelamin',
+            'jenis_kelamin_label',
+            'tgl_lahir',
+            'nama_ibu',
+            'nama_gudang'
+        ]);
+
+        // =========================
+        // PAGINATION TERPISAH
+        // =========================
+        $paginationIbu = PaginationHelper::paginateArray($searchedIbu, 15, 'page_ibu');
+        $paginationAnak = PaginationHelper::paginateArray($searchedAnak, 15, 'page_anak');
+
+        // =========================
+        // BUNDLE KE VIEW
+        // =========================
+        $data['ibu'] = $paginationIbu['data'];
+        $data['anak'] = $paginationAnak['data'];
+
+        $data['pagination_ibu'] = $paginationIbu;
+        $data['pagination_anak'] = $paginationAnak;
+
+        $data['search_ibu'] = $searchIbu;
+        $data['search_anak'] = $searchAnak;
 
         require '../views/master/ibu/ibuAnak.php';
     }
@@ -429,7 +530,26 @@ class MasterController
             exit;
         }
 
-        $gudangs = (new Gudang())->all();
+        $gudangModel = new Gudang();
+        $allGudangs = $gudangModel->all();
+
+        $search = trim($_GET['q'] ?? '');
+
+        $searchedGudangs = SearchHelper::searchArray($allGudangs, $search, [
+            'id_gudang',
+            'nama_gudang',
+            'lokasi_gudang',
+            'jenis_gudang',
+            'nama_pengelola',
+            'alamat_lengkap'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedGudangs, 25);
+
+        $gudangs = $pagination['data'];
+        $tablePagination = $pagination;
+        $searchValue = $search;
+
         require '../views/master/gudang/index.php';
     }
 
@@ -522,7 +642,25 @@ class MasterController
             exit;
         }
 
-        $komoditas = (new Komoditas())->all();
+        $komoditasModel = new Komoditas();
+        $allKomoditas = $komoditasModel->all();
+
+        $search = trim($_GET['q'] ?? '');
+
+        $searchedKomoditas = SearchHelper::searchArray($allKomoditas, $search, [
+            'id_komoditas',
+            'nama_komoditas',
+            'kategori_gizi',
+            'nama_satuan',
+            'deskripsi',
+            'tgl_created'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedKomoditas, 25);
+
+        $komoditas = $pagination['data'];
+        $tablePagination = $pagination;
+
         require '../views/master/komoditas/index.php';
     }
 
@@ -670,7 +808,20 @@ class MasterController
         }
 
         $satuanModel = new Satuan();
-        $satuans = $satuanModel->all();
+        $allSatuans = $satuanModel->all();
+
+        $search = trim($_GET['q'] ?? '');
+
+        $searchedSatuans = SearchHelper::searchArray($allSatuans, $search, [
+            'id_satuan',
+            'nama_satuan',
+            'singkat'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedSatuans, 25);
+
+        $satuans = $pagination['data'];
+        $tablePagination = $pagination;
 
         require '../views/master/satuan/index.php';
     }
@@ -1018,24 +1169,47 @@ class MasterController
 
         $filterJk = $_GET['jk'] ?? '';
         $filterTipe = $_GET['tipe'] ?? '';
+        $search = trim($_GET['q'] ?? '');
 
-        // filter data
         $filteredData = array_filter($allData, function ($item) use ($filterJk, $filterTipe) {
             $samainJK = empty($filterJk) || $item['jenis_kelamin'] === $filterJk;
             $samainTipe = empty($filterTipe) || $item['tipe_standar'] === $filterTipe;
+
             return $samainJK && $samainTipe;
         });
+
         $filteredData = array_values($filteredData);
+        $filteredData = array_map(function ($item) {
+            $item['jenis_kelamin_label'] = $item['jenis_kelamin'] === 'L'
+                ? 'Laki-laki'
+                : ($item['jenis_kelamin'] === 'P' ? 'Perempuan' : $item['jenis_kelamin']);
 
-        // panggil pagination global yg dah dibikin
-        $pagination = PaginationHelper::paginateArray($filteredData, 30);
+            return $item;
+        }, $filteredData);
 
-        // bundling ke vieew datanya
+        $searchedData = SearchHelper::searchArray($filteredData, $search, [
+            'tipe_standar',
+            'jenis_kelamin',
+            'jenis_kelamin_label',
+            'usia_bulan',
+            'median',
+            'sd_plus_1',
+            'sd_minus_1',
+            'sd_minus_2',
+            'sd_minus_3'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedData, 25);
+
         $data['standar'] = $pagination['data'];
         $data['halaman_aktif'] = $pagination['halaman_aktif'];
         $data['total_halaman'] = $pagination['total_halaman'];
+        $data['total_data'] = $pagination['total_data'];
+        $data['per_halaman'] = $pagination['per_halaman'];
+
         $data['filter_jk'] = $filterJk;
         $data['filter_tipe'] = $filterTipe;
+        $data['search'] = $search;
 
         require '../views/master/standar_pertumbuhan/index.php';
     }

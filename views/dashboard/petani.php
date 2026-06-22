@@ -2,6 +2,7 @@
 require_once '../views/components/metric-card.php';
 require_once '../models/Pengadaan.php';
 
+$idPetani = (int) $_SESSION['user_id'];
 
 $pengadaanModel = new Pengadaan();
 $kontrakSaya = $pengadaanModel->getByPetani($idPetani);

@@ -6,6 +6,79 @@ $standars = $data['standar'] ?? [];
 $currentJk = $data['filter_jk'] ?? '';
 $currentTipe = $data['filter_tipe'] ?? '';
 
+$tableRows = $standars;
+$tableEmptyMessage = 'Data acuan standar tidak ditemukan.';
+
+$tableColumns = [
+    [
+        'label' => 'Indikator',
+        'render' => function ($s) {
+            $class = $s['tipe_standar'] === 'TB/U'
+                ? 'bg-purple-100 text-purple-700'
+                : 'bg-amber-100 text-amber-700';
+
+            return '<span class="inline-flex rounded-lg px-2 py-0.5 text-xs font-bold ' . $class . '">' .
+                htmlspecialchars($s['tipe_standar']) .
+                '</span>';
+        }
+    ],
+    [
+        'label' => 'JK',
+        'render' => function ($s) {
+            $class = $s['jenis_kelamin'] === 'L' ? 'text-blue-600' : 'text-pink-600';
+            $label = $s['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan';
+
+            return '<span class="font-bold ' . $class . '">' . htmlspecialchars($label) . '</span>';
+        }
+    ],
+    [
+        'label' => 'Usia',
+        'render' => function ($s) {
+            return htmlspecialchars($s['usia_bulan']) . ' Bulan';
+        }
+    ],
+    [
+        'label' => 'Median (Normal)',
+        'render' => function ($s) {
+            $unit = $s['tipe_standar'] === 'TB/U' ? ' cm' : ' kg';
+            return '<span class="font-bold text-green-600">' . htmlspecialchars(NumberHelper::decimal($s['median'])) . $unit . '</span>';
+        }
+    ],
+    [
+        'label' => '+1 SD',
+        'render' => function ($s) {
+            $unit = $s['tipe_standar'] === 'TB/U' ? ' cm' : ' kg';
+            return htmlspecialchars(NumberHelper::decimal($s['sd_plus_1'])) . $unit;
+        }
+    ],
+    [
+        'label' => '-1 SD',
+        'render' => function ($s) {
+            $unit = $s['tipe_standar'] === 'TB/U' ? ' cm' : ' kg';
+            return htmlspecialchars(NumberHelper::decimal($s['sd_minus_1'])) . $unit;
+        }
+    ],
+    [
+        'label' => '-2 SD (Stunted)',
+        'render' => function ($s) {
+            $unit = $s['tipe_standar'] === 'TB/U' ? ' cm' : ' kg';
+            return '<span class="font-semibold text-amber-600">' . htmlspecialchars(NumberHelper::decimal($s['sd_minus_2'])) . $unit . '</span>';
+        }
+    ],
+    [
+        'label' => '-3 SD (Severe)',
+        'render' => function ($s) {
+            $unit = $s['tipe_standar'] === 'TB/U' ? ' cm' : ' kg';
+            return '<span class="font-semibold text-red-600">' . htmlspecialchars(NumberHelper::decimal($s['sd_minus_3'])) . $unit . '</span>';
+        }
+    ],
+];
+
+if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
+    require '../views/partials/data_table.php';
+    exit;
+}
+
 ob_start();
 ?>
 
@@ -43,66 +116,32 @@ ob_start();
     </div>
 
     <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Indikator</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">JK</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Usia</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">Median (Normal)</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">+1 SD</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">-1 SD</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">-2 SD (Stunted)</th>
-                        <th class="px-6 py-4 text-left font-bold text-gray-600">-3 SD (Severe)</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <?php if (empty($standars)): ?>
-                        <tr>
-                            <td colspan="8" class="px-6 py-10 text-center text-gray-500">Data acuan standar tidak ditemukan.
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                    <?php foreach ($standars as $s): ?>
-                        <?php $unit = ($s['tipe_standar'] === 'TB/U') ? ' cm' : ' kg'; ?>
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 font-semibold">
-                                <span
-                                    class="inline-flex rounded-lg px-2 py-0.5 text-xs font-bold <?= $s['tipe_standar'] === 'TB/U' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700' ?>">
-                                    <?= htmlspecialchars($s['tipe_standar']) ?>
-                                </span>
-                            </td>
-                            <td
-                                class="px-6 py-4 font-bold <?= $s['jenis_kelamin'] === 'L' ? 'text-blue-600' : 'text-pink-600' ?>">
-                                <?= $s['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan' ?>
-                            </td>
-                            <td class="px-6 py-4 font-medium text-gray-900">
-                                <?= htmlspecialchars($s['usia_bulan']) ?> Bulan
-                            </td>
-                            <td class="px-6 py-4 text-green-600 font-bold">
-                                <?= htmlspecialchars($s['median']) . $unit ?>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                <?= htmlspecialchars($s['sd_plus_1']) . $unit ?>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                <?= htmlspecialchars($s['sd_minus_1']) . $unit ?>
-                            </td>
-                            <td class="px-6 py-4 text-amber-600 font-semibold">
-                                <?= htmlspecialchars($s['sd_minus_2']) . $unit ?>
-                            </td>
-                            <td class="px-6 py-4 text-red-600 font-semibold">
-                                <?= htmlspecialchars($s['sd_minus_3']) . $unit ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+        <div class="border-b border-gray-100 px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h3 class="text-lg font-extrabold text-gray-900">
+                    <i class="fa-solid fa-chart-line text-purple-600 mr-2"></i>
+                    Tabel Standar Pertumbuhan
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                    Total data: <?= htmlspecialchars((string) ($data['total_data'] ?? count($standars))); ?> standar pertumbuhan
+                </p>
+            </div>
+
+            <div class="w-full lg:max-w-md">
+                <?php
+                $searchAction = '/master/standar-pertumbuhan';
+                $searchPlaceholder = 'Cari indikator, jenis kelamin, usia, atau nilai standar...';
+                $searchTarget = 'tableResult';
+                $searchParam = 'q';
+                $pageParam = 'page';
+                require '../views/partials/searchbar.php';
+                ?>
+            </div>
         </div>
 
-        <?php require '../views/partials/pagination.php'; ?>
-
+        <div id="tableResult">
+            <?php require '../views/partials/data_table.php'; ?>
+        </div>
     </div>
 </div>
 
