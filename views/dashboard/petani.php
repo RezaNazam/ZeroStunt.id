@@ -4,9 +4,8 @@ require_once '../models/Pengadaan.php';
 
 
 $pengadaanModel = new Pengadaan();
-$idPetani = $pengadaanModel->getIdPetaniByUsername($_SESSION['username']);
-
-$totalPengadaanAktif = $pengadaanModel->countAktif($idPetani);
+$kontrakSaya = $pengadaanModel->getByPetani($idPetani);
+$totalPengadaanAktif = count($kontrakSaya); // Menghitung total data aktif langsung dari array
 
 $pageTitle = 'Dashboard Petani';
 $pageSubtitle = 'Ringkasan pengadaan, pendapatan, dan komoditas pangan lokal.';
