@@ -259,6 +259,8 @@ class MasterController
         exit;
     }
 
+
+    // sidebar ibu n kader
     public function riwayatPeriksa()
     {
         require '../views/master/ibu/riwayat-periksa.php';
@@ -272,6 +274,34 @@ class MasterController
     public function stokPosyandu()
     {
         require '../views/master/kader/stok.php';
+
+    }
+
+    // --- fungsi nampilih daftar ibu dan anak ---
+
+    public function callIbuDanAnak()
+    {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Admin'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        global $koneksi;
+
+        $queryIbu = "SELECT i.*, u.username FROM ibu i
+                     JOIN users u ON i.id_ibu = u.id_user
+                     WHERE i.deleted_at IS NULL ORDER BY i.nama_ibu ASC";
+        $hasilIbu = mysqli_query($koneksi, $queryIbu);
+        $data['ibu'] = mysqli_fetch_all($hasilIbu, MYSQLI_ASSOC);
+
+        $queryAnak = "SELECT a.*, i.nama_ibu, g.nama_gudang FROM anak a
+                      JOIN ibu i ON a.id_ibu = i.id_ibu
+                      JOIN gudang g ON i.id_gudang = g.id_gudang
+                      WHERE a.deleted_at IS NULL ORDER BY a.nama_anak ASC";
+        $hasilAnak = mysqli_query($koneksi, $queryAnak);
+        $data['anak'] = mysqli_fetch_all($hasilAnak, MYSQLI_ASSOC);
+
+        require '../views/master/ibu/ibuAnak.php';
     }
 
     // --- Master: Petani ---
@@ -722,21 +752,6 @@ class MasterController
         exit;
     }
 
-    public function ambil()
-    {
-        $idPengadaan = $_POST['id_pengadaan'];
-
-        $pengadaanModel = new Pengadaan();
-
-        $pengadaanModel->ambil(
-            $idPengadaan,
-            $_SESSION['id_petani']
-        );
-
-        header('Location: /dashboard/pengadaan');
-        exit;
-    }
-
     // --- Master: Anak ---
     public function indexAnak()
     {
@@ -987,5 +1002,41 @@ class MasterController
 
         header('Location: /master/anak');
         exit;
+    }
+
+    // --- Master: standar_pertumbuhan ---
+
+    public function callStandarPertumbuhan()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $standarPertumbuhanModel = new StandarPertumbuhan();
+        $allData = $standarPertumbuhanModel->all();
+
+        $filterJk = $_GET['jk'] ?? '';
+        $filterTipe = $_GET['tipe'] ?? '';
+
+        // filter data
+        $filteredData = array_filter($allData, function ($item) use ($filterJk, $filterTipe) {
+            $samainJK = empty($filterJk) || $item['jenis_kelamin'] === $filterJk;
+            $samainTipe = empty($filterTipe) || $item['tipe_standar'] === $filterTipe;
+            return $samainJK && $samainTipe;
+        });
+        $filteredData = array_values($filteredData);
+
+        // panggil pagination global yg dah dibikin
+        $pagination = PaginationHelper::paginateArray($filteredData, 30);
+
+        // bundling ke vieew datanya
+        $data['standar'] = $pagination['data'];
+        $data['halaman_aktif'] = $pagination['halaman_aktif'];
+        $data['total_halaman'] = $pagination['total_halaman'];
+        $data['filter_jk'] = $filterJk;
+        $data['filter_tipe'] = $filterTipe;
+
+        require '../views/master/standar_pertumbuhan/index.php';
     }
 }

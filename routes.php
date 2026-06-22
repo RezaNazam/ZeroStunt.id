@@ -25,6 +25,7 @@ return [
     '/profile/delete' => [ProfileController::class, 'delete', [ROLE_ADMIN, ROLE_KADER, ROLE_PETANI, ROLE_IBU]],
 
     // --- MASTER DATA ---
+    // --- MASTER DATA ROUTE---
 
     // --- Master: User ---
     '/master/users' => [MasterController::class, 'indexUsers', [ROLE_ADMIN]],
@@ -39,6 +40,7 @@ return [
     '/master/ibu/store' => [MasterController::class, 'storeIbu', [ROLE_IBU]],
     '/master/ibu/riwayat-periksa' => [MasterController::class, 'riwayatPeriksa', [ROLE_IBU]],
     '/master/ibu/histori-bantuan' => [MasterController::class, 'historiBantuan', [ROLE_IBU]],
+    '/master/ibu/ibuAnak' => [MasterController::class, 'callIbuDanAnak', [ROLE_ADMIN]],
 
     // --- Master: Anak ---
     '/master/anak' => [MasterController::class, 'indexAnak', [ROLE_IBU]],
@@ -83,6 +85,15 @@ return [
 
     // --- Transaksi ---
     '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan', [ROLE_PETANI]],
+    // --- Master: Standar Pertumbuhan ---
+    '/master/standar-pertumbuhan' => [MasterController::class, 'callStandarPertumbuhan', [ROLE_ADMIN, ROLE_KADER]],
+
+    // -- route mater diatas --
+    // --- TRANSAKSI DATA ROUTE
+
+    // --- Transaksi Pengadaan (Admin -> akses buat pengadaan, Petani -> terima yang disanggupi) ---
+    '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan', [ROLE_PETANI, ROLE_ADMIN]],
+    '/transaksi/pengadaan/ambil' => [TransaksiController::class, 'ambilPengadaan', [ROLE_PETANI]],
 
     // --- (tambahkan route lain di sini saat development) ---
 

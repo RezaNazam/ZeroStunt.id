@@ -13,6 +13,7 @@ require_once '../config/database.php';
 require_once '../helpers/AuthHelper.php';
 require_once '../helpers/RBACHelper.php';
 require_once '../helpers/ErrorHelper.php';
+require_once '../helpers/PaginationHelper.php';
 
 // --- Load Models ---
 foreach (glob('../models/*.php') as $file) {

@@ -2,7 +2,7 @@
 
 class Pengadaan
 {
-    private $db;
+    protected $db;
 
     public function __construct()
     {
@@ -10,121 +10,259 @@ class Pengadaan
         $this->db = $koneksi;
     }
 
-    public function getAll($limit = 5, $offset = 0)
+    // --- Transaksi Pengadaan func Model ---
+
+    // Mengambil seluruh riwayat pengadaan (Untuk Hak Akses Admin)
+    public function all(): array
     {
-    $stmt = $this->db->prepare("
-        SELECT p.*, k.nama_komoditas
-        FROM pengadaan p
-        JOIN komoditas_pangan k
-            ON k.id_komoditas = p.id_komoditas
-        ORDER BY p.id_pengadaan DESC
-        LIMIT ? OFFSET ?
-    ");
+        $query = "SELECT p.*, g.nama_gudang, pl.nama_lahan as nama_petani 
+                  FROM t_pengadaan p
+                  JOIN gudang g ON p.id_gudang = g.id_gudang
+                  LEFT JOIN petani_lokal pl ON p.id_petani = pl.id_petani
+                  ORDER BY p.id_pengadaan DESC";
 
-    $stmt->bind_param("ii", $limit, $offset);
-    $stmt->execute();
+        $result = mysqli_query($this->db, $query);
+        if (!$result) {
+            return [];
+        }
 
-    $result = $stmt->get_result();
-    return $result->fetch_all(MYSQLI_ASSOC);
+        $data = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['details'] = $this->getDetails($row['id_pengadaan']);
+            $data[] = $row;
+        }
+
+        return $data;
     }
 
-    public function ambil($idPengadaan, $idPetani)
+    // Mengambil item komoditas detail berdasarkan ID Pengadaan (Header)
+    public function getDetails($id_pengadaan): array
     {
-    $stmt = mysqli_prepare($this->db, "
-        UPDATE pengadaan
-        SET status='Sudah Diambil',
-            id_petani=?
-        WHERE id_pengadaan=?
-    ");
+        $stmt = mysqli_prepare($this->db, "
+            SELECT pd.*, k.nama_komoditas, s.singkat as satuan
+            FROM t_pengadaan_detail pd
+            JOIN komoditas_pangan k ON pd.id_komoditas = k.id_komoditas
+            JOIN satuan s ON k.id_satuan = s.id_satuan
+            WHERE pd.id_pengadaan = ?
+        ");
 
-    mysqli_stmt_bind_param($stmt, 'ii', $idPetani, $idPengadaan);
+        if (!$stmt) {
+            return [];
+        }
 
-    mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_param($stmt, 'i', $id_pengadaan);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $details = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt);
 
-    return mysqli_stmt_affected_rows($stmt);
+        return $details;
     }
 
-    public function countAktif($idPetani)
+    // Mengambil data requirement yang status kontraknya masih 'Mencari Petani'
+    public function getAvailable(): array
     {
-    $stmt = mysqli_prepare($this->db, "
-        SELECT COUNT(*) as total
-        FROM pengadaan
-        WHERE id_petani = ?
-    ");
+        $query = "SELECT p.*, g.nama_gudang 
+                  FROM t_pengadaan p
+                  JOIN gudang g ON p.id_gudang = g.id_gudang
+                  WHERE p.status_kontrak = 'Mencari Petani'
+                  ORDER BY p.id_pengadaan DESC";
 
-    mysqli_stmt_bind_param($stmt, 'i', $idPetani);
-    mysqli_stmt_execute($stmt);
+        $result = mysqli_query($this->db, $query);
+        if (!$result) {
+            return [];
+        }
 
-    $result = mysqli_stmt_get_result($stmt);
-    $row = mysqli_fetch_assoc($result);
+        $data = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['details'] = $this->getDetails($row['id_pengadaan']);
+            $data[] = $row;
+        }
 
-    return $row['total'] ?? 0;
+        return $data;
     }
 
-    public function getByPetani($idPetani)
+    // Mengambil riwayat pengadaan yang sukses diambil/di-ACC oleh Petani tertentu
+    public function getByPetani($idPetani): array
     {
-    $stmt = mysqli_prepare($this->db, "
-        SELECT
-            p.*,
-            k.nama_komoditas
-        FROM pengadaan p
-        JOIN komoditas_pangan k
-            ON k.id_komoditas = p.id_komoditas
-        WHERE p.id_petani = ?
-        ORDER BY p.id_pengadaan DESC
-    ");
+        $stmt = mysqli_prepare($this->db, "
+            SELECT p.*, g.nama_gudang 
+            FROM t_pengadaan p
+            JOIN gudang g ON p.id_gudang = g.id_gudang
+            WHERE p.id_petani = ?
+            ORDER BY p.id_pengadaan DESC
+        ");
 
-    mysqli_stmt_bind_param($stmt, 'i', $idPetani);
-    mysqli_stmt_execute($stmt);
+        if (!$stmt) {
+            return [];
+        }
 
-    $result = mysqli_stmt_get_result($stmt);
+        mysqli_stmt_bind_param($stmt, 'i', $idPetani);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
-    return mysqli_fetch_all($result, MYSQLI_ASSOC);
+        $data = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['details'] = $this->getDetails($row['id_pengadaan']);
+            $data[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+
+        return $data;
     }
 
-    public function getIdPetaniByUsername($username)
+    // Aksi Petani mengambil/mengunci lowongan kerja sama pengadaan (ACC)
+    public function ambil($idPengadaan, $idPetani): bool
     {
-    $stmt = mysqli_prepare($this->db, "
-        SELECT pl.id_petani
-        FROM users u
-        JOIN petani_lokal pl ON pl.id_petani = u.id_user
-        WHERE u.username = ?
-        LIMIT 1
-    ");
+        $stmt = mysqli_prepare($this->db, "
+            UPDATE t_pengadaan
+            SET id_petani = ?, status_kontrak = 'Disetujui'
+            WHERE id_pengadaan = ? AND status_kontrak = 'Mencari Petani'
+        ");
 
-    mysqli_stmt_bind_param($stmt, 's', $username);
-    mysqli_stmt_execute($stmt);
+        if (!$stmt) {
+            return false;
+        }
 
-    $result = mysqli_stmt_get_result($stmt);
-    $row = mysqli_fetch_assoc($result);
+        mysqli_stmt_bind_param($stmt, 'ii', $idPetani, $idPengadaan);
+        $executed = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
 
-    return $row['id_petani'] ?? null;
+        return $executed;
     }
 
-    public function countAll()
+    // -- fungsi pagination pengadaan atmint --
+
+    // --- baut itung jumlah pengadaan --
+    public function countAll(): int
     {
-    $result = mysqli_query($this->db, "
-        SELECT COUNT(*) as total FROM pengadaan
-    ");
+        $query = "SELECT COUNT(*) as total FROM t_pengadaan";
+        $result = mysqli_query($this->db, $query);
 
-    return mysqli_fetch_assoc($result)['total'];
-    }   
+        if (!$result) {
+            return 0;
+        }
 
-    public function getPaginated($limit, $offset)
-    {
-    $stmt = $this->db->prepare("
-        SELECT p.*, k.nama_komoditas
-        FROM pengadaan p
-        JOIN komoditas_pangan k
-            ON k.id_komoditas = p.id_komoditas
-        ORDER BY p.id_pengadaan DESC
-        LIMIT ? OFFSET ?
-    ");
-
-    $stmt->bind_param("ii", $limit, $offset);
-    $stmt->execute();
-
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $row = mysqli_fetch_assoc($result);
+        return (int) ($row['total'] ?? 0);
     }
 
+    // Mengambil data pengadaan yang sudah dibatasi halaman (Paginated) beserta detailnya
+    public function getPaginated($limit, $offset): array
+    {
+        $stmt = mysqli_prepare($this->db, "
+            SELECT p.*, g.nama_gudang, pl.nama_lahan as nama_petani 
+            FROM t_pengadaan p
+            JOIN gudang g ON p.id_gudang = g.id_gudang
+            LEFT JOIN petani_lokal pl ON p.id_petani = pl.id_petani
+            ORDER BY p.id_pengadaan DESC
+            LIMIT ? OFFSET ?
+        ");
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'ii', $limit, $offset);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+
+        $data = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            // Tetap panggil detail item komoditasnya agar tidak kosong di tabel view
+            $row['details'] = $this->getDetails($row['id_pengadaan']);
+            $data[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+
+        return $data;
+    }
+
+    // Menghitung total riwayat kontrak milik petani tertentu
+    public function countByPetani($idPetani): int
+    {
+        $stmt = mysqli_prepare($this->db, "SELECT COUNT(*) as total FROM t_pengadaan WHERE id_petani = ?");
+        if (!$stmt) {
+            return 0;
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $idPetani);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    // Menghitung total lowongan pengadaan yang masih tersedia
+    public function countAvailable(): int
+    {
+        $query = "SELECT COUNT(*) as total FROM t_pengadaan WHERE status_kontrak = 'Mencari Petani'";
+        $result = mysqli_query($this->db, $query);
+        if (!$result) {
+            return 0;
+        }
+        $row = mysqli_fetch_assoc($result);
+        return (int) ($row['total'] ?? 0);
+    }
+
+    // paginate lowongan pengadaan tersedia
+    public function getAvailablePaginated($limit, $offset): array
+    {
+        $stmt = mysqli_prepare($this->db, "
+            SELECT p.*, g.nama_gudang 
+            FROM t_pengadaan p
+            JOIN gudang g ON p.id_gudang = g.id_gudang
+            WHERE p.status_kontrak = 'Mencari Petani'
+            ORDER BY p.id_pengadaan DESC
+            LIMIT ? OFFSET ?
+        ");
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'ii', $limit, $offset);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+
+        $data = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['details'] = $this->getDetails($row['id_pengadaan']);
+            $data[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+
+        return $data;
+    }
+
+    // paginate data kontrak kerjasama petani
+    public function getByPetaniPaginated($idPetani, $limit, $offset): array
+    {
+        $stmt = mysqli_prepare($this->db, "
+            SELECT p.*, g.nama_gudang 
+            FROM t_pengadaan p
+            JOIN gudang g ON p.id_gudang = g.id_gudang
+            WHERE p.id_petani = ?
+            ORDER BY p.id_pengadaan DESC
+            LIMIT ? OFFSET ?
+        ");
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'iii', $idPetani, $limit, $offset);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+
+        $data = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['details'] = $this->getDetails($row['id_pengadaan']);
+            $data[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+
+        return $data;
+    }
 }

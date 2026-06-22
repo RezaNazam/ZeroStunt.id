@@ -14,12 +14,13 @@ if ($isAdmin) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
         ['label' => 'Pengguna', 'href' => '/master/users', 'icon' => '<i class="fa-solid fa-users"></i>'],
-        ['label' => 'Ibu & Anak', 'href' => '#', 'icon' => '<i class="fa-solid fa-person-breastfeeding"></i>'],
+        ['label' => 'Ibu & Anak', 'href' => '/master/ibu/ibuAnak', 'icon' => '<i class="fa-solid fa-person-breastfeeding"></i>'],
+        ['label' => 'Standar Pertumbuhan', 'href' => '/master/standar-pertumbuhan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
         ['label' => 'Gudang', 'href' => '/master/gudang', 'icon' => '<i class="fa-solid fa-warehouse"></i>'],
         ['label' => 'Komoditas Pangan', 'href' => '/master/komoditas', 'icon' => '<i class="fa-solid fa-carrot"></i>'],
         ['label' => 'Satuan', 'href' => '/master/satuan', 'icon' => '<i class="fa-solid fa-weight-scale"></i>'],
         ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
-        ['label' => 'Pengadaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
+        ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
         ['label' => 'Distribusi', 'href' => '#', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
         ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
@@ -27,6 +28,7 @@ if ($isAdmin) {
 } elseif ($isKader) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
+        ['label' => 'Standar Pertumbuhan', 'href' => '/master/standar-pertumbuhan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
         ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
         ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Stok Posyandu', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
@@ -35,7 +37,7 @@ if ($isAdmin) {
 } elseif ($isPetani) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
-        ['label' => 'Pengadaan Saya', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-file-invoice-dollar"></i>'],
+        ['label' => 'Pengadaan Saya', 'href' => '/transaksi/pengadaan/ambil', 'icon' => '<i class="fa-solid fa-file-invoice-dollar"></i>'],
         ['label' => 'Riwayat Ekonomi', 'href' => '/master/petani/riwayat-ekonomi', 'icon' => '<i class="fa-solid fa-wallet"></i>'],
         ['label' => 'Profil Lahan', 'href' => '/master/petani/profil-lahan', 'icon' => '<i class="fa-solid fa-seedling"></i>'],
     ];
