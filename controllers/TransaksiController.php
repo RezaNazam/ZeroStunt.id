@@ -31,39 +31,150 @@ class TransaksiController
             $id_petani = $_SESSION['user_id'];
             $limit = 5;
 
-            // --- Pagination buatyt tabel lowongan tersedia ---
-            $page_avail = isset($_GET['p_avail']) ? (int) $_GET['p_avail'] : 1;
-            $offset_avail = ($page_avail - 1) * $limit;
+            $searchAvail = trim($_GET['q_avail'] ?? '');
+            $searchTaken = trim($_GET['q_taken'] ?? '');
 
-            $data['available'] = $pengadaanModel->getAvailablePaginated($limit, $offset_avail);
+            /*
+    |--------------------------------------------------------------------------
+    | Lowongan tersedia
+    |--------------------------------------------------------------------------
+    */
+            $totalAvailAwal = $pengadaanModel->countAvailable();
+            $allAvailable = $totalAvailAwal > 0
+                ? $pengadaanModel->getAvailablePaginated($totalAvailAwal, 0)
+                : [];
 
-            $totalAvail = $pengadaanModel->countAvailable();
-            $data['total_pages_avail'] = ceil($totalAvail / $limit);
-            $data['current_page_avail'] = $page_avail;
+            $allAvailable = array_map(function ($item) {
+                $detailSearch = '';
 
+                foreach (($item['details'] ?? []) as $det) {
+                    $detailSearch .= ' ' . ($det['nama_komoditas'] ?? '');
+                    $detailSearch .= ' ' . ($det['jumlah'] ?? '');
+                    $detailSearch .= ' ' . ($det['satuan'] ?? '');
+                }
 
-            // --- Pagination baut tabel riwayar kontrak petani ---
-            $page_taken = isset($_GET['p_taken']) ? (int) $_GET['p_taken'] : 1;
-            $offset_taken = ($page_taken - 1) * $limit;
+                $item['detail_search'] = trim($detailSearch);
+                $item['total_bayar_label'] = 'Rp ' . number_format($item['total_bayar'] ?? 0, 0, ',', '.');
 
-            $data['taken'] = $pengadaanModel->getByPetaniPaginated($id_petani, $limit, $offset_taken);
+                return $item;
+            }, $allAvailable);
 
-            $totalTaken = $pengadaanModel->countByPetani($id_petani);
-            $data['total_pages_taken'] = ceil($totalTaken / $limit);
-            $data['current_page_taken'] = $page_taken;
+            $searchedAvailable = SearchHelper::searchArray($allAvailable, $searchAvail, [
+                'no_kontrak',
+                'nama_gudang',
+                'detail_search',
+                'total_bayar_label'
+            ]);
+
+            $paginationAvail = PaginationHelper::paginateArray($searchedAvailable, $limit, 'p_avail');
+
+            $data['available'] = $paginationAvail['data'];
+            $data['total_pages_avail'] = $paginationAvail['total_halaman'];
+            $data['current_page_avail'] = $paginationAvail['halaman_aktif'];
+            $data['total_data_avail'] = $paginationAvail['total_data'];
+            $data['per_halaman_avail'] = $paginationAvail['per_halaman'];
+            $data['search_avail'] = $searchAvail;
+
+            /*
+    |--------------------------------------------------------------------------
+    | Kontrak yang sudah diambil petani
+    |--------------------------------------------------------------------------
+    */
+            $totalTakenAwal = $pengadaanModel->countByPetani($id_petani);
+            $allTaken = $totalTakenAwal > 0
+                ? $pengadaanModel->getByPetaniPaginated($id_petani, $totalTakenAwal, 0)
+                : [];
+
+            $allTaken = array_map(function ($item) {
+                $detailSearch = '';
+
+                foreach (($item['details'] ?? []) as $det) {
+                    $detailSearch .= ' ' . ($det['nama_komoditas'] ?? '');
+                    $detailSearch .= ' ' . ($det['jumlah'] ?? '');
+                    $detailSearch .= ' ' . ($det['satuan'] ?? '');
+                }
+
+                $item['detail_search'] = trim($detailSearch);
+                $item['total_bayar_label'] = 'Rp ' . number_format($item['total_bayar'] ?? 0, 0, ',', '.');
+
+                return $item;
+            }, $allTaken);
+
+            $searchedTaken = SearchHelper::searchArray($allTaken, $searchTaken, [
+                'no_kontrak',
+                'detail_search',
+                'total_bayar_label',
+                'status_bayar'
+            ]);
+
+            $paginationTaken = PaginationHelper::paginateArray($searchedTaken, $limit, 'p_taken');
+
+            $data['taken'] = $paginationTaken['data'];
+            $data['total_pages_taken'] = $paginationTaken['total_halaman'];
+            $data['current_page_taken'] = $paginationTaken['halaman_aktif'];
+            $data['total_data_taken'] = $paginationTaken['total_data'];
+            $data['per_halaman_taken'] = $paginationTaken['per_halaman'];
+            $data['search_taken'] = $searchTaken;
         } elseif ($isAdmin) {
-            // Tentukan limit dan ambil halaman aktif dari URL (?page=1)
-            $limit = 5;
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $offset = ($page - 1) * $limit;
+            $limit = 20;
 
-            // Panggil fungsi pagination
-            $data['all_pengadaan'] = $pengadaanModel->getPaginated($limit, $offset);
+            $search = trim($_GET['q'] ?? '');
 
-            // kasih total halaman ke view untuk merender tombol Next/Prev
-            $totalData = $pengadaanModel->countAll();
-            $data['total_pages'] = ceil($totalData / $limit);
-            $data['current_page'] = $page;
+            /*
+            | Ambil semua data dulu
+            | Karena kalau pakai getPaginated langsung, search cuma berlaku di halaman itu.
+            */
+            $totalDataAwal = $pengadaanModel->countAll();
+
+            if ($totalDataAwal > 0) {
+                $allPengadaan = $pengadaanModel->getPaginated($totalDataAwal, 0);
+            } else {
+                $allPengadaan = [];
+            }
+
+            /*
+            | Bikin kolom bantu buat search
+            | SearchHelper tidak bisa membaca array nested seperti details,
+            | jadi details kita ubah dulu jadi string biasa.
+            */
+            $allPengadaan = array_map(function ($p) {
+                $detailSearch = '';
+
+                if (!empty($p['details'])) {
+                    foreach ($p['details'] as $det) {
+                        $detailSearch .= ' ' . ($det['nama_komoditas'] ?? '');
+                        $detailSearch .= ' ' . ($det['jumlah'] ?? '');
+                        $detailSearch .= ' ' . ($det['satuan'] ?? '');
+                    }
+                }
+
+                $p['detail_search'] = trim($detailSearch);
+                $p['total_bayar_label'] = 'Rp ' . number_format($p['total_bayar'] ?? 0, 0, ',', '.');
+                $p['nama_petani_label'] = $p['nama_petani'] ?? 'Belum Ada Lowongan';
+
+                return $p;
+            }, $allPengadaan);
+
+            $searchedPengadaan = SearchHelper::searchArray($allPengadaan, $search, [
+                'no_kontrak',
+                'nama_gudang',
+                'detail_search',
+                'nama_petani',
+                'nama_petani_label',
+                'total_bayar_label',
+                'status_kontrak'
+            ]);
+
+            $pagination = PaginationHelper::paginateArray($searchedPengadaan, $limit);
+
+            $data['all_pengadaan'] = $pagination['data'];
+
+            $data['current_page'] = $pagination['halaman_aktif'];
+            $data['total_pages'] = $pagination['total_halaman'];
+            $data['total_data'] = $pagination['total_data'];
+            $data['per_halaman'] = $pagination['per_halaman'];
+            $data['page_param'] = $pagination['page_param'] ?? 'page';
+            $data['search'] = $search;
         }
 
         // Memanggil satu pintu tampilan visual terpadu
