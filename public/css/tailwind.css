@@ -724,9 +724,6 @@
   .w-48 {
     width: calc(var(--spacing) * 48);
   }
-  .w-64 {
-    width: calc(var(--spacing) * 64);
-  }
   .w-72 {
     width: calc(var(--spacing) * 72);
   }
@@ -753,9 +750,6 @@
   }
   .max-w-md {
     max-width: var(--container-md);
-  }
-  .max-w-sm {
-    max-width: var(--container-sm);
   }
   .max-w-xl {
     max-width: var(--container-xl);
@@ -1713,13 +1707,6 @@
       }
     }
   }
-  .hover\:bg-amber-200 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: var(--color-amber-200);
-      }
-    }
-  }
   .hover\:bg-amber-600 {
     &:hover {
       @media (hover: hover) {
@@ -1752,6 +1739,13 @@
     &:hover {
       @media (hover: hover) {
         background-color: var(--gray-300);
+      }
+    }
+  }
+  .hover\:bg-green-100 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-green-100);
       }
     }
   }
@@ -1790,6 +1784,13 @@
     &:hover {
       @media (hover: hover) {
         background-color: var(--red-600);
+      }
+    }
+  }
+  .hover\:bg-teal-100 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--teal-100);
       }
     }
   }
@@ -1979,6 +1980,11 @@
   .md\:grid-cols-4 {
     @media (width >= 48rem) {
       grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .md\:grid-cols-\[1fr_180px_80px\] {
+    @media (width >= 48rem) {
+      grid-template-columns: 1fr 180px 80px;
     }
   }
   .md\:flex-row {
