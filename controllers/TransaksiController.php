@@ -211,6 +211,156 @@ class TransaksiController
         exit;
     }
 
+    public function penyerahan()
+    {
+        $penyerahanModel = new Penyerahan();
+
+        $penyerahan = $penyerahanModel->all();
+
+        require '../views/transaksi/penyerahan.php';
+    }
+
+    public function storePenyerahan()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        try {
+
+            // =========================
+            // VALIDASI INPUT WAJIB
+            // =========================
+            if (empty($_POST['id_ibu'])) {
+                throw new Exception('Ibu wajib dipilih.');
+            }
+
+            if (empty($_POST['tanggal_penyerahan'])) {
+                throw new Exception('Tanggal penyerahan wajib diisi.');
+            }
+
+            $idIbu = $_POST['id_ibu'];
+
+            // =========================
+            // AMBIL DATA ANAK
+            // =========================
+            $anakModel = new Anak();
+            $anakList = $anakModel->findByIbu($idIbu);
+
+            if (empty($anakList)) {
+                throw new Exception('Ibu belum memiliki data anak.');
+            }
+
+            $anak = $anakList[0];
+
+            if (empty($anak['id_anak'])) {
+                throw new Exception('Data anak tidak valid.');
+            }
+
+            // =========================
+            // DATA PENYERAHAN
+            // =========================
+            $data = [
+                'id_ibu' => $idIbu,
+                'id_anak' => $anak['id_anak'],
+                // FIX: gudang otomatis dari ibu (biar gak error input hilang)
+                'id_gudang' => $anak['id_gudang'] ?? 1,
+                'tanggal_penyerahan' => $_POST['tanggal_penyerahan'],
+                'catatan' => $_POST['catatan'] ?? null
+            ];
+
+            // =========================
+            // SIMPAN HEADER
+            // =========================
+            $penyerahanModel = new Penyerahan();
+            $idPenyerahan = $penyerahanModel->create($data);
+
+            if (!$idPenyerahan) {
+                throw new Exception('Gagal menyimpan data penyerahan.');
+            }
+
+            // =========================
+            // DETAIL DEFAULT (TRIGGER READY)
+            // =========================
+            $penyerahanModel->createDetail($idPenyerahan, 2, 1.5);
+            $penyerahanModel->createDetail($idPenyerahan, 3, 10);
+
+            // =========================
+            // SUCCESS
+            // =========================
+            $_SESSION['success'] = 'Data penyerahan berhasil disimpan.';
+
+            header('Location: /transaksi/penyerahan');
+            exit;
+
+        } catch (Throwable $e) {
+
+            $_SESSION['error'] = $e->getMessage();
+
+            header('Location: /transaksi/penyerahan/create');
+            exit;
+        }
+    }
+
+
+    public function createPenyerahan()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $ibuModel = new Ibu();
+
+        $ibus = $ibuModel->all();
+
+        $gudangModel = new Gudang();
+        
+        $gudangs = $gudangModel->all();
+
+        $anakModel = new Anak();
+        
+        $anaks = $anakModel->all();
+
+        require '../views/transaksi/create_penyerahan.php';
+    }
+
+    public function serahkanPenyerahan()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        $idPenyerahan = $_POST['id_penyerahan'];
+
+        $penyerahanModel = new Penyerahan();
+
+        try {
+
+            if ($penyerahanModel->serahkan($idPenyerahan)) {
+
+                $_SESSION['success'] =
+                    'Penyerahan berhasil diselesaikan.';
+
+            } else {
+
+                $_SESSION['error'] =
+                    'Gagal mengubah status penyerahan.';
+            }
+
+        } catch (Exception $e) {
+
+            $_SESSION['error'] =
+                $e->getMessage();
+        }
+
+        header('Location: /transaksi/penyerahan');
+        exit;
+    }
+
     public function distribusi()
     {
         if (empty($_SESSION['user_id'])) {

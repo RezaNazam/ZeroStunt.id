@@ -265,4 +265,60 @@ class Pengadaan
 
         return $data;
     }
+
+    public function create($data)
+    {
+    $sql = "INSERT INTO t_pengadaan
+    (no_kontrak, nama_gudang, jumlah, harga_satuan, total_bayar, deadline, keterangan, status_kontrak, status_bayar)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->bind_param(
+        "ssiiissss",
+        $data['no_kontrak'],
+        $data['nama_gudang'],
+        $data['jumlah'],
+        $data['harga_satuan'],
+        $data['total_bayar'],
+        $data['deadline'],
+        $data['keterangan'],
+        $data['status_kontrak'],
+        $data['status_bayar']
+    );
+
+    return $stmt->execute();
+    }
+    
+    public function getRiwayatPendapatan($idPetani)
+    {
+    $sql = "
+        SELECT
+            p.tgl_pengadaan,
+            p.total_bayar,
+            p.status_bayar,
+            d.jumlah,
+            k.nama_komoditas
+        FROM t_pengadaan p
+        JOIN t_pengadaan_detail d
+            ON p.id_pengadaan = d.id_pengadaan
+        JOIN komoditas_pangan k
+            ON d.id_komoditas = k.id_komoditas
+        WHERE p.id_petani = ?
+        AND p.status_bayar = 'Lunas'
+        ORDER BY p.id_pengadaan DESC
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([$idPetani]);
+
+    $result = $stmt->get_result();
+
+$data = [];
+
+while ($row = $result->fetch_assoc()) {
+    $data[] = $row;
+}
+
+return $data;
+    }
 }

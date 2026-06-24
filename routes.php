@@ -94,6 +94,13 @@ return [
     // --- Transaksi Pengadaan (Admin -> akses buat pengadaan, Petani -> terima yang disanggupi) ---
     '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan', [ROLE_PETANI, ROLE_ADMIN]],
     '/transaksi/pengadaan/ambil' => [TransaksiController::class, 'ambilPengadaan', [ROLE_PETANI]],
+    
+    // --- Transaksi Penyerahan ---
+    '/transaksi/penyerahan' => [TransaksiController::class, 'penyerahan', [ROLE_ADMIN, ROLE_KADER]],
+    '/transaksi/penyerahan/create' => [TransaksiController::class, 'createPenyerahan', [ROLE_ADMIN, ROLE_KADER]],
+    '/transaksi/penyerahan/store' => [TransaksiController::class, 'storePenyerahan', [ROLE_ADMIN, ROLE_KADER]],
+    '/transaksi/penyerahan/serahkan' => [TransaksiController::class, 'serahkanPenyerahan', [ROLE_ADMIN, ROLE_KADER]],
+  
     '/transaksi/distribusi' => [TransaksiController::class, 'distribusi', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/distribusi/create' => [TransaksiController::class, 'createDistribusi', [ROLE_ADMIN]],
     '/transaksi/distribusi/store' => [TransaksiController::class, 'storeDistribusi', [ROLE_ADMIN]],

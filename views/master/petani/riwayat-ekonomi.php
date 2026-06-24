@@ -3,29 +3,13 @@
 $pageTitle = 'Riwayat Pendapatan';
 $pageSubtitle = 'Riwayat pemasukan dari hasil pengadaan komoditas.';
 
-$riwayat = [
-    [
-        'tanggal' => '05 Juni 2026',
-        'komoditas' => 'Ikan Nila',
-        'jumlah' => '40 Kg',
-        'pendapatan' => 'Rp 2.800.000',
-        'status' => 'Lunas'
-    ],
-    [
-        'tanggal' => '10 Juni 2026',
-        'komoditas' => 'Telur Ayam',
-        'jumlah' => '150 Butir',
-        'pendapatan' => 'Rp 1.750.000',
-        'status' => 'Lunas'
-    ],
-    [
-        'tanggal' => '13 Juni 2026',
-        'komoditas' => 'Sayur Hijau',
-        'jumlah' => '25 Kg',
-        'pendapatan' => 'Rp 1.250.000',
-        'status' => 'Diproses'
-    ],
-];
+$riwayat = $riwayat ?? [];
+
+$totalPendapatan = array_sum(array_column($riwayat, 'total_bayar'));
+$totalTransaksi = count($riwayat);
+$totalLunas = count(array_filter($riwayat, function ($item) {
+    return $item['status_bayar'] === 'Lunas';
+}));
 
 ob_start();
 ?>
@@ -37,21 +21,21 @@ ob_start();
         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
             <p class="text-sm text-gray-500">Total Pendapatan</p>
             <h2 class="text-3xl font-extrabold text-green-600 mt-2">
-                Rp 5.800.000
+                <?= 'Rp ' . number_format($totalPendapatan, 0, ',', '.') ?>
             </h2>
         </div>
 
         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
             <p class="text-sm text-gray-500">Transaksi</p>
             <h2 class="text-3xl font-extrabold text-teal-600 mt-2">
-                3
+                <?= $totalTransaksi ?>
             </h2>
         </div>
 
         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
             <p class="text-sm text-gray-500">Status Lunas</p>
             <h2 class="text-3xl font-extrabold text-amber-500 mt-2">
-                2
+                <?= $totalLunas ?>
             </h2>
         </div>
     </div>
@@ -81,28 +65,44 @@ ob_start();
                         <th class="px-6 py-4 text-left">Status</th>
                     </tr>
                 </thead>
-
                 <tbody>
-                    <?php foreach ($riwayat as $item): ?>
-                        <tr class="border-t border-gray-100">
-                            <td class="px-6 py-4"><?= $item['tanggal']; ?></td>
-                            <td class="px-6 py-4"><?= $item['komoditas']; ?></td>
-                            <td class="px-6 py-4"><?= $item['jumlah']; ?></td>
-                            <td class="px-6 py-4 font-bold text-green-600">
-                                <?= $item['pendapatan']; ?>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold
-                                    <?= $item['status'] === 'Lunas'
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-amber-100 text-amber-700'; ?>">
-                                    <?= $item['status']; ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
+                    <?php if (empty($riwayat)): ?>
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            Belum ada riwayat pendapatan.
+                        </td>
+                    </tr>
+                    <?php else: ?>
 
+                    <?php foreach ($riwayat as $item): ?>
+                    <tr class="border-t border-gray-100">
+
+                        <td class="px-6 py-4">
+                            <?= date('d M Y', strtotime($item['tgl_pengadaan'])) ?>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <?= htmlspecialchars($item['nama_komoditas']) ?>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <?= number_format($item['jumlah'], 0, ',', '.') ?>
+                        </td>
+
+                        <td class="px-6 py-4 font-semibold text-green-600">
+                            Rp <?= number_format($item['total_bayar'], 0, ',', '.') ?>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                                <?= $item['status_bayar'] ?>
+                            </span>
+                        </td>
+
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
             </table>
         </div>
 
