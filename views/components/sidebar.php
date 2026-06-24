@@ -22,7 +22,7 @@ if ($isAdmin) {
         ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
         ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
         ['label' => 'Distribusi', 'href' => '#', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
-        ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
+        ['label' => 'Penyerahan', 'href' => '/transaksi/penyerahan', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isKader) {
@@ -30,7 +30,7 @@ if ($isAdmin) {
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
         ['label' => 'Standar Pertumbuhan', 'href' => '/master/standar-pertumbuhan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
         ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
-        ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
+        ['label' => 'Penyerahan', 'href' => '/transaksi/penyerahan', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Stok Posyandu', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
@@ -93,7 +93,15 @@ if ($isAdmin) {
                     </span>
                 </a>
             <?php endforeach; ?>
-        </nav>
+            <?php if ($isAdmin): ?>
+        <a href="/master/transaksi/pengadaan/create" class="flex items-center gap-3 px-8 py-2 rounded-2xl text-xs font-semibold text-teal-200 hover:bg-white/5 hover:text-white transition">
+            <span class="flex items-center justify-center w-5 h-5 text-sm shrink-0">
+                <i class="fa-solid fa-circle-plus"></i>
+            </span>
+            <span class="sidebar-label whitespace-nowrap">└ Buat Pengadaan Baru</span>
+        </a>
+    <?php endif; ?>
+</nav>
 
         <a href="/auth/logout"
             class="sidebar-logout flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-teal-100 hover:bg-red-500/20 hover:text-white transition">
