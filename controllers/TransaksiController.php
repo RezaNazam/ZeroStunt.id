@@ -35,11 +35,10 @@ class TransaksiController
             $searchAvail = trim($_GET['q_avail'] ?? '');
             $searchTaken = trim($_GET['q_taken'] ?? '');
 
-            /*
-    |--------------------------------------------------------------------------
-    | Lowongan tersedia
-    |--------------------------------------------------------------------------
-    */
+            //----------------------------------------
+            // lowongan tersedia
+            //----------------------------------------
+
             $totalAvailAwal = $pengadaanModel->countAvailable();
             $allAvailable = $totalAvailAwal > 0
                 ? $pengadaanModel->getAvailablePaginated($totalAvailAwal, 0)
@@ -76,11 +75,9 @@ class TransaksiController
             $data['per_halaman_avail'] = $paginationAvail['per_halaman'];
             $data['search_avail'] = $searchAvail;
 
-            /*
-    |--------------------------------------------------------------------------
-    | Kontrak yang sudah diambil petani
-    |--------------------------------------------------------------------------
-    */
+            //----------------------------------------
+            // Kontrak yng udah diambil petani
+            //----------------------------------------
             $totalTakenAwal = $pengadaanModel->countByPetani($id_petani);
             $allTaken = $totalTakenAwal > 0
                 ? $pengadaanModel->getByPetaniPaginated($id_petani, $totalTakenAwal, 0)
@@ -179,7 +176,7 @@ class TransaksiController
         }
 
         // Memanggil satu pintu tampilan visual terpadu
-        require '../views/transaksi/pengadaan.php';
+        require '../views/transaksi/pengadaan/pengadaan.php';
     }
 
     // Proses konfirmasi/ACC pengambilan pemenuhan komoditas pangan oleh Petani
@@ -211,6 +208,138 @@ class TransaksiController
         exit;
     }
 
+    // Fungsi menampilkan halaman form input pengadaan baru (Sisi Admin)
+    public function buatPengadaan()
+    {
+        // Proteksi Hak Akses: Hanya Admin yang boleh masuk ke halaman ini
+        if (empty($_SESSION['user_id']) || strtolower($_SESSION['role'] ?? '') !== 'admin') {
+            header('Location: /transaksi/pengadaan');
+            exit;
+        }
+
+        global $koneksi;
+
+        // Ambil data gudang pusat untuk bahan pilihan select option di form view
+        $ambilGudang = mysqli_query($koneksi, "SELECT id_gudang, nama_gudang FROM gudang WHERE jenis_gudang = 'Pusat' ORDER BY nama_gudang ASC");
+        $data['daftar_gudang'] = mysqli_fetch_all($ambilGudang, MYSQLI_ASSOC);
+
+        // Ambil data komoditas pangan untuk bahan pilihan barang yang akan diminta
+        $ambilKomoditas = mysqli_query($koneksi, "SELECT id_komoditas, nama_komoditas FROM komoditas_pangan ORDER BY nama_komoditas ASC");
+        $data['daftar_komoditas'] = mysqli_fetch_all($ambilKomoditas, MYSQLI_ASSOC);
+
+        // buat nampilin komoditas (satuan) saat buat pengadaan
+        $queryKomoditas = "
+            SELECT 
+                k.id_komoditas, 
+                k.nama_komoditas,
+                s.singkat AS nama_satuan 
+            FROM komoditas_pangan k
+            JOIN satuan s ON k.id_satuan = s.id_satuan
+            ORDER BY k.nama_komoditas ASC
+        ";
+
+        $ambilKomoditas = mysqli_query($koneksi, $queryKomoditas);
+        $data['daftar_komoditas'] = mysqli_fetch_all($ambilKomoditas, MYSQLI_ASSOC);
+
+        // Panggil file tampilan UI Form Admin
+        require '../views/transaksi/pengadaan/buatPengadaan.php';
+    }
+
+    // Fungsi memproses kiriman data dari form dinamis (Sisi Admin)
+    public function simpanPengadaan()
+    {
+        // Validasi metode pengiriman data
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id'])) {
+            header('Location: /transaksi/pengadaan');
+            exit;
+        }
+
+        // Ikat data utama ke dalam paket array Header
+        $paketDataHeader = [
+            'id_gudang' => (int) ($_POST['id_gudang'] ?? 0),
+            'tanggal_pengadaan' => $_POST['tgl_pengadaan'] ?? date('Y-m-d'),
+            'keterangan' => $_POST['keterangan'] ?? null
+        ];
+
+        // Ikat array dinamis ke dalam paket array Detail (sesuai input name="...")
+        $paketDataDetail = [
+            'id_komoditas' => $_POST['id_komoditas'] ?? [],
+            'jumlah' => $_POST['jumlah'] ?? [],
+            'harga_satuan' => $_POST['harga_satuan'] ?? []
+        ];
+
+        // Validasi awal di level controller sebelum masuk ke mesin model
+        if ($paketDataHeader['id_gudang'] <= 0 || empty($paketDataDetail['id_komoditas'])) {
+            $_SESSION['error'] = 'Gudang wajib dipilih dan minimal harus mengisi satu baris komoditas pangan.';
+            header('Location: /transaksi/pengadaan/buat');
+            exit;
+        }
+
+        $pengadaanModel = new Pengadaan();
+
+        // Kirimkan kedua paket data ke dalam fungsi model bermesin transaksi
+        if ($pengadaanModel->simpanPengadaanBaru($paketDataHeader, $paketDataDetail)) {
+            $_SESSION['success'] = 'Berhasil mempublikasikan lowongan kontrak pengadaan pangan baru untuk mitra petani.';
+            header('Location: /transaksi/pengadaan');
+        } else {
+            // Jika gagal, pesan kesalahan otomatis tertangkap dari exception model
+            header('Location: /transaksi/pengadaan/buat');
+        }
+        exit;
+    }
+
+    // Menampilkan lembar rincian nota pengadaan (Invoice View)
+    public function detailPengadaan()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_pengadaan = (int) ($_GET['id'] ?? 0);
+        $pengadaanModel = new Pengadaan();
+        $nota = $pengadaanModel->find($id_pengadaan);
+
+        if (empty($nota)) {
+            $_SESSION['error'] = 'Data kontrak pengadaan tidak ditemukan.';
+            header('Location: /transaksi/pengadaan');
+            exit;
+        }
+
+        require '../views/transaksi/pengadaan/detailPengadaan.php';
+    }
+
+    public function lunasiPengadaan()
+    {
+        // verifikasi login sebagai apa
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id']) || strtolower($_SESSION['role'] ?? '') !== 'admin') {
+            header('Location: /transaksi/pengadaan');
+            exit;
+        }
+
+        $idPengadaan = (int) ($_POST['id_pengadaan'] ?? 0);
+
+        if ($idPengadaan <= 0) {
+            $_SESSION['error'] = 'ID Transaksi tidak valid.';
+            header('Location: /transaksi/pengadaan');
+            exit;
+        }
+
+        $pengadaanModel = new Pengadaan();
+        if ($pengadaanModel->prosesPelunasanKontrak($idPengadaan)) {
+            $_SESSION['success'] = 'Kontrak pengadaan telah diverifikasi fisik dan status pembauaran berhasil diubah menjadi Lunas.';
+        } else {
+            $_SESSION['error'] = 'Gagal memperbarui status pembayaran.';
+        }
+
+        header('Location: /transaksi/pengadaan/detail?id=' . $idPengadaan);
+        exit;
+    }
+
+
+    //----------------------------------------
+    // --- TRANSAKSI PENYERAHAN ---
+    //----------------------------------------
     public function penyerahan()
     {
         $penyerahanModel = new Penyerahan();
@@ -316,11 +445,11 @@ class TransaksiController
         $ibus = $ibuModel->all();
 
         $gudangModel = new Gudang();
-        
+
         $gudangs = $gudangModel->all();
 
         $anakModel = new Anak();
-        
+
         $anaks = $anakModel->all();
 
         require '../views/transaksi/create_penyerahan.php';
@@ -360,6 +489,11 @@ class TransaksiController
         header('Location: /transaksi/penyerahan');
         exit;
     }
+
+
+    //----------------------------------------
+    //--- TRANSAKSI DISTRIBUSI ---
+    //----------------------------------------
 
     public function distribusi()
     {
@@ -631,3 +765,4 @@ class TransaksiController
         exit;
     }
 }
+

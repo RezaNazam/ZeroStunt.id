@@ -80,32 +80,39 @@ return [
     '/master/satuan/update' => [MasterController::class, 'updateSatuan', [ROLE_ADMIN]],
     '/master/satuan/delete' => [MasterController::class, 'deleteSatuan', [ROLE_ADMIN]],
 
-    // --- Master: Stok Posyandu ---
-    '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_KADER]],
-
-    // --- Transaksi ---
-    '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan', [ROLE_PETANI]],
     // --- Master: Standar Pertumbuhan ---
     '/master/standar-pertumbuhan' => [MasterController::class, 'callStandarPertumbuhan', [ROLE_ADMIN, ROLE_KADER]],
 
+    // --- Master: Stok Posyandu ---
+    '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_KADER]],
+
     // -- route mater diatas --
+
     // --- TRANSAKSI DATA ROUTE
 
+    // --- Transaksi Pengadaan ---
     // --- Transaksi Pengadaan (Admin -> akses buat pengadaan, Petani -> terima yang disanggupi) ---
     '/transaksi/pengadaan' => [TransaksiController::class, 'pengadaan', [ROLE_PETANI, ROLE_ADMIN]],
     '/transaksi/pengadaan/ambil' => [TransaksiController::class, 'ambilPengadaan', [ROLE_PETANI]],
-    
+    '/transaksi/pengadaan/buat' => [TransaksiController::class, 'buatPengadaan', [ROLE_ADMIN]],
+    '/transaksi/pengadaan/simpan' => [TransaksiController::class, 'simpanPengadaan', [ROLE_ADMIN]],
+    '/transaksi/pengadaan/detail' => [TransaksiController::class, 'detailPengadaan', [ROLE_PETANI, ROLE_ADMIN]],
+    '/transaksi/pengadaan/lunasi' => [TransaksiController::class, 'lunasiPengadaan', [ROLE_ADMIN]],
+
     // --- Transaksi Penyerahan ---
     '/transaksi/penyerahan' => [TransaksiController::class, 'penyerahan', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/penyerahan/create' => [TransaksiController::class, 'createPenyerahan', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/penyerahan/store' => [TransaksiController::class, 'storePenyerahan', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/penyerahan/serahkan' => [TransaksiController::class, 'serahkanPenyerahan', [ROLE_ADMIN, ROLE_KADER]],
-  
+
+    // --- Transaksi Distribusi ---
     '/transaksi/distribusi' => [TransaksiController::class, 'distribusi', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/distribusi/create' => [TransaksiController::class, 'createDistribusi', [ROLE_ADMIN]],
     '/transaksi/distribusi/store' => [TransaksiController::class, 'storeDistribusi', [ROLE_ADMIN]],
     '/transaksi/distribusi/terima' => [TransaksiController::class, 'terimaDistribusi', [ROLE_KADER]],
     '/transaksi/distribusi/batal' => [TransaksiController::class, 'batalDistribusi', [ROLE_ADMIN]],
+
+
 
     // --- (tambahkan route lain di sini saat development) ---
 
