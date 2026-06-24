@@ -2,6 +2,7 @@
 
 // buat transaksi pengadaan (petani ke gudang pusat)
 require_once '../models/Pengadaan.php';
+require_once '../models/Distribusi.php';
 
 class TransaksiController
 {
@@ -360,4 +361,273 @@ class TransaksiController
         exit;
     }
 
+    public function distribusi()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+
+        $isAdmin = defined('ROLE_ADMIN')
+            ? $role === ROLE_ADMIN
+            : strtolower($role) === 'admin';
+
+        $isKader = defined('ROLE_KADER')
+            ? $role === ROLE_KADER
+            : strtolower($role) === 'kader';
+
+        if (!$isAdmin && !$isKader) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $distribusiModel = new Distribusi();
+
+        $limit = 20;
+        $search = trim($_GET['q'] ?? '');
+
+        $totalDataAwal = $distribusiModel->countAll();
+
+        $allDistribusi = $totalDataAwal > 0
+            ? $distribusiModel->getPaginated($totalDataAwal, 0)
+            : [];
+
+        $allDistribusi = array_map(function ($d) {
+            $detailSearch = '';
+
+            foreach (($d['details'] ?? []) as $det) {
+                $detailSearch .= ' ' . ($det['nama_komoditas'] ?? '');
+                $detailSearch .= ' ' . ($det['jumlah'] ?? '');
+                $detailSearch .= ' ' . ($det['satuan'] ?? '');
+            }
+
+            $d['detail_search'] = trim($detailSearch);
+
+            return $d;
+        }, $allDistribusi);
+
+        $searchedDistribusi = SearchHelper::searchArray($allDistribusi, $search, [
+            'no_distribusi',
+            'gudang_asal',
+            'gudang_tujuan',
+            'detail_search',
+            'tanggal_distribusi',
+            'status_distribusi',
+            'dibuat_oleh',
+            'diterima_oleh'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedDistribusi, $limit);
+
+        $data['distribusi'] = $pagination['data'];
+        $data['current_page'] = $pagination['halaman_aktif'];
+        $data['total_pages'] = $pagination['total_halaman'];
+        $data['total_data'] = $pagination['total_data'];
+        $data['per_halaman'] = $pagination['per_halaman'];
+        $data['search'] = $search;
+
+        require '../views/transaksi/distribusi/index.php';
+    }
+
+    public function createDistribusi()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isAdmin = defined('ROLE_ADMIN') ? $role === ROLE_ADMIN : strtolower($role) === 'admin';
+
+        if (!$isAdmin) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $distribusiModel = new Distribusi();
+
+        $data['gudang_pusat'] = $distribusiModel->getGudangByJenis('pusat');
+        $data['gudang_posyandu'] = $distribusiModel->getGudangByJenis('posyandu');
+        $data['komoditas'] = $distribusiModel->getKomoditasOptions();
+
+        require '../views/transaksi/distribusi/create.php';
+    }
+
+    public function storeDistribusi()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id'])) {
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isAdmin = defined('ROLE_ADMIN') ? $role === ROLE_ADMIN : strtolower($role) === 'admin';
+
+        if (!$isAdmin) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $idGudangAsal = (int) ($_POST['id_gudang_asal'] ?? 0);
+        $idGudangTujuan = (int) ($_POST['id_gudang_tujuan'] ?? 0);
+        $tanggalDistribusi = $_POST['tanggal_distribusi'] ?? '';
+        $catatan = trim($_POST['catatan'] ?? '');
+
+        $komoditasIds = $_POST['id_komoditas'] ?? [];
+        $jumlahs = $_POST['jumlah'] ?? [];
+
+        if ($idGudangAsal <= 0 || $idGudangTujuan <= 0 || empty($tanggalDistribusi)) {
+            $_SESSION['error'] = 'Gudang asal, gudang tujuan, dan tanggal distribusi wajib diisi.';
+            header('Location: /transaksi/distribusi/create');
+            exit;
+        }
+
+        if ($idGudangAsal === $idGudangTujuan) {
+            $_SESSION['error'] = 'Gudang asal dan gudang tujuan tidak boleh sama.';
+            header('Location: /transaksi/distribusi/create');
+            exit;
+        }
+
+        $distribusiModel = new Distribusi();
+
+        $gudangAsal = $distribusiModel->findGudangById($idGudangAsal);
+        $gudangTujuan = $distribusiModel->findGudangById($idGudangTujuan);
+
+        if (!$gudangAsal || !$gudangTujuan) {
+            $_SESSION['error'] = 'Gudang asal atau gudang tujuan tidak valid.';
+            header('Location: /transaksi/distribusi/create');
+            exit;
+        }
+
+        $jenisAsal = strtolower($gudangAsal['jenis_gudang'] ?? '');
+        $jenisTujuan = strtolower($gudangTujuan['jenis_gudang'] ?? '');
+
+        if ($jenisAsal !== 'pusat') {
+            $_SESSION['error'] = 'Gudang asal harus berjenis Pusat / Puskesmas.';
+            header('Location: /transaksi/distribusi/create');
+            exit;
+        }
+
+        if ($jenisTujuan !== 'posyandu') {
+            $_SESSION['error'] = 'Gudang tujuan harus berjenis Posyandu.';
+            header('Location: /transaksi/distribusi/create');
+            exit;
+        }
+
+        $details = [];
+
+        foreach ($komoditasIds as $index => $idKomoditas) {
+            $idKomoditas = (int) $idKomoditas;
+            $jumlah = (float) ($jumlahs[$index] ?? 0);
+
+            if ($idKomoditas <= 0 || $jumlah <= 0) {
+                continue;
+            }
+
+            $details[] = [
+                'id_komoditas' => $idKomoditas,
+                'jumlah' => $jumlah
+            ];
+        }
+
+        if (empty($details)) {
+            $_SESSION['error'] = 'Minimal harus ada 1 komoditas distribusi.';
+            header('Location: /transaksi/distribusi/create');
+            exit;
+        }
+
+        $data = [
+            'no_distribusi' => $distribusiModel->generateNoDistribusi(),
+            'id_gudang_asal' => $idGudangAsal,
+            'id_gudang_tujuan' => $idGudangTujuan,
+            'tanggal_distribusi' => $tanggalDistribusi,
+            'status_distribusi' => 'Dikirim',
+            'catatan' => $catatan,
+            'created_by' => $_SESSION['user_id']
+        ];
+
+        if ($distribusiModel->createWithDetails($data, $details)) {
+            $_SESSION['success'] = 'Distribusi stok berhasil dibuat.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal membuat distribusi stok.';
+        header('Location: /transaksi/distribusi/create');
+        exit;
+    }
+
+    public function terimaDistribusi()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id'])) {
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isKader = defined('ROLE_KADER') ? $role === ROLE_KADER : strtolower($role) === 'kader';
+
+        if (!$isKader) {
+            $_SESSION['error'] = 'Hanya kader yang dapat menerima distribusi.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $idDistribusi = (int) ($_POST['id_distribusi'] ?? 0);
+
+        if ($idDistribusi <= 0) {
+            $_SESSION['error'] = 'Data distribusi tidak valid.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $distribusiModel = new Distribusi();
+
+        if ($distribusiModel->markAsReceived($idDistribusi, $_SESSION['user_id'])) {
+            $_SESSION['success'] = 'Distribusi berhasil ditandai sebagai diterima.';
+        } else {
+            $_SESSION['error'] = 'Gagal menerima distribusi. Kemungkinan status sudah bukan Dikirim.';
+        }
+
+        header('Location: /transaksi/distribusi');
+        exit;
+    }
+
+    public function batalDistribusi()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id'])) {
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isAdmin = defined('ROLE_ADMIN') ? $role === ROLE_ADMIN : strtolower($role) === 'admin';
+
+        if (!$isAdmin) {
+            $_SESSION['error'] = 'Hanya admin yang dapat membatalkan distribusi.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $idDistribusi = (int) ($_POST['id_distribusi'] ?? 0);
+
+        if ($idDistribusi <= 0) {
+            $_SESSION['error'] = 'Data distribusi tidak valid.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        $distribusiModel = new Distribusi();
+
+        if ($distribusiModel->cancelDistribusi($idDistribusi)) {
+            $_SESSION['success'] = 'Distribusi berhasil dibatalkan.';
+        } else {
+            $_SESSION['error'] = 'Gagal membatalkan distribusi. Kemungkinan status sudah bukan Dikirim.';
+        }
+
+        header('Location: /transaksi/distribusi');
+        exit;
+    }
 }
