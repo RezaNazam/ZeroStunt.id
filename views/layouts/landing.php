@@ -669,7 +669,7 @@
                         Coba Demo Sekarang
                     </a>
 
-                    <a href="mailto:info@zerostunt.id"
+                    <a href="mailto:official@zerostunt.id"
                         class="px-7 py-3 rounded-xl border border-teal-300 text-white font-bold hover:bg-white hover:text-teal-700 transition text-center">
                         Hubungi Kami
                     </a>
@@ -734,7 +734,7 @@
 
                 <div class="border-t border-gray-100 pt-6 flex flex-col md:flex-row justify-between items-center gap-3">
                     <p class="text-xs text-gray-500 text-center md:text-left">
-                        © 2025 ZeroStunt.id — Teknologi Rekayasa Perangkat Lunak, ASTRATECH. Versi 1.0.
+                        © 2026 ZeroStunt.id — Teknologi Rekayasa Perangkat Lunak, ASTRATECH. Versi 1.0.
                     </p>
 
                     <p class="text-xs text-gray-500 text-center md:text-right">

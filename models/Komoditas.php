@@ -37,6 +37,18 @@ class Komoditas
         return mysqli_fetch_assoc($result);
     }
 
+    public function findByNama($nama_komoditas)
+    {
+        $query = "SELECT * FROM komoditas_pangan WHERE nama_komoditas = ? LIMIT 1";
+
+        $stmt = mysqli_prepare($this->db, $query);
+        mysqli_stmt_bind_param($stmt, 's', $nama_komoditas);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        return mysqli_fetch_assoc($result);
+    }
+
     public function create($nama_komoditas, $kategori_gizi, $id_satuan, $deskripsi)
     {
         $query = "
