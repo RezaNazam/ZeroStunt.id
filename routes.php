@@ -100,10 +100,10 @@ return [
     '/transaksi/pengadaan/lunasi' => [TransaksiController::class, 'lunasiPengadaan', [ROLE_ADMIN]],
 
     // --- Transaksi Penyerahan ---
-    '/transaksi/penyerahan' => [TransaksiController::class, 'penyerahan', [ROLE_ADMIN, ROLE_KADER]],
-    '/transaksi/penyerahan/create' => [TransaksiController::class, 'createPenyerahan', [ROLE_ADMIN, ROLE_KADER]],
-    '/transaksi/penyerahan/store' => [TransaksiController::class, 'storePenyerahan', [ROLE_ADMIN, ROLE_KADER]],
-    '/transaksi/penyerahan/serahkan' => [TransaksiController::class, 'serahkanPenyerahan', [ROLE_ADMIN, ROLE_KADER]],
+    '/transaksi/penyerahan' => [TransaksiController::class, 'penyerahan', [ROLE_KADER]],
+    '/transaksi/penyerahan/create' => [TransaksiController::class, 'createPenyerahan', [ROLE_KADER]],
+    '/transaksi/penyerahan/store' => [TransaksiController::class, 'storePenyerahan', [ROLE_KADER]],
+    '/transaksi/penyerahan/serahkan' => [TransaksiController::class, 'serahkanPenyerahan', [ROLE_KADER]],
 
     // --- Transaksi Distribusi ---
     '/transaksi/distribusi' => [TransaksiController::class, 'distribusi', [ROLE_ADMIN, ROLE_KADER]],

@@ -6,14 +6,24 @@ ob_start();
 <div class="space-y-6">
 
     <!-- HEADER -->
-    <div>
-        <h1 class="text-2xl font-extrabold text-gray-900">
-            Penyerahan Bantuan Gizi
-        </h1>
-        <p class="text-sm text-gray-500 mt-1">
-            Data seluruh penyerahan bantuan kepada ibu penerima.
-        </p>
-    </div>
+     <div class="flex justify-between items-center">
+         <div>
+             <h1 class="text-2xl font-extrabold text-gray-900">
+                 Penyerahan Bantuan Gizi
+             </h1>
+             <p class="text-sm text-gray-500 mt-1">
+                 Data seluruh penyerahan bantuan kepada ibu penerima.
+             </p>
+         </div>
+     
+         <!-- BUTTON -->
+         <div class="flex justify-end">
+             <a href="/transaksi/penyerahan/create"
+                class="bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 rounded-xl font-bold">
+                 + Tambah Penyerahan
+             </a>
+         </div>
+     </div>
 
     <!-- SUCCESS -->
     <?php if (!empty($_SESSION['success'])): ?>
@@ -30,14 +40,6 @@ ob_start();
         </div>
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
-
-    <!-- BUTTON -->
-    <div class="flex justify-end">
-        <a href="/transaksi/penyerahan/create"
-           class="bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 rounded-xl font-bold">
-            + Tambah Penyerahan
-        </a>
-    </div>
 
     <!-- TABLE -->
     <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -66,11 +68,14 @@ ob_start();
                         </tr>
                     <?php endif; ?>
 
+                    <?php $index = 0; ?>
+                    
                     <?php foreach ($penyerahan as $p): ?>
                         <tr class="hover:bg-gray-50">
+                            <?php $index++; ?>
 
                             <td class="px-6 py-4 font-bold text-gray-900">
-                                #<?= htmlspecialchars($p['id_penyerahan']) ?>
+                                <?= htmlspecialchars($index) ?>
                             </td>
 
                             <td class="px-6 py-4 text-gray-700">

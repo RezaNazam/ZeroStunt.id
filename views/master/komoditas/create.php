@@ -69,6 +69,20 @@ ob_start();
                     </select>
                 </div>
 
+                <div id="kategori_gizi_lain_wrapper" class="hidden">
+                    <label for="kategori_gizi_lain" class="mb-2 block text-sm font-bold text-gray-700">
+                        Kategori Gizi Lainnya <span class="text-red-500">*</span></label>
+                    <input type="text" id="kategori_gizi_lain" name="kategori_gizi_lain"
+                        placeholder="Masukkan kategori gizi jika tidak ada di daftar"
+                        class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100" />
+                </div>
+
+                <script>
+                    document.getElementById('kategori_gizi').addEventListener('change', function () {
+                        document.getElementById('kategori_gizi_lain_wrapper').classList.toggle('hidden', this.value !== 'Lainnya');
+                    });
+                </script>
+
                 <!-- Satuan -->
                 <div>
                     <label for="id_satuan" class="mb-2 block text-sm font-bold text-gray-700">

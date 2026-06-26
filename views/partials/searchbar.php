@@ -28,144 +28,145 @@ $searchValue = $_GET[$searchParam] ?? '';
 </form>
 
 <script>
-(function () {
-    if (window.zeroStuntAjaxSearchReady) {
-        return;
-    }
-
-    window.zeroStuntAjaxSearchReady = true;
-
-    async function loadTable(url, targetId) {
-        const target = document.getElementById(targetId);
-
-        if (!target) {
-            console.error('Target table tidak ditemukan:', targetId);
+    (function() {
+        if (window.zeroStuntAjaxSearchReady) {
             return;
         }
 
-        target.classList.add('opacity-50');
+        window.zeroStuntAjaxSearchReady = true;
 
-        try {
-            const response = await fetch(url, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            const html = await response.text();
-
-            if (html.trim() === '') {
-                console.error('Response AJAX kosong. Cek ajax_target:', targetId);
-                return;
-            }
-
-            target.innerHTML = html;
-
-            const cleanUrl = new URL(url, window.location.origin);
-            cleanUrl.searchParams.delete('ajax');
-            cleanUrl.searchParams.delete('ajax_target');
-
-            window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            target.classList.remove('opacity-50');
-        }
-    }
-
-    function buildSearchUrl(form) {
-        const targetId = form.dataset.target;
-        const searchParam = form.dataset.searchParam || 'q';
-        const pageParam = form.dataset.pageParam || 'page';
-        const input = form.querySelector('.js-ajax-search-input');
-
-        const params = new URLSearchParams(window.location.search);
-
-        if (input.value.trim() === '') {
-            params.delete(searchParam);
-        } else {
-            params.set(searchParam, input.value.trim());
-        }
-
-        params.delete(pageParam);
-        params.set('ajax', '1');
-        params.set('ajax_target', targetId);
-
-        const action = form.getAttribute('action') || window.location.pathname;
-
-        return action + '?' + params.toString();
-    }
-
-    document.addEventListener('input', function (event) {
-        const input = event.target.closest('.js-ajax-search-input');
-
-        if (!input) {
-            return;
-        }
-
-        const form = input.closest('.js-ajax-search');
-
-        if (!form) {
-            return;
-        }
-
-        clearTimeout(input.searchTimer);
-
-        input.searchTimer = setTimeout(function () {
-            const targetId = form.dataset.target;
-            const url = buildSearchUrl(form);
-
-            loadTable(url, targetId);
-        }, 400);
-    });
-
-    document.addEventListener('submit', function (event) {
-        const form = event.target.closest('.js-ajax-search');
-
-        if (!form) {
-            return;
-        }
-
-        event.preventDefault();
-
-        const targetId = form.dataset.target;
-        const url = buildSearchUrl(form);
-
-        loadTable(url, targetId);
-    });
-
-    document.addEventListener('click', function (event) {
-        const link = event.target.closest('a');
-
-        if (!link) {
-            return;
-        }
-
-        const forms = document.querySelectorAll('.js-ajax-search');
-
-        forms.forEach(function (form) {
-            const targetId = form.dataset.target;
+        async function loadTable(url, targetId) {
             const target = document.getElementById(targetId);
 
-            if (!target || !target.contains(link)) {
+            if (!target) {
+                console.error('Target table tidak ditemukan:', targetId);
                 return;
             }
 
-            const href = link.getAttribute('href');
+            target.classList.add('opacity-50');
 
-            if (!href || !href.includes('=')) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const html = await response.text();
+
+                if (html.trim() === '') {
+                    console.error('Response AJAX kosong. Cek ajax_target:', targetId);
+                    return;
+                }
+
+                target.innerHTML = html;
+
+                const cleanUrl = new URL(url, window.location.origin);
+                cleanUrl.searchParams.delete('ajax');
+                cleanUrl.searchParams.delete('ajax_target');
+
+                window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                target.classList.remove('opacity-50');
+            }
+        }
+
+        function buildSearchUrl(form) {
+            const targetId = form.dataset.target;
+            const searchParam = form.dataset.searchParam || 'q';
+            const pageParam = form.dataset.pageParam || 'page';
+            const input = form.querySelector('.js-ajax-search-input');
+
+            const params = new URLSearchParams(window.location.search);
+
+            if (input.value.trim() === '') {
+                params.delete(searchParam);
+            } else {
+                params.set(searchParam, input.value.trim());
+            }
+
+            params.delete(pageParam);
+            params.set('ajax', '1');
+            params.set('ajax_target', targetId);
+
+            const action = form.getAttribute('action') || window.location.pathname;
+
+            return action + '?' + params.toString();
+        }
+
+        document.addEventListener('input', function(event) {
+            const input = event.target.closest('.js-ajax-search-input');
+
+            if (!input) {
+                return;
+            }
+
+            const form = input.closest('.js-ajax-search');
+
+            if (!form) {
+                return;
+            }
+
+            clearTimeout(input.searchTimer);
+
+            input.searchTimer = setTimeout(function() {
+                const targetId = form.dataset.target;
+                const url = buildSearchUrl(form);
+
+                loadTable(url, targetId);
+            }, 400);
+        });
+
+        document.addEventListener('submit', function(event) {
+            const form = event.target.closest('.js-ajax-search');
+
+            if (!form) {
                 return;
             }
 
             event.preventDefault();
 
-            const url = new URL(href, window.location.href);
+            const targetId = form.dataset.target;
+            const url = buildSearchUrl(form);
 
-            url.searchParams.set('ajax', '1');
-            url.searchParams.set('ajax_target', targetId);
-
-            loadTable(url.pathname + '?' + url.searchParams.toString(), targetId);
+            loadTable(url, targetId);
         });
-    });
-})();
+
+        document.addEventListener('click', function(event) {
+            if (event.defaultPrevented) {
+                return;
+            }
+
+            const link = event.target.closest('a');
+
+            if (!link) {
+                return;
+            }
+
+            const target = document.getElementById(searchTarget);
+
+            if (!target || !target.contains(link)) {
+                return;
+            }
+
+            const url = new URL(link.href, window.location.origin);
+
+            // AJAX cuma boleh nangkep pagination/search di halaman yang sama.
+            // Link edit/delete/detail beda path, jadi jangan di-AJAX-kan.
+            if (url.pathname !== window.location.pathname) {
+                return;
+            }
+
+            // AJAX cuma untuk link pagination yang punya parameter page.
+            // Contoh: /master/users?page=2
+            if (!url.searchParams.has(pageParam)) {
+                return;
+            }
+
+            event.preventDefault();
+            loadTable(url.toString());
+        });
+    })();
 </script>
