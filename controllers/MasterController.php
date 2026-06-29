@@ -381,6 +381,52 @@ class MasterController
 
     public function historiBantuan()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+
+        $isIbu = defined('ROLE_IBU')
+            ? $role === ROLE_IBU
+            : strtolower($role) === 'ibu';
+
+        if (!$isIbu) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $penyerahanModel = new Penyerahan();
+
+        $search = trim($_GET['q'] ?? '');
+
+        $allBantuans = $penyerahanModel->getRiwayatBantuanByIbuUser($_SESSION['user_id']);
+
+        $allBantuans = array_map(function ($b) {
+            $b['tanggal_bantuan_label'] = !empty($b['tanggal_penyerahan'])
+                ? date('d/m/Y', strtotime($b['tanggal_penyerahan']))
+                : '-';
+
+            $b['jumlah_label'] = trim(($b['jumlah'] ?? '-') . ' ' . ($b['satuan'] ?? ''));
+
+            return $b;
+        }, $allBantuans);
+
+        $searchedBantuans = SearchHelper::searchArray($allBantuans, $search, [
+            'nama_anak',
+            'nama_komoditas',
+            'jumlah_label',
+            'status_penyerahan',
+            'tanggal_bantuan_label',
+            'nama_posyandu'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedBantuans, 20);
+
+        $data['bantuans'] = $pagination['data'];
+        $data['pagination_bantuan'] = $pagination;
+
         require '../views/master/ibu/histori-bantuan.php';
     }
 

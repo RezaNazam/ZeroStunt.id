@@ -560,6 +560,20 @@ class TransaksiController
             return $d;
         }, $allDistribusi);
 
+        if ($isKader) {
+            $userModel = new User();
+            $currentUser = $userModel->findByid($_SESSION['user_id']);
+
+            $idGudangUser = (int) ($currentUser['id_gudang'] ?? 0);
+
+            $allDistribusi = array_values(array_filter($allDistribusi, function ($d) use ($idGudangUser) {
+                $status = $d['status_distribusi'] ?? '';
+
+                return (int) ($d['id_gudang_tujuan'] ?? 0) === $idGudangUser
+                    && in_array($status, ['Dikirim', 'Diterima'], true);
+            }));
+        }
+        
         $searchedDistribusi = SearchHelper::searchArray($allDistribusi, $search, [
             'no_distribusi',
             'gudang_asal',
@@ -945,6 +959,13 @@ class TransaksiController
         $usiaBulan = ($diff->y * 12) + $diff->m;
 
         $pemeriksaanModel = new Pemeriksaan();
+
+        if ($pemeriksaanModel->existsInSameMonth($idAnak, $tanggalPemeriksaan)) {
+            $_SESSION['error'] = 'Anak ini sudah melakukan pemeriksaan pada bulan yang sama. Pemeriksaan hanya boleh dilakukan satu kali setiap bulan.';
+            header('Location: /transaksi/pemeriksaan/create');
+            exit;
+        }
+
         $hasil = $pemeriksaanModel->hitungStatusGizi($usiaBulan, $anak['jenis_kelamin'], $beratBadan, $tinggiBadan);
         $statusGizi = $hasil['status_gizi'];
         $skalaPrioritas = $hasil['skala_prioritas'];

@@ -337,4 +337,62 @@ class Pemeriksaan
 
         return $executed;
     }
+
+    public function existsInSameMonth($idAnak, $tanggalPemeriksaan, $excludeId = null)
+    {
+        $query = "
+        SELECT id_pemeriksaan
+        FROM t_pemeriksaan
+        WHERE id_anak = ?
+          AND YEAR(tanggal_pemeriksaan) = YEAR(?)
+          AND MONTH(tanggal_pemeriksaan) = MONTH(?)
+          AND deleted_at IS NULL
+    ";
+
+        if ($excludeId !== null) {
+            $query .= " AND id_pemeriksaan != ?";
+        }
+
+        $query .= " LIMIT 1";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if ($excludeId !== null) {
+            mysqli_stmt_bind_param($stmt, 'issi', $idAnak, $tanggalPemeriksaan, $tanggalPemeriksaan, $excludeId);
+        } else {
+            mysqli_stmt_bind_param($stmt, 'iss', $idAnak, $tanggalPemeriksaan, $tanggalPemeriksaan);
+        }
+
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+
+        return mysqli_fetch_assoc($result) !== null;
+    }
+
+    public function getRiwayatByIbuUser($idUser)
+{
+    $query = "
+        SELECT 
+            p.*,
+            a.nama_anak,
+            a.tgl_lahir,
+            a.jenis_kelamin,
+            i.nama_ibu,
+            g.nama_gudang AS nama_posyandu
+        FROM t_pemeriksaan p
+        JOIN anak a ON p.id_anak = a.id_anak
+        JOIN ibu i ON a.id_ibu = i.id_ibu
+        LEFT JOIN gudang g ON i.id_gudang = g.id_gudang
+        WHERE i.id_user = ?
+          AND p.deleted_at IS NULL
+        ORDER BY p.tanggal_pemeriksaan DESC, p.id_pemeriksaan DESC
+    ";
+
+    $stmt = mysqli_prepare($this->db, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $idUser);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+    return mysqli_fetch_all($result, MYSQLI_ASSOC);
+}
 }

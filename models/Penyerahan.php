@@ -170,4 +170,54 @@ class Penyerahan
         $result = mysqli_query($this->db, $query);
         return mysqli_fetch_all($result, MYSQLI_ASSOC);
     }
+
+    public function getRiwayatBantuanByIbuUser($idUser)
+    {
+        $query = "
+        SELECT 
+            p.id_penyerahan,
+            p.no_penyerahan,
+            p.id_ibu,
+            p.id_anak,
+            p.id_gudang,
+            p.tanggal_penyerahan,
+            p.status_penyerahan,
+            p.catatan,
+            p.tgl_created,
+
+            a.nama_anak,
+            i.nama_ibu,
+            g.nama_gudang AS nama_posyandu,
+
+            pd.id_penyerahan_detail,
+            pd.id_komoditas,
+            pd.jumlah,
+
+            k.nama_komoditas,
+            s.singkat AS satuan
+        FROM t_penyerahan p
+        JOIN ibu i 
+            ON p.id_ibu = i.id_ibu
+        LEFT JOIN anak a 
+            ON p.id_anak = a.id_anak
+        LEFT JOIN gudang g 
+            ON p.id_gudang = g.id_gudang
+        LEFT JOIN t_penyerahan_detail pd 
+            ON p.id_penyerahan = pd.id_penyerahan
+        LEFT JOIN komoditas_pangan k 
+            ON pd.id_komoditas = k.id_komoditas
+        LEFT JOIN satuan s 
+            ON k.id_satuan = s.id_satuan
+        WHERE i.id_ibu = ?
+          AND p.status_penyerahan = 'Diserahkan'
+        ORDER BY p.tanggal_penyerahan DESC, p.id_penyerahan DESC
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+        mysqli_stmt_bind_param($stmt, 'i', $idUser);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
 }
