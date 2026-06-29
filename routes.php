@@ -71,6 +71,7 @@ return [
     '/master/komoditas/edit' => [MasterController::class, 'editKomoditas', [ROLE_ADMIN]],
     '/master/komoditas/update' => [MasterController::class, 'updateKomoditas', [ROLE_ADMIN]],
     '/master/komoditas/delete' => [MasterController::class, 'deleteKomoditas', [ROLE_ADMIN]],
+    '/master/komoditas/restore' => [MasterController::class, 'restoreKomoditas', [ROLE_ADMIN]],
 
     // --- Master: Satuan ---
     '/master/satuan' => [MasterController::class, 'indexSatuan', [ROLE_ADMIN]],

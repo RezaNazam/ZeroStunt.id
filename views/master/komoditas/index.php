@@ -4,6 +4,8 @@ $pageSubtitle = 'Kelola data komoditas pangan untuk pengadaan, stok, dan distrib
 
 $komoditas = $komoditas ?? [];
 $tablePagination = $tablePagination ?? [];
+$totalAktif = $totalAktif ?? 0;
+$totalNonaktif = $totalNonaktif ?? 0;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,34 +24,76 @@ $tableColumns = [
     [
         'label' => 'Nama Komoditas',
         'render' => function ($row) {
-            return '<div class="font-bold text-gray-900">' .
-                htmlspecialchars($row['nama_komoditas']) .
-                '</div>';
+            $isDeleted = !empty($row['is_deleted']);
+
+            $nameClass = $isDeleted
+                ? 'font-bold text-gray-400 line-through'
+                : 'font-bold text-gray-900';
+
+            $note = $isDeleted
+                ? '<div class="mt-1 text-xs font-semibold text-red-500">Data nonaktif / pernah dihapus</div>'
+                : '';
+
+            return '<div class="' . $nameClass . '">' .
+                htmlspecialchars($row['nama_komoditas'] ?? '-') .
+                '</div>' . $note;
         }
     ],
     [
         'label' => 'Kategori Gizi',
         'render' => function ($row) {
-            return '<span class="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">' .
-                htmlspecialchars($row['kategori_gizi']) .
+            $isDeleted = !empty($row['is_deleted']);
+
+            $class = $isDeleted
+                ? 'bg-gray-100 text-gray-500'
+                : 'bg-teal-50 text-teal-700';
+
+            return '<span class="inline-flex rounded-full px-3 py-1 text-xs font-bold ' . $class . '">' .
+                htmlspecialchars($row['kategori_gizi'] ?? '-') .
                 '</span>';
         }
     ],
     [
         'label' => 'Satuan',
         'render' => function ($row) {
-            return htmlspecialchars($row['nama_satuan'] ?? '-');
+            $isDeleted = !empty($row['is_deleted']);
+            $class = $isDeleted ? 'text-gray-400' : 'text-gray-500';
+
+            return '<span class="' . $class . '">' .
+                htmlspecialchars($row['nama_satuan'] ?? '-') .
+                '</span>';
         },
         'td_class' => 'text-gray-500'
     ],
     [
         'label' => 'Deskripsi',
         'render' => function ($row) {
-            return '<p class="truncate">' .
+            $isDeleted = !empty($row['is_deleted']);
+            $class = $isDeleted ? 'truncate text-gray-400' : 'truncate text-gray-500';
+
+            return '<p class="' . $class . '">' .
                 htmlspecialchars($row['deskripsi'] ?: '-') .
                 '</p>';
         },
-        'td_class' => 'max-w-xs text-gray-500'
+        'td_class' => 'max-w-xs'
+    ],
+    [
+        'label' => 'Status',
+        'render' => function ($row) {
+            if (!empty($row['is_deleted'])) {
+                return '
+                    <span class="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
+                        Nonaktif
+                    </span>
+                ';
+            }
+
+            return '
+                <span class="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                    Aktif
+                </span>
+            ';
+        }
     ],
     [
         'label' => 'Tanggal Dibuat',
@@ -58,7 +102,12 @@ $tableColumns = [
                 return '-';
             }
 
-            return htmlspecialchars(date('d/m/Y H:i', strtotime($row['tgl_created'])));
+            $isDeleted = !empty($row['is_deleted']);
+            $class = $isDeleted ? 'text-gray-400' : 'text-gray-500';
+
+            return '<span class="' . $class . '">' .
+                htmlspecialchars(date('d/m/Y H:i', strtotime($row['tgl_created']))) .
+                '</span>';
         },
         'td_class' => 'text-gray-500'
     ],
@@ -69,6 +118,18 @@ $tableColumns = [
         'render' => function ($row) {
             $id = urlencode($row['id_komoditas']);
 
+            if (!empty($row['is_deleted'])) {
+                return '
+                    <div class="flex justify-end gap-2">
+                        <a href="/master/komoditas/restore?id=' . $id . '"
+                            onclick="return confirm(\'Pulihkan komoditas ini?\')"
+                            class="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100">
+                            Pulihkan
+                        </a>
+                    </div>
+                ';
+            }
+
             return '
                 <div class="flex justify-end gap-2">
                     <a href="/master/komoditas/edit?id=' . $id . '"
@@ -77,7 +138,7 @@ $tableColumns = [
                     </a>
 
                     <a href="/master/komoditas/delete?id=' . $id . '"
-                        onclick="return confirm(\'Yakin ingin menghapus komoditas ini?\')"
+                        onclick="return confirm(\'Yakin ingin menonaktifkan komoditas ini?\')"
                         class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
                         Hapus
                     </a>
@@ -140,9 +201,19 @@ ob_start();
                 <h3 class="text-lg font-extrabold text-gray-900">
                     Tabel Komoditas
                 </h3>
-                <p class="text-sm text-gray-500 mt-1">
-                    Total data: <?= $tablePagination['total_data'] ?? count($komoditas); ?> komoditas
-                </p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">
+                        Total data: <?= $tablePagination['total_data'] ?? count($komoditas); ?>
+                    </span>
+
+                    <span class="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                        Aktif: <?= $totalAktif; ?>
+                    </span>
+
+                    <span class="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
+                        Nonaktif: <?= $totalNonaktif; ?>
+                    </span>
+                </div>
             </div>
 
             <div class="w-full lg:max-w-md">

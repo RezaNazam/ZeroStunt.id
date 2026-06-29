@@ -689,10 +689,31 @@ class MasterController
             'tgl_created'
         ]);
 
+        $totalAktif = count(array_filter($searchedKomoditas, function ($item) {
+            return empty($item['is_deleted']);
+        }));
+
+        $totalNonaktif = count(array_filter($searchedKomoditas, function ($item) {
+            return !empty($item['is_deleted']);
+        }));
+
+        usort($searchedKomoditas, function ($a, $b) {
+            $statusA = !empty($a['is_deleted']) ? 1 : 0;
+            $statusB = !empty($b['is_deleted']) ? 1 : 0;
+
+            if ($statusA !== $statusB) {
+                return $statusA <=> $statusB;
+            }
+
+            return strcmp($a['nama_komoditas'] ?? '', $b['nama_komoditas'] ?? '');
+        });
+
         $pagination = PaginationHelper::paginateArray($searchedKomoditas, 25);
 
         $komoditas = $pagination['data'];
         $tablePagination = $pagination;
+        $totalAktif = $totalAktif;
+        $totalNonaktif = $totalNonaktif;
 
         require '../views/master/komoditas/index.php';
     }
@@ -831,6 +852,33 @@ class MasterController
         if ($id_komoditas) {
             (new Komoditas())->delete($id_komoditas);
             $_SESSION['success'] = 'Komoditas berhasil dihapus.';
+        }
+
+        header('Location: /master/komoditas');
+        exit;
+    }
+
+    public function restoreKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_komoditas = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+        if ($id_komoditas <= 0) {
+            $_SESSION['error'] = 'ID komoditas tidak valid.';
+            header('Location: /master/komoditas');
+            exit;
+        }
+
+        $komoditasModel = new Komoditas();
+
+        if ($komoditasModel->restore($id_komoditas)) {
+            $_SESSION['success'] = 'Komoditas berhasil dipulihkan.';
+        } else {
+            $_SESSION['error'] = 'Gagal memulihkan komoditas.';
         }
 
         header('Location: /master/komoditas');
