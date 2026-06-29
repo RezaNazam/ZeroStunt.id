@@ -764,5 +764,253 @@ class TransaksiController
         header('Location: /transaksi/distribusi');
         exit;
     }
+
+    public function pemeriksaan()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isAdmin = defined('ROLE_ADMIN') ? $role === ROLE_ADMIN : strtolower($role) === 'admin';
+        $isKader = defined('ROLE_KADER') ? $role === ROLE_KADER : strtolower($role) === 'kader';
+        $isIbu = defined('ROLE_IBU') ? $role === ROLE_IBU : strtolower($role) === 'ibu';
+
+        if (!$isAdmin && !$isKader && !$isIbu) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $pemeriksaanModel = new Pemeriksaan();
+        $userModel = new User();
+
+        $id_gudang = null;
+        $id_ibu = null;
+        if ($isKader) {
+            $currentUser = $userModel->findByid($_SESSION['user_id']);
+            $id_gudang = $currentUser['id_gudang'] ?? null;
+        } elseif ($isIbu) {
+            $id_ibu = $_SESSION['user_id'];
+        }
+
+        $limit = 20;
+        $search = trim($_GET['q'] ?? '');
+
+        $totalDataAwal = $pemeriksaanModel->countAll($id_gudang, $id_ibu);
+
+        $allPemeriksaan = $totalDataAwal > 0
+            ? $pemeriksaanModel->getPaginated($totalDataAwal, 0, $id_gudang, $id_ibu)
+            : [];
+
+        $allPemeriksaan = array_map(function ($p) {
+            $p['berat_badan_label'] = $p['berat_badan'] !== null ? number_format($p['berat_badan'], 1, ',', '.') . ' Kg' : '-';
+            $p['tinggi_badan_label'] = $p['tinggi_badan'] !== null ? number_format($p['tinggi_badan'], 1, ',', '.') . ' Cm' : '-';
+            $p['tanggal_pemeriksaan_label'] = !empty($p['tanggal_pemeriksaan']) ? date('d/m/Y', strtotime($p['tanggal_pemeriksaan'])) : '-';
+            return $p;
+        }, $allPemeriksaan);
+
+        $searchedPemeriksaan = SearchHelper::searchArray($allPemeriksaan, $search, [
+            'nama_anak',
+            'nama_ibu',
+            'status_gizi',
+            'tanggal_pemeriksaan_label',
+            'nama_posyandu',
+            'nama_kader'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedPemeriksaan, $limit);
+
+        $data['pemeriksaan'] = $pagination['data'];
+        $data['current_page'] = $pagination['halaman_aktif'];
+        $data['total_pages'] = $pagination['total_halaman'];
+        $data['total_data'] = $pagination['total_data'];
+        $data['per_halaman'] = $pagination['per_halaman'];
+        $data['search'] = $search;
+        $data['role'] = $role;
+
+        require '../views/transaksi/pemeriksaan/index.php';
+    }
+
+    public function createPemeriksaan()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isKader = defined('ROLE_KADER') ? $role === ROLE_KADER : strtolower($role) === 'kader';
+
+        if (!$isKader) {
+            $_SESSION['error'] = 'Hanya Kader yang dapat menambahkan data pemeriksaan.';
+            header('Location: /transaksi/pemeriksaan');
+            exit;
+        }
+
+        $pemeriksaanModel = new Pemeriksaan();
+        $userModel = new User();
+
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+        $id_gudang = $currentUser['id_gudang'] ?? null;
+        
+        if ($id_gudang) {
+            $data['anak'] = $pemeriksaanModel->getAnakByPosyandu($id_gudang);
+        } else {
+            $data['anak'] = [];
+        }
+
+        $data['standar_json'] = $pemeriksaanModel->getAllStandarAsJson();
+        $data['anak_data'] = json_encode($data['anak']);
+
+        require '../views/transaksi/pemeriksaan/create.php';
+    }
+
+    public function storePemeriksaan()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id'])) {
+            header('Location: /transaksi/pemeriksaan');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isKader = defined('ROLE_KADER') ? $role === ROLE_KADER : strtolower($role) === 'kader';
+
+        if (!$isKader) {
+            header('Location: /transaksi/pemeriksaan');
+            exit;
+        }
+
+        // Ambil id_gudang kader dari session/db
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+        $id_gudang_kader = $currentUser['id_gudang'] ?? null;
+
+        $idAnak = (int) ($_POST['id_anak'] ?? 0);
+        $tanggalPemeriksaan = $_POST['tanggal_pemeriksaan'] ?? '';
+        $beratBadan = isset($_POST['berat_badan']) && $_POST['berat_badan'] !== '' ? (float) $_POST['berat_badan'] : null;
+        $tinggiBadan = isset($_POST['tinggi_badan']) && $_POST['tinggi_badan'] !== '' ? (float) $_POST['tinggi_badan'] : null;
+        $catatan = trim($_POST['catatan'] ?? '');
+
+        if ($idAnak <= 0 || empty($tanggalPemeriksaan) || $beratBadan === null || $tinggiBadan === null) {
+            $_SESSION['error'] = 'Semua kolom bertanda bintang wajib diisi.';
+            header('Location: /transaksi/pemeriksaan/create');
+            exit;
+        }
+
+        $anakModel = new Anak();
+        $anak = $anakModel->findById($idAnak);
+        if (!$anak) {
+            $_SESSION['error'] = 'Data anak tidak valid.';
+            header('Location: /transaksi/pemeriksaan/create');
+            exit;
+        }
+
+        // Validasi keamanan: pastikan anak berasal dari posyandu kader ini
+        if ($id_gudang_kader !== null) {
+            $ibuModel = new Ibu();
+            $ibuAnak = $ibuModel->findByIdIbu($anak['id_ibu']);
+            if (!$ibuAnak || (int)($ibuAnak['id_gudang'] ?? 0) !== (int)$id_gudang_kader) {
+                $_SESSION['error'] = 'Anda tidak memiliki akses untuk memeriksa anak dari posyandu lain.';
+                header('Location: /transaksi/pemeriksaan/create');
+                exit;
+            }
+        }
+        $tglLahir = $anak['tgl_lahir'];
+        $diff = date_diff(date_create($tglLahir), date_create($tanggalPemeriksaan));
+        $usiaBulan = ($diff->y * 12) + $diff->m;
+
+        $pemeriksaanModel = new Pemeriksaan();
+        $hasil = $pemeriksaanModel->hitungStatusGizi($usiaBulan, $anak['jenis_kelamin'], $beratBadan, $tinggiBadan);
+        $statusGizi = $hasil['status_gizi'];
+        $skalaPrioritas = $hasil['skala_prioritas'];
+
+        $dataPemeriksaan = [
+            'id_anak' => $idAnak,
+            'id_kader' => $_SESSION['user_id'],
+            'tanggal_pemeriksaan' => $tanggalPemeriksaan,
+            'berat_badan' => $beratBadan,
+            'tinggi_badan' => $tinggiBadan,
+            'usia_bulan' => $usiaBulan,
+            'status_gizi' => $statusGizi,
+            'skala_prioritas' => $skalaPrioritas,
+            'catatan' => $catatan
+        ];
+
+        if ($pemeriksaanModel->create($dataPemeriksaan)) {
+            $_SESSION['success'] = 'Data pemeriksaan anak berhasil disimpan.';
+            header('Location: /transaksi/pemeriksaan');
+            exit;
+        } else {
+            $_SESSION['error'] = 'Gagal menyimpan data pemeriksaan.';
+            header('Location: /transaksi/pemeriksaan/create');
+            exit;
+        }
+    }
+
+    public function deletePemeriksaan()
+    {
+        $isAdmin = defined('ROLE_ADMIN') ? ($_SESSION['role'] ?? '') === ROLE_ADMIN : strtolower($_SESSION['role'] ?? '') === 'admin';
+        if (empty($_SESSION['user_id']) || !$isAdmin) {
+            header('Location: /transaksi/pemeriksaan');
+            exit;
+        }
+
+        $idPemeriksaan = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+        if ($idPemeriksaan) {
+            $pemeriksaanModel = new Pemeriksaan();
+            if ($pemeriksaanModel->delete($idPemeriksaan)) {
+                $_SESSION['success'] = 'Data pemeriksaan berhasil dihapus.';
+            } else {
+                $_SESSION['error'] = 'Gagal menghapus data pemeriksaan.';
+            }
+        }
+
+        header('Location: /transaksi/pemeriksaan');
+        exit;
+    }
+
+    public function kalkulasiGizi()
+    {
+        header('Content-Type: application/json');
+
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+
+        $idAnak = (int) ($_POST['id_anak'] ?? 0);
+        $tanggalPemeriksaan = $_POST['tanggal_pemeriksaan'] ?? '';
+        $beratBadan = $_POST['berat_badan'] !== '' ? (float) $_POST['berat_badan'] : null;
+        $tinggiBadan = $_POST['tinggi_badan'] !== '' ? (float) $_POST['tinggi_badan'] : null;
+
+        if ($idAnak <= 0 || empty($tanggalPemeriksaan) || $beratBadan === null || $tinggiBadan === null) {
+            echo json_encode(['error' => 'Input tidak lengkap']);
+            exit;
+        }
+
+        $anakModel = new Anak();
+        $anak = $anakModel->findById($idAnak);
+        if (!$anak) {
+            echo json_encode(['error' => 'Anak tidak ditemukan']);
+            exit;
+        }
+
+        $tglLahir = $anak['tgl_lahir'];
+        $diff = date_diff(date_create($tglLahir), date_create($tanggalPemeriksaan));
+        $usiaBulan = ($diff->y * 12) + $diff->m;
+
+        $pemeriksaanModel = new Pemeriksaan();
+        $hasil = $pemeriksaanModel->hitungStatusGizi($usiaBulan, $anak['jenis_kelamin'], $beratBadan, $tinggiBadan);
+
+        echo json_encode([
+            'success' => true,
+            'usia_bulan' => $usiaBulan,
+            'status_gizi' => $hasil['status_gizi'],
+            'skala_prioritas' => $hasil['skala_prioritas']
+        ]);
+        exit;
+    }
 }
 

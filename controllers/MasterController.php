@@ -49,6 +49,12 @@ class MasterController
             exit;
         }
 
+        $gudangModel = new Gudang();
+        $allGudang = $gudangModel->all();
+        $posyandus = array_filter($allGudang, function ($g) {
+            return strtolower($g['jenis_gudang'] ?? '') === 'posyandu';
+        });
+
         require '../views/master/user/create.php';
     }
 
@@ -150,6 +156,12 @@ class MasterController
             exit;
         }
 
+        $gudangModel = new Gudang();
+        $allGudang = $gudangModel->all();
+        $posyandus = array_filter($allGudang, function ($g) {
+            return strtolower($g['jenis_gudang'] ?? '') === 'posyandu';
+        });
+
         require '../views/master/user/edit.php';
     }
 
@@ -165,6 +177,14 @@ class MasterController
             $id_user = (int) ($_POST['id_user'] ?? 0);
             $username = trim($_POST['username'] ?? '');
             $roleInput = $_POST['role'] ?? '';
+            $idGudang = isset($_POST['id_gudang']) && $_POST['id_gudang'] !== '' ? (int) $_POST['id_gudang'] : null;
+
+            if ($roleInput !== 'Kader') {
+                $idGudang = null;
+            }
+
+            $password = $_POST['password'] ?? '';
+            $isActive = (int) ($_POST['is_active'] ?? 1);
 
             if ($id_user === 0 || $username === '' || !in_array($roleInput, ['Admin', 'Kader'])) {
                 $_SESSION['error'] = 'Data input tidak valid.';
@@ -181,7 +201,7 @@ class MasterController
                 exit;
             }
 
-            if ($userModel->update($id_user, $username, $roleInput)) {
+            if ($userModel->update($id_user, $username, $roleInput, $idGudang, $password, $isActive)) {
                 $_SESSION['success'] = 'Data pengguna berhasil diperbarui.';
                 header('Location: /master/users');
                 exit;
@@ -308,6 +328,48 @@ class MasterController
     // sidebar ibu n kader
     public function riwayatPeriksa()
     {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_IBU) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $pemeriksaanModel = new Pemeriksaan();
+        $id_ibu = $_SESSION['user_id'];
+
+        $limit = 10;
+        $search = trim($_GET['q'] ?? '');
+
+        // Fetch all pemeriksaan for this Ibu
+        $totalDataAwal = $pemeriksaanModel->countAll(null, $id_ibu);
+        $allPemeriksaan = $totalDataAwal > 0
+            ? $pemeriksaanModel->getPaginated($totalDataAwal, 0, null, $id_ibu)
+            : [];
+
+        // Format labels
+        $allPemeriksaan = array_map(function ($p) {
+            $p['berat_badan_label'] = $p['berat_badan'] !== null ? number_format($p['berat_badan'], 1, ',', '.') . ' Kg' : '-';
+            $p['tinggi_badan_label'] = $p['tinggi_badan'] !== null ? number_format($p['tinggi_badan'], 1, ',', '.') . ' Cm' : '-';
+            $p['tanggal_pemeriksaan_label'] = !empty($p['tanggal_pemeriksaan']) ? date('d/m/Y', strtotime($p['tanggal_pemeriksaan'])) : '-';
+            return $p;
+        }, $allPemeriksaan);
+
+        $searchedPemeriksaan = SearchHelper::searchArray($allPemeriksaan, $search, [
+            'nama_anak',
+            'status_gizi',
+            'tanggal_pemeriksaan_label'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedPemeriksaan, $limit);
+
+        $pemeriksaans = $pagination['data'];
+        $tablePagination = [
+            'total_data' => $pagination['total_data'],
+            'total_halaman' => $pagination['total_halaman'],
+            'halaman_aktif' => $pagination['halaman_aktif'],
+            'per_halaman' => $pagination['per_halaman'],
+            'parameter_page' => 'page',
+            'parameter_search' => 'q'
+        ];
         require '../views/master/ibu/riwayat-periksa.php';
     }
 
@@ -339,7 +401,6 @@ class MasterController
         SELECT i.*, u.username 
         FROM ibu i
         JOIN users u ON i.id_ibu = u.id_user
-        WHERE i.deleted_at IS NULL 
         ORDER BY i.nama_ibu ASC
     ";
 
@@ -354,7 +415,6 @@ class MasterController
         FROM anak a
         JOIN ibu i ON a.id_ibu = i.id_ibu
         JOIN gudang g ON i.id_gudang = g.id_gudang
-        WHERE a.deleted_at IS NULL 
         ORDER BY a.nama_anak ASC
     ";
 
