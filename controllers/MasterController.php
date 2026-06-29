@@ -62,56 +62,73 @@ class MasterController
     // fungsi stor ke database
     public function storeUsers()
     {
-        // pastiiin yg login admin
-        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+        // pastikan yang login admin
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
             header('Location: /auth/login');
             exit;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = trim($_POST['username'] ?? '');
-            $password = $_POST['password'] ?? '';
-            $roleInput = $_POST['role'] ?? 'Admin';
-            $idGudang = isset($_POST['id_gudang']) && $_POST['id_gudang'] !== '' ? (int) $_POST['id_gudang'] : null;
-
-            if ($roleInput !== 'Kader') {
-                $idGudang = null;
-            }
-
-            // Validasi input kosong
-            if ($username === '' || $password === '') {
-                $_SESSION['error'] = 'Username dan Password wajib diisi.';
-                header('Location: /master/users/create');
-                exit;
-            }
-
-            // Validasi keamanan: Kunci role input hanya boleh Admin atau Kader
-            if (!in_array($roleInput, ['Admin', 'Kader'])) {
-                $_SESSION['error'] = 'Role tidak valid.';
-                header('Location: /master/users/create');
-                exit;
-            }
-
-            $userModel = new User();
-
-            // Validasi duplikasi, Cek apakah username sudah terdaftar
-            if ($userModel->findByUsername($username)) {
-                $_SESSION['error'] = 'Username sudah digunakan, silakan cari nama lain.';
-                header('Location: /master/users/create');
-                exit;
-            }
-
-            // fungsi buat akun create di model user
-            if ($userModel->create($username, $password, $roleInput, $idGudang)) {
-                $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
-                header('Location: /master/users');
-                exit;
-            } else {
-                $_SESSION['error'] = 'Gagal menyimpan data pengguna.';
-                header('Location: /master/users/create');
-                exit;
-            }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/users/create');
+            exit;
         }
+
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        $roleInput = $_POST['role'] ?? '';
+
+        // simpan input lama biar kalau error, username + role tidak hilang
+        $_SESSION['old'] = [
+            'username' => $username,
+            'role' => $roleInput
+        ];
+
+        $allowedRoles = [ROLE_ADMIN, ROLE_KADER];
+
+        if ($username === '' || $password === '' || $confirmPassword === '' || $roleInput === '') {
+            $_SESSION['error'] = 'Semua field wajib diisi.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if (!in_array($roleInput, $allowedRoles, true)) {
+            $_SESSION['error'] = 'Role tidak valid.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if ($password !== $confirmPassword) {
+            $_SESSION['error'] = 'Konfirmasi password tidak sesuai.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if (strlen($password) < 8) {
+            $_SESSION['error'] = 'Password minimal 6 karakter.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        $userModel = new User();
+
+        if ($userModel->findByUsername($username)) {
+            $_SESSION['error'] = 'Username sudah digunakan, silakan cari nama lain.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if ($userModel->create($username, $password, $roleInput)) {
+            unset($_SESSION['old']);
+
+            $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
+            header('Location: /master/users');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal menyimpan data pengguna.';
+        header('Location: /master/users/create');
+        exit;
     }
 
     // nampilin form edit user
@@ -204,22 +221,27 @@ class MasterController
             exit;
         }
 
-        $id_user = isset($_GET['id']) ? (int) $_GET['id'] : null;
+        $id_user = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-        // cegah Admin menghapus dirinya sendiri
+        if ($id_user <= 0) {
+            $_SESSION['error'] = 'ID user tidak valid.';
+            header('Location: /master/users');
+            exit;
+        }
+
+        // cegah admin menghapus dirinya sendiri
         if ($id_user === (int) $_SESSION['user_id']) {
             $_SESSION['error'] = 'Anda tidak bisa menghapus akun Anda sendiri yang sedang digunakan.';
             header('Location: /master/users');
             exit;
         }
 
-        if ($id_user) {
-            $userModel = new User();
-            if ($userModel->delete($id_user)) {
-                $_SESSION['success'] = 'Pengguna berhasil dihapus dari sistem.';
-            } else {
-                $_SESSION['error'] = 'Gagal menghapus pengguna.';
-            }
+        $userModel = new User();
+
+        if ($userModel->delete($id_user)) {
+            $_SESSION['success'] = 'Pengguna berhasil dihapus dari sistem.';
+        } else {
+            $_SESSION['error'] = 'Gagal menghapus pengguna.';
         }
 
         header('Location: /master/users');
@@ -572,6 +594,12 @@ class MasterController
                 exit;
             }
 
+            if ($nama_pengelola_select === '') {
+                $_SESSION['error'] = 'Pengelola wajib dipilih.';
+                header('Location: /master/gudang/create');
+                exit;
+            }
+
             $gudangModel = new Gudang();
             if ($gudangModel->create($nama_gudang, $lokasi_gudang, $jenis_gudang, $alamat_lengkap, $nama_pengelola)) {
                 $_SESSION['success'] = 'Gudang berhasil ditambahkan.';
@@ -751,7 +779,9 @@ class MasterController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nama_komoditas = trim($_POST['nama_komoditas'] ?? '');
-            $kategori_gizi = trim($_POST['kategori_gizi'] ?? '');
+            $kategori_gizi_select = trim($_POST['kategori_gizi'] ?? '');
+            $kategori_gizi_text = trim($_POST['kategori_gizi_lain'] ?? '');
+            $kategori_gizi = ($kategori_gizi_select === 'Lainnya') ? $kategori_gizi_text : $kategori_gizi_select;
             $id_satuan = isset($_POST['id_satuan']) ? (int) $_POST['id_satuan'] : 0;
             $deskripsi = trim($_POST['deskripsi'] ?? '');
 
@@ -762,6 +792,12 @@ class MasterController
             }
 
             $komoditasModel = new Komoditas();
+
+            if ($komoditasModel->findByNama($nama_komoditas)) {
+                $_SESSION['error'] = 'Nama komoditas sudah digunakan.';
+                header('Location: /master/komoditas/create');
+                exit;
+            }
 
             if ($komoditasModel->create($nama_komoditas, $kategori_gizi, $id_satuan, $deskripsi)) {
                 $_SESSION['success'] = 'Komoditas berhasil ditambahkan.';

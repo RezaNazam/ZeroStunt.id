@@ -133,4 +133,24 @@ class Anak
 
         return $executed;
     }
+
+    public function getPrioritasTerbaruByIbu($id_ibu)
+    {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "SELECT *,
+            TIMESTAMPDIFF(YEAR, tgl_lahir, CURDATE()) as umur
+            FROM anak
+            WHERE id_ibu = ?
+            ORDER BY tgl_lahir DESC
+            LIMIT 1"
+        );
+
+        mysqli_stmt_bind_param($stmt, 'i', $id_ibu);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+
+        return mysqli_fetch_assoc($result);
+    }
 }

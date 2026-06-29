@@ -19,10 +19,8 @@ if ($isAdmin) {
         ['label' => 'Gudang', 'href' => '/master/gudang', 'icon' => '<i class="fa-solid fa-warehouse"></i>'],
         ['label' => 'Komoditas Pangan', 'href' => '/master/komoditas', 'icon' => '<i class="fa-solid fa-carrot"></i>'],
         ['label' => 'Satuan', 'href' => '/master/satuan', 'icon' => '<i class="fa-solid fa-weight-scale"></i>'],
-        ['label' => 'Pemeriksaan', 'href' => '/transaksi/pemeriksaan', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
         ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
-        ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isKader) {
@@ -30,7 +28,7 @@ if ($isAdmin) {
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
         ['label' => 'Standar Pertumbuhan', 'href' => '/master/standar-pertumbuhan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
         ['label' => 'Pemeriksaan', 'href' => '/transaksi/pemeriksaan', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
-        ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
+        ['label' => 'Penyerahan', 'href' => '/transaksi/penyerahan', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
         ['label' => 'Stok Posyandu', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
@@ -94,7 +92,9 @@ if ($isAdmin) {
                     </span>
                 </a>
             <?php endforeach; ?>
-        </nav>
+            <?php if ($isAdmin): ?>
+    <?php endif; ?>
+</nav>
 
         <a href="/auth/logout"
             class="sidebar-logout flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-teal-100 hover:bg-red-500/20 hover:text-white transition">

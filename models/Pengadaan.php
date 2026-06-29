@@ -265,4 +265,139 @@ class Pengadaan
 
         return $data;
     }
+
+    // simpen data ke dua tabel sekaligus (header dan detail)
+    // simpan pengadaan baru
+
+    public function simpanPengadaanBaru(array $dataHeader, array $dataDetail)
+    {
+        mysqli_begin_transaction($this->db);
+
+        try {
+            // --- buat no pengadaan otomatis ---
+            $bulanTahunAktif = date('Ym', strtotime($dataHeader['tanggal_pengadaan']));
+            $formatPrefix = "REQ-" . $bulanTahunAktif . "-";
+
+            // cek nomor
+            $kueriCekNomor = "SELECT no_kontrak FROM t_pengadaan WHERE no_kontrak LIKE '$formatPrefix%' ORDER BY id_pengadaan DESC LIMIT 1";
+            $eksekusiCekNomor = mysqli_query($this->db, $kueriCekNomor);
+
+            $nomorUrutBerikutnya = "001";
+            if ($eksekusiCekNomor && mysqli_num_rows($eksekusiCekNomor) > 0) {
+                // Perbaikan: mysqli_assoc diubah menjadi mysqli_fetch_assoc
+                $barisData = mysqli_fetch_assoc($eksekusiCekNomor);
+
+                $nomorTerakhir = (int) substr($barisData['no_kontrak'], -3);
+                $nomorUrutBerikutnya = str_pad($nomorTerakhir + 1, 3, "0", STR_PAD_LEFT);
+            }
+
+            $nomorKontrakOtomatis = $formatPrefix . $nomorUrutBerikutnya;
+
+
+            // --- SIMPAN DATA KE TABEL HEADER (t_pengadaan) ---
+            $kueriHeader = "INSERT INTO t_pengadaan (no_kontrak, id_gudang, tgl_pengadaan, status_bayar, status_kontrak, keterangan) VALUES (?, ?, ?, 'Pending', 'Mencari Petani', ?)";
+            $stmtHeader = mysqli_prepare($this->db, $kueriHeader);
+
+            if (!$stmtHeader) {
+                throw new Exception("Gagal menyiapkan sistem pencatatan data utama (Header).");
+            }
+
+            mysqli_stmt_bind_param($stmtHeader, 'siss', $nomorKontrakOtomatis, $dataHeader['id_gudang'], $dataHeader['tanggal_pengadaan'], $dataHeader['keterangan']);
+            $suksesSimpanHeader = mysqli_stmt_execute($stmtHeader);
+
+            if (!$suksesSimpanHeader) {
+                throw new Exception("Gagal mengeksekusi penyimpanan data utama pengadaan.");
+            }
+
+            // Ambil ID primary key yang baru saja digenerate oleh auto_increment tabel header
+            $idPengadaanBaru = mysqli_insert_id($this->db);
+            mysqli_stmt_close($stmtHeader);
+
+
+            // --- SIMPAN DATA RINCIAN KE TABEL DETAIL (t_pengadaan_detail) ---
+            $kueriDetail = "INSERT INTO t_pengadaan_detail (id_pengadaan, id_komoditas, jumlah, harga_satuan) VALUES (?, ?, ?, ?)";
+            $stmtDetail = mysqli_prepare($this->db, $kueriDetail);
+
+            if (!$stmtDetail) {
+                throw new Exception("Gagal menyiapkan sistem pencatatan rincian komoditas (Detail).");
+            }
+
+            $totalBarisKomoditas = count($dataDetail['id_komoditas']);
+
+            for ($i = 0; $i < $totalBarisKomoditas; $i++) {
+                $idKomoditas = (int) $dataDetail['id_komoditas'][$i];
+                $jumlahBarang = (float) $dataDetail['jumlah'][$i];
+                $hargaSatuan = (float) $dataDetail['harga_satuan'][$i];
+
+                // --- VALIDASI LEVEL APLIKASI (DATA INTEGRITY BOUNDARY) ---
+                if ($idKomoditas <= 0 || $jumlahBarang <= 0 || $hargaSatuan < 0) {
+                    throw new Exception("Data barang pada baris ke-" . ($i + 1) . " tidak valid. Jumlah harus lebih dari 0 dan harga tidak boleh minus.");
+                }
+
+                mysqli_stmt_bind_param($stmtDetail, 'iidd', $idPengadaanBaru, $idKomoditas, $jumlahBarang, $hargaSatuan);
+                $suksesSimpanDetail = mysqli_stmt_execute($stmtDetail);
+
+                if (!$suksesSimpanDetail) {
+                    throw new Exception("Gagal menyimpan rincian barang pada baris ke-" . ($i + 1));
+                }
+            }
+
+            mysqli_stmt_close($stmtDetail);
+
+            // Jika sampai di sini semua baris data sukses tersimpan, kunci data secara permanen
+            mysqli_commit($this->db);
+            return true;
+
+        } catch (Exception $kesalahan) {
+            // Jika terjadi kegagalan di dalam blok try, batalkan semua operasi insert di atas
+            mysqli_rollback($this->db);
+            $_SESSION['error'] = $kesalahan->getMessage();
+            return false;
+        }
+    }
+
+    // Mencari data tunggal induk pengadaan berdasarkan ID primary key
+    public function find($id_pengadaan): array
+    {
+        $stmt = mysqli_prepare($this->db, "
+            SELECT p.*, g.nama_gudang, pl.nama_lahan as nama_petani 
+            FROM t_pengadaan p
+            JOIN gudang g ON p.id_gudang = g.id_gudang
+            LEFT JOIN petani_lokal pl ON p.id_petani = pl.id_petani
+            WHERE p.id_pengadaan = ?
+        ");
+
+        if (!$stmt)
+            return [];
+
+        mysqli_stmt_bind_param($stmt, 'i', $id_pengadaan);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_assoc($result) ?: [];
+        mysqli_stmt_close($stmt);
+
+        if (!empty($data)) {
+            $data['details'] = $this->getDetails($id_pengadaan);
+        }
+
+        return $data;
+    }
+
+    // proses verifikasi dan pelunasan ketika status kontrak = disetujui
+
+    public function prosesPelunasanKontrak($idPengadaan): bool
+    {
+        $stmt = mysqli_prepare($this->db, "UPDATE t_pengadaan SET status_bayar = 'Lunas' WHERE id_pengadaan = ? AND status_kontrak = 'Disetujui'
+        ");
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idPengadaan);
+        $eksekusi = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        return $eksekusi;
+    }
 }

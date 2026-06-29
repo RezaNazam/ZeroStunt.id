@@ -83,10 +83,12 @@ $isPengelolaKader = in_array($gudang['nama_pengelola'], $kaderUsernames);
 
                 <!-- Nama Pengelola -->
                 <div class="space-y-2">
-                    <label for="nama_pengelola_select" class="block text-sm font-bold text-gray-700">Nama Pengelola</label>
-                    <select id="nama_pengelola_select" name="nama_pengelola_select"
+                    <label for="nama_pengelola_select" class="block text-sm font-bold text-gray-700">
+                        Nama Pengelola <span class="text-red-500">*</span>
+                    </label>
+                    <select id="nama_pengelola_select" name="nama_pengelola_select" required
                         class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100">
-                        <option value="">Pilih Pengelola (Kader)</option>
+                        <option value="" disabled selected>Pilih Pengelola (Kader)</option>
                         <?php foreach ($kaders as $kader): ?>
                             <option value="<?= htmlspecialchars($kader['username']) ?>"
                                 <?= ($isPengelolaKader && $gudang['nama_pengelola'] === $kader['username']) ? 'selected' : '' ?>>
