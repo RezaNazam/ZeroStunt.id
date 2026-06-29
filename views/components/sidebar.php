@@ -19,7 +19,7 @@ if ($isAdmin) {
         ['label' => 'Gudang', 'href' => '/master/gudang', 'icon' => '<i class="fa-solid fa-warehouse"></i>'],
         ['label' => 'Komoditas Pangan', 'href' => '/master/komoditas', 'icon' => '<i class="fa-solid fa-carrot"></i>'],
         ['label' => 'Satuan', 'href' => '/master/satuan', 'icon' => '<i class="fa-solid fa-weight-scale"></i>'],
-        ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
+        ['label' => 'Pemeriksaan', 'href' => '/transaksi/pemeriksaan', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
         ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
         ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
@@ -29,7 +29,7 @@ if ($isAdmin) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
         ['label' => 'Standar Pertumbuhan', 'href' => '/master/standar-pertumbuhan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
-        ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
+        ['label' => 'Pemeriksaan', 'href' => '/transaksi/pemeriksaan', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
         ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
         ['label' => 'Stok Posyandu', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
@@ -78,7 +78,7 @@ if ($isAdmin) {
 
         <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto no-scrollbar">
             <?php foreach ($menus as $menu): ?>
-                <?php $isActive = $menu['href'] !== '#' && $currentUri === $menu['href']; ?>
+                <?php $isActive = $menu['href'] !== '#' && ($currentUri === $menu['href'] || strpos($currentUri, $menu['href'] . '/') === 0); ?>
 
                 <a href="<?= $menu['href']; ?>" class="sidebar-menu-link flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition
                     <?= $isActive

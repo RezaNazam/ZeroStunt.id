@@ -51,7 +51,7 @@ class Anak
 
     public function findById($id_anak)
     {
-        $stmt = mysqli_prepare($this->db, "SELECT * FROM anak WHERE id_anak = ? AND deleted_at IS NULL LIMIT 1");
+        $stmt = mysqli_prepare($this->db, "SELECT * FROM anak WHERE id_anak = ? LIMIT 1");
         if (!$stmt) {
             return null;
         }
@@ -70,8 +70,8 @@ class Anak
         $stmt = mysqli_prepare(
             $this->db,
             "SELECT anak.*, ibu.nama_ibu FROM anak
-             LEFT JOIN ibu ON anak.id_ibu = ibu.id_ibu AND ibu.deleted_at IS NULL
-             WHERE anak.id_ibu = ? AND anak.deleted_at IS NULL
+             LEFT JOIN ibu ON anak.id_ibu = ibu.id_ibu
+             WHERE anak.id_ibu = ?
              ORDER BY anak.tgl_lahir DESC"
         );
         if (!$stmt) {
@@ -96,8 +96,7 @@ class Anak
             $this->db,
             "SELECT anak.*, ibu.nama_ibu 
              FROM anak 
-             LEFT JOIN ibu ON anak.id_ibu = ibu.id_ibu AND ibu.deleted_at IS NULL
-             WHERE anak.deleted_at IS NULL
+             LEFT JOIN ibu ON anak.id_ibu = ibu.id_ibu 
              ORDER BY anak.tgl_lahir DESC"
         );
         $anaks = [];
@@ -109,7 +108,7 @@ class Anak
 
     public function update($id_anak, $id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)
     {
-        $stmt = mysqli_prepare($this->db, "UPDATE anak SET id_ibu = ?, NIK_anak = ?, nama_anak = ?, tgl_lahir = ?, jenis_kelamin = ? WHERE id_anak = ? AND deleted_at IS NULL");
+        $stmt = mysqli_prepare($this->db, "UPDATE anak SET id_ibu = ?, NIK_anak = ?, nama_anak = ?, tgl_lahir = ?, jenis_kelamin = ? WHERE id_anak = ?");
         if (!$stmt) {
             return false;
         }
@@ -123,7 +122,7 @@ class Anak
 
     public function delete($id_anak)
     {
-        $stmt = mysqli_prepare($this->db, "UPDATE anak SET deleted_at = NOW() WHERE id_anak = ? AND deleted_at IS NULL");
+        $stmt = mysqli_prepare($this->db, "DELETE FROM anak WHERE id_anak = ?");
         if (!$stmt) {
             return false;
         }

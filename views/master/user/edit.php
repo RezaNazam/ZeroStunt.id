@@ -90,6 +90,23 @@ ob_start();
                     </div>
                 </div>
 
+                <!-- Posyandu (Only for Kader) -->
+                <div id="posyandu_section" class="<?= $user['role'] === ROLE_KADER ? '' : 'hidden' ?>">
+                    <label for="id_gudang" class="mb-2 block text-sm font-bold text-gray-700">
+                        Posyandu Tugas <span class="text-red-500">*</span>
+                    </label>
+                    <select id="id_gudang" name="id_gudang"
+                        class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100 bg-white"
+                        <?= $user['role'] === ROLE_KADER ? 'required' : '' ?>>
+                        <option value="">-- Pilih Posyandu --</option>
+                        <?php foreach ($posyandus as $p): ?>
+                            <option value="<?= htmlspecialchars($p['id_gudang']); ?>" <?= $user['id_gudang'] == $p['id_gudang'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($p['nama_gudang']); ?> - <?= htmlspecialchars($p['lokasi_gudang'] ?? '-'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
                 <div class="flex flex-col-reverse gap-3 pt-3 sm:flex-row sm:justify-end">
                     <a href="/master/users"
                         class="inline-flex items-center justify-center rounded-2xl border border-gray-200 px-5 py-3 text-sm font-bold text-gray-600 transition hover:bg-gray-50">
@@ -102,6 +119,29 @@ ob_start();
                     </button>
                 </div>
             </form>
+
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const roleKader = document.getElementById('role_kader');
+                const roleAdmin = document.getElementById('role_admin');
+                const posyanduSection = document.getElementById('posyandu_section');
+                const posyanduSelect = document.getElementById('id_gudang');
+
+                function togglePosyandu() {
+                    if (roleKader.checked) {
+                        posyanduSection.classList.remove('hidden');
+                        posyanduSelect.setAttribute('required', 'required');
+                    } else {
+                        posyanduSection.classList.add('hidden');
+                        posyanduSelect.removeAttribute('required');
+                        posyanduSelect.value = '';
+                    }
+                }
+
+                roleKader.addEventListener('change', togglePosyandu);
+                roleAdmin.addEventListener('change', togglePosyandu);
+            });
+            </script>
         </div>
     </div>
 </div>
