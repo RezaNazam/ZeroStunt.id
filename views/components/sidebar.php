@@ -19,6 +19,7 @@ if ($isAdmin) {
         ['label' => 'Gudang', 'href' => '/master/gudang', 'icon' => '<i class="fa-solid fa-warehouse"></i>'],
         ['label' => 'Komoditas Pangan', 'href' => '/master/komoditas', 'icon' => '<i class="fa-solid fa-carrot"></i>'],
         ['label' => 'Satuan', 'href' => '/master/satuan', 'icon' => '<i class="fa-solid fa-weight-scale"></i>'],
+        ['label' => 'Stok Gudang', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
         ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
         ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],

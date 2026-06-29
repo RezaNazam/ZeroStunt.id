@@ -35,7 +35,7 @@ $renderDistribusiTable = function () use ($distribusiList, $data, $formatJumlah,
             <tbody class="divide-y divide-gray-100">
                 <?php if (empty($distribusiList)): ?>
                     <tr>
-                        <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">
                             Belum ada data distribusi.
                         </td>
                     </tr>

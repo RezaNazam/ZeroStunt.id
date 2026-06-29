@@ -85,7 +85,7 @@ return [
     '/master/standar-pertumbuhan' => [MasterController::class, 'callStandarPertumbuhan', [ROLE_ADMIN, ROLE_KADER]],
 
     // --- Master: Stok Posyandu ---
-    '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_KADER]],
+    '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_ADMIN, ROLE_KADER]],
 
     // -- route mater diatas --
 

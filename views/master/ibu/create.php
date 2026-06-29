@@ -123,7 +123,7 @@
                                 type="text"
                                 name="nik_ibu"
                                 inputmode="numeric"
-                                pattern="[0-9]{16}" 
+                                pattern="[0-9]{16}"
                                 minlength="16"
                                 maxlength="16"
                                 required
@@ -190,7 +190,7 @@
 
                         <div>
                             <label for="id_gudang" class="block text-sm font-bold text-gray-700 mb-2">
-                                Pilih Gudang / Posyandu <span class="text-red-500">*</span>
+                                Pilih Posyandu <span class="text-red-500">*</span>
                             </label>
 
                             <select
@@ -198,11 +198,13 @@
                                 name="id_gudang"
                                 required
                                 class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-100">
-                                <option value="">-- Pilih Gudang / Posyandu --</option>
+                                <option value="">-- Pilih Posyandu --</option>
 
                                 <?php foreach ($gudangs as $gudang): ?>
+                                    <?php if (strtolower($gudang['jenis_gudang'] ?? '') !== 'posyandu') continue; ?>
+
                                     <option value="<?= htmlspecialchars($gudang['id_gudang']); ?>">
-                                        <?= htmlspecialchars($gudang['nama_gudang'] . ' (' . $gudang['jenis_gudang'] . ')'); ?>
+                                        <?= htmlspecialchars($gudang['nama_gudang']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

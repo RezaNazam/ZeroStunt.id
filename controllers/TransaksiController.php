@@ -346,34 +346,59 @@ class TransaksiController
 
         $penyerahan = $penyerahanModel->all();
 
-        require '../views/transaksi/penyerahan.php';
+        require '../views/transaksi/penyerahan/index.php';
     }
 
     public function storePenyerahan()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id'])) {
             header('Location: /transaksi/penyerahan');
             exit;
         }
 
-        try {
+        global $koneksi;
 
-            // =========================
-            // VALIDASI INPUT WAJIB
-            // =========================
-            if (empty($_POST['id_ibu'])) {
+        try {
+            $idIbu = (int) ($_POST['id_ibu'] ?? 0);
+            $idGudang = (int) ($_POST['id_gudang'] ?? 0);
+            $tanggalPenyerahan = $_POST['tanggal_penyerahan'] ?? '';
+            $catatan = trim($_POST['catatan'] ?? '');
+
+            $komoditasIds = $_POST['id_komoditas'] ?? [];
+            $jumlahs = $_POST['jumlah'] ?? [];
+
+            if ($idIbu <= 0) {
                 throw new Exception('Ibu wajib dipilih.');
             }
 
-            if (empty($_POST['tanggal_penyerahan'])) {
+            if ($idGudang <= 0) {
+                throw new Exception('Gudang / Posyandu wajib dipilih.');
+            }
+
+            if ($tanggalPenyerahan === '') {
                 throw new Exception('Tanggal penyerahan wajib diisi.');
             }
 
-            $idIbu = $_POST['id_ibu'];
+            $details = [];
 
-            // =========================
-            // AMBIL DATA ANAK
-            // =========================
+            foreach ($komoditasIds as $index => $idKomoditas) {
+                $idKomoditas = (int) $idKomoditas;
+                $jumlah = (float) ($jumlahs[$index] ?? 0);
+
+                if ($idKomoditas <= 0 || $jumlah <= 0) {
+                    continue;
+                }
+
+                $details[] = [
+                    'id_komoditas' => $idKomoditas,
+                    'jumlah' => $jumlah
+                ];
+            }
+
+            if (empty($details)) {
+                throw new Exception('Minimal harus ada 1 komoditas bantuan.');
+            }
+
             $anakModel = new Anak();
             $anakList = $anakModel->findByIbu($idIbu);
 
@@ -387,46 +412,47 @@ class TransaksiController
                 throw new Exception('Data anak tidak valid.');
             }
 
-            // =========================
-            // DATA PENYERAHAN
-            // =========================
             $data = [
                 'id_ibu' => $idIbu,
                 'id_anak' => $anak['id_anak'],
-                // FIX: gudang otomatis dari ibu (biar gak error input hilang)
-                'id_gudang' => $anak['id_gudang'] ?? 1,
-                'tanggal_penyerahan' => $_POST['tanggal_penyerahan'],
-                'catatan' => $_POST['catatan'] ?? null
+                'id_gudang' => $idGudang,
+                'tanggal_penyerahan' => $tanggalPenyerahan,
+                'catatan' => $catatan
             ];
 
-            // =========================
-            // SIMPAN HEADER
-            // =========================
+            mysqli_begin_transaction($koneksi);
+
             $penyerahanModel = new Penyerahan();
+
             $idPenyerahan = $penyerahanModel->create($data);
 
             if (!$idPenyerahan) {
                 throw new Exception('Gagal menyimpan data penyerahan.');
             }
 
-            // =========================
-            // DETAIL DEFAULT (TRIGGER READY)
-            // =========================
-            $penyerahanModel->createDetail($idPenyerahan, 2, 1.5);
-            $penyerahanModel->createDetail($idPenyerahan, 3, 10);
+            foreach ($details as $detail) {
+                $saved = $penyerahanModel->createDetail(
+                    $idPenyerahan,
+                    $detail['id_komoditas'],
+                    $detail['jumlah']
+                );
 
-            // =========================
-            // SUCCESS
-            // =========================
+                if (!$saved) {
+                    throw new Exception('Gagal menyimpan detail penyerahan.');
+                }
+            }
+
+            mysqli_commit($koneksi);
+
             $_SESSION['success'] = 'Data penyerahan berhasil disimpan.';
-
             header('Location: /transaksi/penyerahan');
             exit;
-
         } catch (Throwable $e) {
+            if (isset($koneksi)) {
+                mysqli_rollback($koneksi);
+            }
 
             $_SESSION['error'] = $e->getMessage();
-
             header('Location: /transaksi/penyerahan/create');
             exit;
         }
@@ -440,19 +466,13 @@ class TransaksiController
             exit;
         }
 
-        $ibuModel = new Ibu();
+        $penyerahanModel = new Penyerahan();
 
-        $ibus = $ibuModel->all();
+        $ibus = $penyerahanModel->getIbuOptions();
+        $gudangs = $penyerahanModel->getGudangPosyanduOptions();
+        $komoditas = $penyerahanModel->getKomoditasOptions();
 
-        $gudangModel = new Gudang();
-
-        $gudangs = $gudangModel->all();
-
-        $anakModel = new Anak();
-
-        $anaks = $anakModel->all();
-
-        require '../views/transaksi/create_penyerahan.php';
+        require '../views/transaksi/penyerahan/create.php';
     }
 
     public function serahkanPenyerahan()
@@ -473,13 +493,11 @@ class TransaksiController
 
                 $_SESSION['success'] =
                     'Penyerahan berhasil diselesaikan.';
-
             } else {
 
                 $_SESSION['error'] =
                     'Gagal mengubah status penyerahan.';
             }
-
         } catch (Exception $e) {
 
             $_SESSION['error'] =
@@ -719,10 +737,16 @@ class TransaksiController
 
         $distribusiModel = new Distribusi();
 
-        if ($distribusiModel->markAsReceived($idDistribusi, $_SESSION['user_id'])) {
-            $_SESSION['success'] = 'Distribusi berhasil ditandai sebagai diterima.';
-        } else {
-            $_SESSION['error'] = 'Gagal menerima distribusi. Kemungkinan status sudah bukan Dikirim.';
+        try {
+            if ($distribusiModel->markAsReceived($idDistribusi, $_SESSION['user_id'])) {
+                $_SESSION['success'] = 'Distribusi berhasil ditandai sebagai diterima.';
+            } else {
+                $_SESSION['error'] = 'Gagal menerima distribusi. Kemungkinan status sudah bukan Dikirim.';
+            }
+        } catch (mysqli_sql_exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+        } catch (Throwable $e) {
+            $_SESSION['error'] = 'Terjadi kesalahan saat menerima distribusi.';
         }
 
         header('Location: /transaksi/distribusi');
@@ -853,7 +877,7 @@ class TransaksiController
 
         $currentUser = $userModel->findByid($_SESSION['user_id']);
         $id_gudang = $currentUser['id_gudang'] ?? null;
-        
+
         if ($id_gudang) {
             $data['anak'] = $pemeriksaanModel->getAnakByPosyandu($id_gudang);
         } else {
@@ -1013,4 +1037,3 @@ class TransaksiController
         exit;
     }
 }
-

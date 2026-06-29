@@ -12,25 +12,24 @@ class Penyerahan
 
     public function all()
     {
-    $result = mysqli_query(
-    $this->db,
-    "SELECT
+        $result = mysqli_query(
+            $this->db,
+            "SELECT
     p.*,
     ibu.nama_ibu
     FROM t_penyerahan p
     LEFT JOIN ibu
     ON p.id_ibu = ibu.id_ibu
     ORDER BY p.id_penyerahan DESC"
-    );
+        );
 
-    $data = [];
+        $data = [];
 
-    while ($row = mysqli_fetch_assoc($result)) {
-        $data[] = $row;
-    }
+        while ($row = mysqli_fetch_assoc($result)) {
+            $data[] = $row;
+        }
 
-    return $data;
-
+        return $data;
     }
 
 
@@ -62,67 +61,113 @@ class Penyerahan
         if (!$ok) return false;
 
         return mysqli_insert_id($this->db);
-}
+    }
 
 
     public function createDetail(
-    $id_penyerahan,
-    $id_komoditas,
-    $jumlah
-    )
-    {
-    $stmt = mysqli_prepare(
-    $this->db,
-    "INSERT INTO t_penyerahan_detail
+        $id_penyerahan,
+        $id_komoditas,
+        $jumlah
+    ) {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "INSERT INTO t_penyerahan_detail
     (
     id_penyerahan,
     id_komoditas,
     jumlah
     )
     VALUES (?, ?, ?)"
-    );
-    if (!$stmt) {
-        return false;
-    }
+        );
+        if (!$stmt) {
+            return false;
+        }
 
-    mysqli_stmt_bind_param(
-        $stmt,
-        'iid',
-        $id_penyerahan,
-        $id_komoditas,
-        $jumlah
-    );
+        mysqli_stmt_bind_param(
+            $stmt,
+            'iid',
+            $id_penyerahan,
+            $id_komoditas,
+            $jumlah
+        );
 
-    $executed = mysqli_stmt_execute($stmt);
+        $executed = mysqli_stmt_execute($stmt);
 
-    mysqli_stmt_close($stmt);
+        mysqli_stmt_close($stmt);
 
-    return $executed;
+        return $executed;
     }
 
     public function serahkan($id_penyerahan)
     {
-    $stmt = mysqli_prepare(
-    $this->db,
-    "UPDATE t_penyerahan
+        $stmt = mysqli_prepare(
+            $this->db,
+            "UPDATE t_penyerahan
     SET status_penyerahan = 'Diserahkan'
     WHERE id_penyerahan = ?"
-    );
+        );
 
-    if (!$stmt) {
-        return false;
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            'i',
+            $id_penyerahan
+        );
+
+        $executed = mysqli_stmt_execute($stmt);
+
+        mysqli_stmt_close($stmt);
+
+        return $executed;
     }
 
-    mysqli_stmt_bind_param(
-        $stmt,
-        'i',
-        $id_penyerahan
-    );
+    public function getIbuOptions()
+    {
+        $query = "
+        SELECT 
+            i.id_ibu,
+            i.nama_ibu
+        FROM ibu i
+        ORDER BY i.nama_ibu ASC
+    ";
 
-    $executed = mysqli_stmt_execute($stmt);
+        $result = mysqli_query($this->db, $query);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
 
-    mysqli_stmt_close($stmt);
+    public function getGudangPosyanduOptions()
+    {
+        $query = "
+        SELECT 
+            id_gudang,
+            nama_gudang,
+            jenis_gudang
+        FROM gudang
+        WHERE LOWER(jenis_gudang) = 'posyandu'
+        ORDER BY nama_gudang ASC
+    ";
 
-    return $executed;
+        $result = mysqli_query($this->db, $query);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
+
+    public function getKomoditasOptions()
+    {
+        $query = "
+        SELECT 
+            k.id_komoditas,
+            k.nama_komoditas,
+            s.singkat AS satuan
+        FROM komoditas_pangan k
+        LEFT JOIN satuan s ON k.id_satuan = s.id_satuan
+        WHERE COALESCE(k.is_deleted, 0) = 0
+        ORDER BY k.nama_komoditas ASC
+    ";
+
+        $result = mysqli_query($this->db, $query);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
     }
 }

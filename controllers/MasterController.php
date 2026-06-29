@@ -44,16 +44,15 @@ class MasterController
     // form tambah user baru (admin bisa tambah kader, admin bisa tambah admin laionnya)
     public function createUsers()
     {
-        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
             header('Location: /auth/login');
             exit;
         }
 
         $gudangModel = new Gudang();
-        $allGudang = $gudangModel->all();
-        $posyandus = array_filter($allGudang, function ($g) {
-            return strtolower($g['jenis_gudang'] ?? '') === 'posyandu';
-        });
+
+        $gudangPusat = $gudangModel->getByJenis('pusat');
+        $posyandus = $gudangModel->getByJenis('posyandu');
 
         require '../views/master/user/create.php';
     }
@@ -77,6 +76,7 @@ class MasterController
         $password = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
         $roleInput = $_POST['role'] ?? '';
+        $idGudang = (int) ($_POST['id_gudang'] ?? 0);
 
         // simpan input lama biar kalau error, username + role tidak hilang
         $_SESSION['old'] = [
@@ -88,6 +88,12 @@ class MasterController
 
         if ($username === '' || $password === '' || $confirmPassword === '' || $roleInput === '') {
             $_SESSION['error'] = 'Semua field wajib diisi.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if ($idGudang <= 0) {
+            $_SESSION['error'] = 'Gudang wajib dipilih sesuai role akun.';
             header('Location: /master/users/create');
             exit;
         }
@@ -118,7 +124,7 @@ class MasterController
             exit;
         }
 
-        if ($userModel->create($username, $password, $roleInput)) {
+        if ($userModel->create($username, $password, $roleInput, $idGudang)) {
             unset($_SESSION['old']);
 
             $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
@@ -261,7 +267,7 @@ class MasterController
 
 
         $gudangModel = new Gudang();
-        $gudangs = $gudangModel->all();
+        $gudangs = $gudangModel->getPosyanduOnly();
         require '../views/master/ibu/create.php';
     }
 
@@ -380,6 +386,68 @@ class MasterController
 
     public function stokPosyandu()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+
+        $isAdmin = defined('ROLE_ADMIN')
+            ? $role === ROLE_ADMIN
+            : strtolower($role) === 'admin';
+
+        $isKader = defined('ROLE_KADER')
+            ? $role === ROLE_KADER
+            : strtolower($role) === 'kader';
+
+        if (!$isAdmin && !$isKader) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $stokModel = new Stok();
+        $search = trim($_GET['q'] ?? '');
+
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+
+        $idGudangUser = (int) ($currentUser['id_gudang'] ?? 0);
+
+        if ($idGudangUser <= 0) {
+            $_SESSION['error'] = 'Akun ini belum terhubung dengan gudang/posyandu.';
+            $allStoks = [];
+        } else {
+            $allStoks = $stokModel->getByGudang($idGudangUser);
+        }
+
+        $allStoks = array_map(function ($row) {
+            $jumlah = (float) ($row['jumlah_stok'] ?? $row['qty_current'] ?? 0);
+
+            if ($jumlah <= 0) {
+                $row['status_label'] = 'Habis';
+            } elseif ($jumlah <= 10) {
+                $row['status_label'] = 'Menipis';
+            } else {
+                $row['status_label'] = 'Tersedia';
+            }
+
+            return $row;
+        }, $allStoks);
+
+        $searchedStoks = SearchHelper::searchArray($allStoks, $search, [
+            'nama_komoditas',
+            'nama_gudang',
+            'jenis_gudang',
+            'jumlah_stok',
+            'status_label'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedStoks, 20);
+
+        $data['stoks'] = $pagination['data'];
+        $data['pagination_stok'] = $pagination;
+
         require '../views/master/kader/stok.php';
     }
 
