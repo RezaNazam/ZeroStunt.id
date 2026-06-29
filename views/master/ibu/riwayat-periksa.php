@@ -59,11 +59,11 @@ $tableColumns = [
 
             $class = 'bg-gray-100 text-gray-700';
 
-            if ($status === 'Normal') {
+            if (strpos(strtolower($status), 'prioritas 3') !== false || strtolower($status) === 'normal') {
                 $class = 'bg-green-50 text-green-700';
-            } elseif ($status === 'Gizi Kurang') {
+            } elseif (strpos(strtolower($status), 'prioritas 2') !== false || strtolower($status) === 'gizi kurang') {
                 $class = 'bg-amber-50 text-amber-700';
-            } elseif ($status === 'Berisiko Stunting' || $status === 'Stunting') {
+            } elseif (strpos(strtolower($status), 'prioritas 1') !== false || strtolower($status) === 'berisiko stunting' || strtolower($status) === 'stunting' || strtolower($status) === 'gizi buruk') {
                 $class = 'bg-red-50 text-red-700';
             }
 
