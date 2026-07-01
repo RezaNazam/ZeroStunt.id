@@ -129,7 +129,28 @@ class User
         }
 
         if ($role === ROLE_PETANI) {
-            $stmt = mysqli_prepare($this->db, "SELECT id_petani FROM petani_lokal WHERE id_petani = ? LIMIT 1");
+            $query = "
+        SELECT 
+            p.id_petani,
+            p.luas_lahan,
+            p.jenis_usaha,
+            p.status_lahan,
+            COUNT(pk.id_petani_komoditas) AS total_komoditas
+        FROM petani_lokal p
+        LEFT JOIN petani_lahan_komoditas pk 
+            ON p.id_petani = pk.id_petani
+            AND pk.deleted_at IS NULL
+        WHERE p.id_petani = ?
+          AND p.deleted_at IS NULL
+        GROUP BY 
+            p.id_petani,
+            p.luas_lahan,
+            p.jenis_usaha,
+            p.status_lahan
+        LIMIT 1
+    ";
+
+            $stmt = mysqli_prepare($this->db, $query);
 
             if (!$stmt) {
                 return false;
@@ -137,11 +158,21 @@ class User
 
             mysqli_stmt_bind_param($stmt, 'i', $userId);
             mysqli_stmt_execute($stmt);
+
             $result = mysqli_stmt_get_result($stmt);
-            $complete = mysqli_num_rows($result) > 0;
+            $petani = mysqli_fetch_assoc($result);
+
             mysqli_stmt_close($stmt);
 
-            return $complete;
+            if (!$petani) {
+                return false;
+            }
+
+            return
+                !empty($petani['luas_lahan']) &&
+                !empty($petani['jenis_usaha']) &&
+                !empty($petani['status_lahan']) &&
+                (int) $petani['total_komoditas'] > 0;
         }
 
         return true;
@@ -192,23 +223,23 @@ class User
     }
 
     public function updateProfile($id_user, $username)
-{
-    $stmt = mysqli_prepare(
-        $this->db,
-        "UPDATE users
+    {
+        $stmt = mysqli_prepare(
+            $this->db,
+            "UPDATE users
          SET username = ?
          WHERE id_user = ?
          AND is_active = 1"
-    );
+        );
 
-    if (!$stmt) {
-        return false;
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'si', $username, $id_user);
+        $executed = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        return $executed;
     }
-
-    mysqli_stmt_bind_param($stmt, 'si', $username, $id_user);
-    $executed = mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
-
-    return $executed;
-}
 }

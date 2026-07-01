@@ -614,6 +614,14 @@ class MasterController
             exit;
         }
 
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if ($petani) {
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
         require '../views/master/petani/create.php';
     }
 
@@ -624,39 +632,33 @@ class MasterController
             exit;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            global $koneksi;
-
-            $id_petani = $_SESSION['user_id'];
-            $nama_lahan = trim($_POST['nama_lahan'] ?? '');
-            $alamat_lahan = trim($_POST['alamat_lahan'] ?? '');
-            $no_rekening = trim($_POST['no_rekening'] ?? '');
-            $kapasitas = $_POST['kapasitas_panen_bulan'] ?? 0;
-
-            // validasi input petani
-            if ($nama_lahan === '') {
-                $_SESSION['error'] = 'Nama lahan wajib diisi.';
-                header('Location: /master/petani/create');
-                exit;
-            }
-
-
-            // insert data petani ke tabel petani_lokal
-            // insert data ibu ke tabel ibu
-            $petaniModel = new PetaniLokal();
-            if ($petaniModel->create($id_petani, $nama_lahan, $alamat_lahan, $no_rekening, $kapasitas)) {
-
-                // validasi jika berhasil disimpan dan redirect ke dashboard, jika gagal kembali ke form dengan pesan error
-                $_SESSION['success'] = 'Profil berhasil disimpan.';
-                header('Location: /dashboard');
-                exit;
-            } else {
-                $_SESSION['error'] = 'Gagal menyimpan profil.';
-                header('Location: /master/petani/create');
-                exit;
-            }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/petani/create');
+            exit;
         }
 
+        $idUser = (int) $_SESSION['user_id'];
+
+        $nama_lahan = trim($_POST['nama_lahan'] ?? '');
+        $alamat_lahan = trim($_POST['alamat_lahan'] ?? '');
+        $no_rekening = trim($_POST['no_rekening'] ?? '');
+        $kapasitas = (float) ($_POST['kapasitas_panen_bulan'] ?? 0);
+
+        if ($nama_lahan === '') {
+            $_SESSION['error'] = 'Nama lahan wajib diisi.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+
+        if ($petaniModel->create($idUser, $nama_lahan, $alamat_lahan, $no_rekening, $kapasitas)) {
+            $_SESSION['success'] = 'Profil dasar berhasil disimpan. Lanjut lengkapi detail lahan.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal menyimpan profil.';
         header('Location: /master/petani/create');
         exit;
     }
@@ -668,7 +670,183 @@ class MasterController
 
     public function profilLahan()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Lengkapi profil petani terlebih dahulu.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $komoditas = $petaniModel->getKomoditasByPetani($petani['id_petani']);
+
+        $detailBelumLengkap =
+            empty($petani['luas_lahan']) ||
+            empty($petani['jenis_usaha']) ||
+            empty($petani['status_lahan']) ||
+            empty($komoditas);
+
+        if ($detailBelumLengkap) {
+            $_SESSION['error'] = 'Lengkapi detail lahan terlebih dahulu.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $totalLuasTerpakai = 0;
+
+        foreach ($komoditas as $item) {
+            $totalLuasTerpakai += (float) ($item['luas_area'] ?? 0);
+        }
+
+        $luasLahan = (float) ($petani['luas_lahan'] ?? 0);
+        $sisaLahan = max(0, $luasLahan - $totalLuasTerpakai);
+
         require '../views/master/petani/profil-lahan.php';
+    }
+
+    public function createLahanPetani()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Lengkapi profil petani terlebih dahulu.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $komoditasPetani = $petaniModel->getKomoditasByPetani($petani['id_petani']);
+
+        $sudahLengkap =
+            !empty($petani['luas_lahan']) &&
+            !empty($petani['jenis_usaha']) &&
+            !empty($petani['status_lahan']) &&
+            !empty($komoditasPetani);
+
+        if ($sudahLengkap) {
+            header('Location: /master/petani/profil-lahan');
+            exit;
+        }
+
+        $komoditas = $petaniModel->getKomoditasOptions();
+
+        require '../views/master/petani/lahan/create.php';
+    }
+
+    public function storeLahanPetani()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Data petani tidak ditemukan.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $idPetani = (int) $petani['id_petani'];
+
+        $luasLahan = (float) ($_POST['luas_lahan'] ?? 0);
+        $satuanLuas = $_POST['satuan_luas'] ?? 'ha';
+        $jenisUsaha = trim($_POST['jenis_usaha'] ?? '');
+        $statusLahan = $_POST['status_lahan'] ?? 'Aktif';
+        $deskripsiLahan = trim($_POST['deskripsi_lahan'] ?? '');
+
+        $idKomoditasList = $_POST['id_komoditas'] ?? [];
+        $luasAreaList = $_POST['luas_area'] ?? [];
+        $estimasiPanenList = $_POST['estimasi_panen'] ?? [];
+        $catatanList = $_POST['catatan_komoditas'] ?? [];
+
+        if ($luasLahan <= 0) {
+            $_SESSION['error'] = 'Luas lahan wajib diisi.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        if ($jenisUsaha === '') {
+            $_SESSION['error'] = 'Jenis usaha wajib diisi.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $details = [];
+        $totalLuasArea = 0;
+
+        foreach ($idKomoditasList as $index => $idKomoditas) {
+            $idKomoditas = (int) $idKomoditas;
+            $luasArea = (float) ($luasAreaList[$index] ?? 0);
+            $estimasiPanen = (float) ($estimasiPanenList[$index] ?? 0);
+            $catatan = trim($catatanList[$index] ?? '');
+
+            if ($idKomoditas > 0) {
+                if ($luasArea <= 0) {
+                    $_SESSION['error'] = 'Luas area setiap komoditas wajib lebih dari 0.';
+                    header('Location: /master/petani/lahan/create');
+                    exit;
+                }
+
+                if ($estimasiPanen < 0) {
+                    $_SESSION['error'] = 'Estimasi panen tidak boleh minus.';
+                    header('Location: /master/petani/lahan/create');
+                    exit;
+                }
+
+                $totalLuasArea += $luasArea;
+
+                $details[] = [
+                    'id_komoditas' => $idKomoditas,
+                    'luas_area' => $luasArea,
+                    'estimasi_panen' => $estimasiPanen,
+                    'catatan' => $catatan
+                ];
+            }
+        }
+
+        if (empty($details)) {
+            $_SESSION['error'] = 'Minimal pilih 1 komoditas yang dibudidayakan.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        if ($totalLuasArea > $luasLahan) {
+            $_SESSION['error'] = 'Total luas area komoditas tidak boleh melebihi total luas lahan.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        if (
+            $petaniModel->updateDetailLahan($idPetani, $luasLahan, $satuanLuas, $jenisUsaha, $statusLahan, $deskripsiLahan)
+            && $petaniModel->replaceKomoditas($idPetani, $details)
+        ) {
+            $_SESSION['success'] = 'Detail lahan berhasil disimpan.';
+            header('Location: /master/petani/profil-lahan');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal menyimpan detail lahan.';
+        header('Location: /master/petani/lahan/create');
+        exit;
     }
 
     // --- Master: Gudang ---

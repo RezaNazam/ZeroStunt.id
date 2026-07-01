@@ -55,6 +55,8 @@ return [
     '/master/petani/store' => [MasterController::class, 'storePetani', [ROLE_PETANI]],
     '/master/petani/riwayat-ekonomi' => [MasterController::class, 'riwayatEkonomi', [ROLE_PETANI]],
     '/master/petani/profil-lahan' => [MasterController::class, 'profilLahan', [ROLE_PETANI]],
+    '/master/petani/lahan/create' => [MasterController::class, 'createLahanPetani', [ROLE_PETANI]],
+    '/master/petani/lahan/store' => [MasterController::class, 'storeLahanPetani', [ROLE_PETANI]],
 
     // --- Master: Gudang ---
     '/master/gudang' => [MasterController::class, 'indexGudang', [ROLE_ADMIN]],

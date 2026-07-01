@@ -10,17 +10,23 @@ class DashboardController
 
         // Cek profil udah lengkap atau belum
         $userModel = new User();
-        if (!$userModel->isProfileComplete($_SESSION['user_id'], $_SESSION['role'])) {
-
-            // jika ibu, redirect ke form ibu
-            if ($_SESSION['role'] === ROLE_IBU) {
+        $user = $userModel->findByid($_SESSION['user_id']);
+        if (!$userModel->isProfileComplete($user['id_user'], $user['role'])) {
+            if ($user['role'] === ROLE_IBU) {
                 header('Location: /master/ibu/create');
                 exit;
             }
 
-            // jika petani, redirect ke form petani
-            if ($_SESSION['role'] === ROLE_PETANI) {
-                header('Location: /master/petani/create');
+            if ($user['role'] === ROLE_PETANI) {
+                $petaniModel = new PetaniLokal();
+                $petani = $petaniModel->findByUserId($user['id_user']);
+
+                if (!$petani) {
+                    header('Location: /master/petani/create');
+                    exit;
+                }
+
+                header('Location: /master/petani/lahan/create');
                 exit;
             }
         }
@@ -52,5 +58,4 @@ class DashboardController
         // Default to admin dashboard
         require '../views/dashboard/admin.php';
     }
-
 }
