@@ -126,6 +126,9 @@ return [
     '/transaksi/pemeriksaan/kalkulasi' => [TransaksiController::class, 'kalkulasiGizi', [ROLE_ADMIN, ROLE_KADER]],
 
 
+    // --- Laporan ---
+    '/laporan' => [LaporanController::class, 'index', [ROLE_ADMIN, ROLE_KADER, ROLE_IBU, ROLE_PETANI]],
+    '/laporan/pdf' => [LaporanController::class, 'downloadPdf', [ROLE_ADMIN, ROLE_KADER, ROLE_IBU, ROLE_PETANI]],
 
     // --- (tambahkan route lain di sini saat development) ---
 

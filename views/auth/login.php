@@ -5,6 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login - ZeroStunt.id</title>
+    <link rel="icon" type="image/png" href="/img/icon-logo.png?v=2">
+    <link rel="shortcut icon" type="image/png" href="/img/icon-logo.png?v=2">
+    <link rel="apple-touch-icon" href="/img/icon-logo.png?v=2">
     <link href="/css/tailwind.css" rel="stylesheet">
 </head>
 

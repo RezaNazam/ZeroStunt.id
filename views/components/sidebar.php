@@ -23,7 +23,7 @@ if ($isAdmin) {
         ['label' => 'Paket Gizi', 'href' => '/master/paket-gizi', 'icon' => '<i class="fa-solid fa-boxes-stacked"></i>'],
         ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
-        ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isKader) {
     $menus = [
@@ -33,7 +33,7 @@ if ($isAdmin) {
         ['label' => 'Penyerahan', 'href' => '/transaksi/penyerahan', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
         ['label' => 'Stok Posyandu', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
-        ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isPetani) {
     $menus = [
@@ -41,6 +41,7 @@ if ($isAdmin) {
         ['label' => 'Pengadaan Saya', 'href' => '/transaksi/pengadaan/ambil', 'icon' => '<i class="fa-solid fa-file-invoice-dollar"></i>'],
         ['label' => 'Riwayat Ekonomi', 'href' => '/master/petani/riwayat-ekonomi', 'icon' => '<i class="fa-solid fa-wallet"></i>'],
         ['label' => 'Profil Lahan', 'href' => '/master/petani/profil-lahan', 'icon' => '<i class="fa-solid fa-seedling"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isIbu) {
     $menus = [
@@ -48,6 +49,7 @@ if ($isAdmin) {
         ['label' => 'Data Anak', 'href' => '/master/anak', 'icon' => '<i class="fa-solid fa-baby"></i>'],
         ['label' => 'Histori Bantuan', 'href' => '/master/ibu/histori-bantuan', 'icon' => '<i class="fa-solid fa-gift"></i>'],
         ['label' => 'Riwayat Periksa', 'href' => '/master/ibu/riwayat-periksa', 'icon' => '<i class="fa-solid fa-clipboard-list"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 }
 ?>

@@ -16,8 +16,14 @@ require_once '../helpers/ErrorHelper.php';
 require_once '../helpers/PaginationHelper.php';
 require_once '../helpers/SearchHelper.php';
 require_once '../helpers/NumberHelper.php';
+
+// --- Load Models ---
 require_once '../models/PaketGizi.php';
 require_once '../models/Dashboard.php';
+require_once '../models/Laporan.php';
+
+// --- Load Vendor Libraries ---
+require_once '../vendor/autoload.php';
 
 // --- Load Models ---
 foreach (glob('../models/*.php') as $file) {
