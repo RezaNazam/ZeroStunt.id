@@ -311,8 +311,11 @@ class TransaksiController
 
     public function lunasiPengadaan()
     {
-        // verifikasi login sebagai apa
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id']) || strtolower($_SESSION['role'] ?? '') !== 'admin') {
+        if (
+            $_SERVER['REQUEST_METHOD'] !== 'POST' ||
+            empty($_SESSION['user_id']) ||
+            strtolower($_SESSION['role'] ?? '') !== 'admin'
+        ) {
             header('Location: /transaksi/pengadaan');
             exit;
         }
@@ -320,16 +323,17 @@ class TransaksiController
         $idPengadaan = (int) ($_POST['id_pengadaan'] ?? 0);
 
         if ($idPengadaan <= 0) {
-            $_SESSION['error'] = 'ID Transaksi tidak valid.';
+            $_SESSION['error'] = 'ID transaksi tidak valid.';
             header('Location: /transaksi/pengadaan');
             exit;
         }
 
         $pengadaanModel = new Pengadaan();
+
         if ($pengadaanModel->prosesPelunasanKontrak($idPengadaan)) {
-            $_SESSION['success'] = 'Kontrak pengadaan telah diverifikasi fisik dan status pembauaran berhasil diubah menjadi Lunas.';
+            $_SESSION['success'] = 'Kontrak pengadaan telah diverifikasi fisik dan status pembayaran berhasil diubah menjadi Lunas.';
         } else {
-            $_SESSION['error'] = 'Gagal memperbarui status pembayaran.';
+            $_SESSION['error'] = 'Gagal memperbarui status pembayaran. Pastikan kontrak sudah disetujui, masih Pending, dan memiliki detail komoditas.';
         }
 
         header('Location: /transaksi/pengadaan/detail?id=' . $idPengadaan);
@@ -573,7 +577,7 @@ class TransaksiController
                     && in_array($status, ['Dikirim', 'Diterima'], true);
             }));
         }
-        
+
         $searchedDistribusi = SearchHelper::searchArray($allDistribusi, $search, [
             'no_distribusi',
             'gudang_asal',

@@ -665,6 +665,23 @@ class MasterController
 
     public function riwayatEkonomi()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Lengkapi profil petani terlebih dahulu.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $pengadaanModel = new Pengadaan();
+        $riwayat = $pengadaanModel->getRiwayatEkonomiByPetani($petani['id_petani']);
+
         require '../views/master/petani/riwayat-ekonomi.php';
     }
 
