@@ -60,10 +60,11 @@ if ($isAdmin) {
     <div class="h-full flex flex-col">
         <div class="h-20 px-6 flex items-center justify-between border-b border-teal-700">
             <a href="/dashboard" class="flex items-center gap-3 font-bold text-xl">
-                <span class="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center shrink-0 text-base">
-                    🌱
+                <span class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shrink-0 text-sm font-extrabold text-teal-700">
+                    ZS
                 </span>
-                <span class="sidebar-logo-text whitespace-nowrap">
+
+                <span class="sidebar-logo-text whitespace-nowrap text-white">
                     ZeroStunt<span class="text-amber-400">.id</span>
                 </span>
             </a>
@@ -97,8 +98,8 @@ if ($isAdmin) {
                 </a>
             <?php endforeach; ?>
             <?php if ($isAdmin): ?>
-    <?php endif; ?>
-</nav>
+            <?php endif; ?>
+        </nav>
 
         <a href="/auth/logout"
             class="sidebar-logout flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-teal-100 hover:bg-red-500/20 hover:text-white transition">

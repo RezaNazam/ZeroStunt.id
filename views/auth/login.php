@@ -21,8 +21,8 @@
 
             <div class="relative z-10 flex flex-col justify-between w-full max-w-xl">
                 <a href="/" class="inline-flex items-center gap-3 font-bold text-2xl">
-                    <span class="w-11 h-11 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center">
-                        🌱
+                    <span class="w-11 h-11 rounded-2xl bg-white text-teal-700 flex items-center justify-center text-sm font-extrabold shadow-lg">
+                        ZS
                     </span>
                     ZeroStunt<span class="text-amber-300">.id</span>
                 </a>

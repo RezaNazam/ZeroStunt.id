@@ -16,8 +16,8 @@
     <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
         <nav class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2 font-bold text-xl text-teal-700">
-                <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center">
-                    🌱
+                <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
+                    ZS
                 </span>
                 ZeroStunt<span class="text-amber-500">.id</span>
             </a>
@@ -702,8 +702,8 @@
                     <!-- Brand -->
                     <div class="md:col-span-2">
                         <a href="/" class="inline-flex items-center gap-2 font-bold text-xl text-teal-700 mb-4">
-                            <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center">
-                                🌱
+                            <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
+                                ZS
                             </span>
                             ZeroStunt<span class="text-amber-500">.id</span>
                         </a>
