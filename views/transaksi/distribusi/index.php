@@ -7,17 +7,35 @@ $pageSubtitle = 'Kelola distribusi stok pangan dari gudang asal ke gudang tujuan
 $distribusiList = $data['distribusi'] ?? [];
 
 $role = $_SESSION['role'] ?? '';
-$isAdmin = defined('ROLE_ADMIN') ? $role === ROLE_ADMIN : strtolower($role) === 'admin';
-$isKader = defined('ROLE_KADER') ? $role === ROLE_KADER : strtolower($role) === 'kader';
+
+$isAdmin = defined('ROLE_ADMIN')
+    ? $role === ROLE_ADMIN
+    : strtolower($role) === 'admin';
+
+$isKader = defined('ROLE_KADER')
+    ? $role === ROLE_KADER
+    : strtolower($role) === 'kader';
+
+$ongoingDistribusiList = [];
+$historyDistribusiList = [];
+
+if ($isKader) {
+    $ongoingDistribusiList = array_values(array_filter($distribusiList, function ($d) {
+        return ($d['status_distribusi'] ?? '') === 'Dikirim';
+    }));
+
+    $historyDistribusiList = array_values(array_filter($distribusiList, function ($d) {
+        return ($d['status_distribusi'] ?? '') === 'Diterima';
+    }));
+}
 
 $formatJumlah = function ($value) {
     $number = number_format((float) $value, 2, '.', '');
     return rtrim(rtrim($number, '0'), '.');
 };
 
-$renderDistribusiTable = function () use ($distribusiList, $data, $formatJumlah, $isAdmin, $isKader) {
+$renderDistribusiRows = function (array $list, string $emptyMessage) use ($formatJumlah, $isAdmin, $isKader) {
 ?>
-
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-gray-50">
@@ -33,38 +51,42 @@ $renderDistribusiTable = function () use ($distribusiList, $data, $formatJumlah,
             </thead>
 
             <tbody class="divide-y divide-gray-100">
-                <?php if (empty($distribusiList)): ?>
+                <?php if (empty($list)): ?>
                     <tr>
-                        <td colspan="6" class="px-6 py-10 text-center text-gray-500">
-                            Belum ada data distribusi.
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                            <?= htmlspecialchars($emptyMessage); ?>
                         </td>
                     </tr>
                 <?php endif; ?>
 
-                <?php foreach ($distribusiList as $d): ?>
+                <?php foreach ($list as $d): ?>
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 font-bold text-gray-900">
-                            <?= htmlspecialchars($d['no_distribusi']) ?>
+                            <?= htmlspecialchars($d['no_distribusi'] ?? '-'); ?>
                         </td>
 
                         <td class="px-6 py-4 text-gray-500">
-                            <?= htmlspecialchars($d['gudang_asal']) ?>
+                            <?= htmlspecialchars($d['gudang_asal'] ?? '-'); ?>
                         </td>
 
                         <td class="px-6 py-4 text-gray-500">
-                            <?= htmlspecialchars($d['gudang_tujuan']) ?>
+                            <?= htmlspecialchars($d['gudang_tujuan'] ?? '-'); ?>
                         </td>
 
                         <td class="px-6 py-4">
-                            <ul class="list-disc list-inside text-xs text-gray-600">
-                                <?php foreach (($d['details'] ?? []) as $det): ?>
-                                    <li>
-                                        <?= htmlspecialchars($det['nama_komoditas']) ?>
-                                        (<?= htmlspecialchars($formatJumlah($det['jumlah'])) ?>
-                                        <?= htmlspecialchars($det['satuan'] ?? '') ?>)
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
+                            <?php if (!empty($d['details'])): ?>
+                                <ul class="list-disc list-inside text-xs text-gray-600 space-y-1">
+                                    <?php foreach ($d['details'] as $det): ?>
+                                        <li>
+                                            <?= htmlspecialchars($det['nama_komoditas'] ?? '-'); ?>
+                                            (<?= htmlspecialchars($formatJumlah($det['jumlah'] ?? 0)); ?>
+                                            <?= htmlspecialchars($det['satuan'] ?? ''); ?>)
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <span class="text-xs text-gray-400">-</span>
+                            <?php endif; ?>
                         </td>
 
                         <td class="px-6 py-4 text-gray-500">
@@ -91,11 +113,12 @@ $renderDistribusiTable = function () use ($distribusiList, $data, $formatJumlah,
                                 <?= htmlspecialchars($status); ?>
                             </span>
                         </td>
+
                         <td class="px-6 py-4 text-right">
                             <?php if (($d['status_distribusi'] ?? '') === 'Dikirim' && $isKader): ?>
                                 <form action="/transaksi/distribusi/terima" method="POST"
                                     onsubmit="return confirm('Tandai distribusi ini sebagai diterima?')">
-                                    <input type="hidden" name="id_distribusi" value="<?= htmlspecialchars($d['id_distribusi']); ?>">
+                                    <input type="hidden" name="id_distribusi" value="<?= htmlspecialchars($d['id_distribusi'] ?? ''); ?>">
 
                                     <button type="submit"
                                         class="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100">
@@ -106,7 +129,7 @@ $renderDistribusiTable = function () use ($distribusiList, $data, $formatJumlah,
                             <?php elseif (($d['status_distribusi'] ?? '') === 'Dikirim' && $isAdmin): ?>
                                 <form action="/transaksi/distribusi/batal" method="POST"
                                     onsubmit="return confirm('Batalkan distribusi ini?')">
-                                    <input type="hidden" name="id_distribusi" value="<?= htmlspecialchars($d['id_distribusi']); ?>">
+                                    <input type="hidden" name="id_distribusi" value="<?= htmlspecialchars($d['id_distribusi'] ?? ''); ?>">
 
                                     <button type="submit"
                                         class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
@@ -115,9 +138,7 @@ $renderDistribusiTable = function () use ($distribusiList, $data, $formatJumlah,
                                 </form>
 
                             <?php else: ?>
-                                <span class="text-xs font-semibold text-gray-400">
-                                    -
-                                </span>
+                                <span class="text-xs font-semibold text-gray-400">-</span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -125,47 +146,152 @@ $renderDistribusiTable = function () use ($distribusiList, $data, $formatJumlah,
             </tbody>
         </table>
     </div>
-
-    <?php
-    $paginationData = [
-        'halaman_aktif' => $data['current_page'] ?? 1,
-        'total_halaman' => $data['total_pages'] ?? 1,
-        'total_data' => $data['total_data'] ?? count($distribusiList),
-        'per_halaman' => $data['per_halaman'] ?? 20,
-        'page_param' => 'page'
-    ];
-
-    require '../views/partials/pagination.php';
-    ?>
-
 <?php
 };
 
+$renderDistribusiCard = function (
+    string $title,
+    string $subtitle,
+    array $list,
+    string $emptyMessage,
+    string $dotClass = 'bg-teal-500',
+    bool $showPagination = false
+) use ($renderDistribusiRows, $data) {
+?>
+    <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+        <div class="border-b border-gray-100 px-6 py-5">
+            <div class="flex items-center gap-3">
+                <span class="h-2.5 w-2.5 rounded-full <?= $dotClass; ?>"></span>
+                <h3 class="text-lg font-extrabold text-gray-900">
+                    <?= htmlspecialchars($title); ?>
+                </h3>
+            </div>
+
+            <p class="mt-1 text-sm text-gray-500">
+                <?= htmlspecialchars($subtitle); ?>
+            </p>
+        </div>
+
+        <?php $renderDistribusiRows($list, $emptyMessage); ?>
+
+        <?php if ($showPagination): ?>
+            <?php
+            $paginationData = [
+                'halaman_aktif' => $data['current_page'] ?? 1,
+                'total_halaman' => $data['total_pages'] ?? 1,
+                'total_data' => $data['total_data'] ?? count($list),
+                'per_halaman' => $data['per_halaman'] ?? 20,
+                'page_param' => 'page'
+            ];
+
+            require '../views/partials/pagination.php';
+            ?>
+        <?php endif; ?>
+    </div>
+    <?php
+};
+
+$renderDistribusiContent = function () use (
+    $isKader,
+    $distribusiList,
+    $ongoingDistribusiList,
+    $historyDistribusiList,
+    $renderDistribusiCard
+) {
+    if ($isKader) {
+    ?>
+        <div class="space-y-8">
+            <?php
+            $renderDistribusiCard(
+                'Distribusi Sedang Dikirim',
+                'Distribusi yang masih menunggu diterima oleh kader.',
+                $ongoingDistribusiList,
+                'Tidak ada distribusi yang sedang dikirim.',
+                'bg-amber-500',
+                false
+            );
+
+            $renderDistribusiCard(
+                'Riwayat Penerimaan Distribusi',
+                'Distribusi yang sudah berhasil diterima.',
+                $historyDistribusiList,
+                'Belum ada riwayat penerimaan distribusi.',
+                'bg-green-500',
+                false
+            );
+            ?>
+        </div>
+<?php
+        return;
+    }
+
+    $renderDistribusiCard(
+        'Daftar Seluruh Distribusi',
+        'Semua transaksi distribusi stok, termasuk dikirim, diterima, dan dibatalkan.',
+        $distribusiList,
+        'Belum ada data distribusi.',
+        'bg-teal-500',
+        true
+    );
+};
+
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
-    $renderDistribusiTable();
+    $renderDistribusiContent();
     exit;
 }
 
 ob_start();
 ?>
 
-<div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h2 class="text-2xl font-extrabold text-gray-900">
-                Daftar Distribusi Stok
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">
-                Pemantauan distribusi stok pangan dari gudang asal ke gudang tujuan.
-            </p>
+<div class="space-y-8">
+    <div class="space-y-4">
+        <!-- Judul + tombol admin -->
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-2xl font-extrabold text-gray-900">
+                    Daftar Distribusi Stok
+                </h2>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    Pemantauan distribusi stok pangan dari gudang asal ke gudang tujuan.
+                </p>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <?php if ($isKader): ?>
+                        <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                            Dikirim: <?= count($ongoingDistribusiList); ?>
+                        </span>
+
+                        <span class="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                            Diterima: <?= count($historyDistribusiList); ?>
+                        </span>
+                    <?php else: ?>
+                        <span class="inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">
+                            Total: <?= $data['total_data'] ?? count($distribusiList); ?> distribusi
+                        </span>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <?php if ($isAdmin): ?>
+                <a href="/transaksi/distribusi/create"
+                    class="inline-flex h-12 w-auto self-start shrink-0 items-center justify-center whitespace-nowrap rounded-2xl bg-teal-600 px-5 text-sm font-bold text-white transition hover:bg-teal-700">
+                    + Buat Distribusi Baru
+                </a>
+            <?php endif; ?>
         </div>
 
-        <?php if ($isAdmin): ?>
-            <a href="/transaksi/distribusi/create"
-                class="inline-flex items-center justify-center rounded-2xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700">
-                + Buat Distribusi Baru
-            </a>
-        <?php endif; ?>
+        <!-- Search -->
+        <div class="w-full sm:max-w-md">
+            <?php
+            $searchAction = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+            $searchPlaceholder = 'Cari distribusi...';
+            $searchTarget = 'tableResult';
+            $searchParam = 'q';
+            $pageParam = 'page';
+            require '../views/partials/searchbar.php';
+            ?>
+        </div>
     </div>
 
     <?php if (!empty($_SESSION['success'])): ?>
@@ -182,32 +308,8 @@ ob_start();
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
 
-    <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <div class="border-b border-gray-100 px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-                <h3 class="text-lg font-extrabold text-gray-900">
-                    Tabel Distribusi
-                </h3>
-                <p class="text-sm text-gray-500 mt-1">
-                    Total data: <?= $data['total_data'] ?? count($distribusiList); ?> distribusi
-                </p>
-            </div>
-
-            <div class="w-full lg:max-w-md">
-                <?php
-                $searchAction = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-                $searchPlaceholder = 'Cari no distribusi, gudang, komoditas, tanggal, atau status...';
-                $searchTarget = 'tableResult';
-                $searchParam = 'q';
-                $pageParam = 'page';
-                require '../views/partials/searchbar.php';
-                ?>
-            </div>
-        </div>
-
-        <div id="tableResult">
-            <?php $renderDistribusiTable(); ?>
-        </div>
+    <div id="tableResult">
+        <?php $renderDistribusiContent(); ?>
     </div>
 </div>
 

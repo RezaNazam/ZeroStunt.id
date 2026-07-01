@@ -311,8 +311,11 @@ class TransaksiController
 
     public function lunasiPengadaan()
     {
-        // verifikasi login sebagai apa
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id']) || strtolower($_SESSION['role'] ?? '') !== 'admin') {
+        if (
+            $_SERVER['REQUEST_METHOD'] !== 'POST' ||
+            empty($_SESSION['user_id']) ||
+            strtolower($_SESSION['role'] ?? '') !== 'admin'
+        ) {
             header('Location: /transaksi/pengadaan');
             exit;
         }
@@ -320,16 +323,17 @@ class TransaksiController
         $idPengadaan = (int) ($_POST['id_pengadaan'] ?? 0);
 
         if ($idPengadaan <= 0) {
-            $_SESSION['error'] = 'ID Transaksi tidak valid.';
+            $_SESSION['error'] = 'ID transaksi tidak valid.';
             header('Location: /transaksi/pengadaan');
             exit;
         }
 
         $pengadaanModel = new Pengadaan();
+
         if ($pengadaanModel->prosesPelunasanKontrak($idPengadaan)) {
-            $_SESSION['success'] = 'Kontrak pengadaan telah diverifikasi fisik dan status pembauaran berhasil diubah menjadi Lunas.';
+            $_SESSION['success'] = 'Kontrak pengadaan telah diverifikasi fisik dan status pembayaran berhasil diubah menjadi Lunas.';
         } else {
-            $_SESSION['error'] = 'Gagal memperbarui status pembayaran.';
+            $_SESSION['error'] = 'Gagal memperbarui status pembayaran. Pastikan kontrak sudah disetujui, masih Pending, dan memiliki detail komoditas.';
         }
 
         header('Location: /transaksi/pengadaan/detail?id=' . $idPengadaan);
@@ -346,92 +350,8 @@ class TransaksiController
 
         $penyerahan = $penyerahanModel->all();
 
-        require '../views/transaksi/penyerahan.php';
+        require '../views/transaksi/penyerahan/index.php';
     }
-
-    public function storePenyerahan()
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /transaksi/penyerahan');
-            exit;
-        }
-
-        try {
-
-            // =========================
-            // VALIDASI INPUT WAJIB
-            // =========================
-            if (empty($_POST['id_ibu'])) {
-                throw new Exception('Ibu wajib dipilih.');
-            }
-
-            if (empty($_POST['tanggal_penyerahan'])) {
-                throw new Exception('Tanggal penyerahan wajib diisi.');
-            }
-
-            $idIbu = $_POST['id_ibu'];
-
-            // =========================
-            // AMBIL DATA ANAK
-            // =========================
-            $anakModel = new Anak();
-            $anakList = $anakModel->findByIbu($idIbu);
-
-            if (empty($anakList)) {
-                throw new Exception('Ibu belum memiliki data anak.');
-            }
-
-            $anak = $anakList[0];
-
-            if (empty($anak['id_anak'])) {
-                throw new Exception('Data anak tidak valid.');
-            }
-
-            // =========================
-            // DATA PENYERAHAN
-            // =========================
-            $data = [
-                'id_ibu' => $idIbu,
-                'id_anak' => $anak['id_anak'],
-                // FIX: gudang otomatis dari ibu (biar gak error input hilang)
-                'id_gudang' => $anak['id_gudang'] ?? 1,
-                'tanggal_penyerahan' => $_POST['tanggal_penyerahan'],
-                'catatan' => $_POST['catatan'] ?? null
-            ];
-
-            // =========================
-            // SIMPAN HEADER
-            // =========================
-            $penyerahanModel = new Penyerahan();
-            $idPenyerahan = $penyerahanModel->create($data);
-
-            if (!$idPenyerahan) {
-                throw new Exception('Gagal menyimpan data penyerahan.');
-            }
-
-            // =========================
-            // DETAIL DEFAULT (TRIGGER READY)
-            // =========================
-            $penyerahanModel->createDetail($idPenyerahan, 2, 1.5);
-            $penyerahanModel->createDetail($idPenyerahan, 3, 10);
-
-            // =========================
-            // SUCCESS
-            // =========================
-            $_SESSION['success'] = 'Data penyerahan berhasil disimpan.';
-
-            header('Location: /transaksi/penyerahan');
-            exit;
-
-        } catch (Throwable $e) {
-
-            $_SESSION['error'] = $e->getMessage();
-
-            header('Location: /transaksi/penyerahan/create');
-            exit;
-        }
-    }
-
 
     public function createPenyerahan()
     {
@@ -440,56 +360,66 @@ class TransaksiController
             exit;
         }
 
-        $ibuModel = new Ibu();
+        $penyerahanModel = new Penyerahan();
+        $paketModel = new PaketGizi();
 
-        $ibus = $ibuModel->all();
+        $ibus = $penyerahanModel->getIbuOptions();
+        $anaks = $penyerahanModel->getAnakOptions();
+        $gudangs = $penyerahanModel->getGudangPosyanduOptions();
 
-        $gudangModel = new Gudang();
+        $pakets = array_values(array_filter(
+            $paketModel->getAllWithDetails(),
+            function ($paket) {
+                return !empty($paket['is_active']);
+            }
+        ));
 
-        $gudangs = $gudangModel->all();
-
-        $anakModel = new Anak();
-
-        $anaks = $anakModel->all();
-
-        require '../views/transaksi/create_penyerahan.php';
+        require '../views/transaksi/penyerahan/create.php';
     }
 
-    public function serahkanPenyerahan()
+    public function storePenyerahan()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-
-            header('Location: /transaksi/penyerahan');
+            header('Location: /transaksi/penyerahan/create');
             exit;
         }
 
-        $idPenyerahan = $_POST['id_penyerahan'];
+        $idIbu = (int) ($_POST['id_ibu'] ?? 0);
+        $idAnak = (int) ($_POST['id_anak'] ?? 0);
+        $idGudang = (int) ($_POST['id_gudang'] ?? 0);
+        $tanggalPenyerahan = $_POST['tanggal_penyerahan'] ?? '';
+        $catatan = trim($_POST['catatan'] ?? '');
 
-        $penyerahanModel = new Penyerahan();
-
-        try {
-
-            if ($penyerahanModel->serahkan($idPenyerahan)) {
-
-                $_SESSION['success'] =
-                    'Penyerahan berhasil diselesaikan.';
-
-            } else {
-
-                $_SESSION['error'] =
-                    'Gagal mengubah status penyerahan.';
-            }
-
-        } catch (Exception $e) {
-
-            $_SESSION['error'] =
-                $e->getMessage();
+        if ($idIbu <= 0 || $idAnak <= 0 || $idGudang <= 0 || $tanggalPenyerahan === '') {
+            $_SESSION['error'] = 'Data penyerahan belum lengkap.';
+            header('Location: /transaksi/penyerahan/create');
+            exit;
         }
 
-        header('Location: /transaksi/penyerahan');
-        exit;
-    }
+        try {
+            $penyerahanModel = new Penyerahan();
 
+            $idPenyerahan = $penyerahanModel->createFromPrioritasAnak(
+                $idIbu,
+                $idAnak,
+                $idGudang,
+                $tanggalPenyerahan,
+                $catatan
+            );
+
+            if ($idPenyerahan <= 0) {
+                throw new Exception('Gagal membuat penyerahan berdasarkan prioritas anak.');
+            }
+
+            $_SESSION['success'] = 'Penyerahan bantuan berhasil dibuat berdasarkan prioritas anak.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        } catch (Throwable $e) {
+            $_SESSION['error'] = $e->getMessage();
+            header('Location: /transaksi/penyerahan/create');
+            exit;
+        }
+    }
 
     //----------------------------------------
     //--- TRANSAKSI DISTRIBUSI ---
@@ -541,6 +471,20 @@ class TransaksiController
 
             return $d;
         }, $allDistribusi);
+
+        if ($isKader) {
+            $userModel = new User();
+            $currentUser = $userModel->findByid($_SESSION['user_id']);
+
+            $idGudangUser = (int) ($currentUser['id_gudang'] ?? 0);
+
+            $allDistribusi = array_values(array_filter($allDistribusi, function ($d) use ($idGudangUser) {
+                $status = $d['status_distribusi'] ?? '';
+
+                return (int) ($d['id_gudang_tujuan'] ?? 0) === $idGudangUser
+                    && in_array($status, ['Dikirim', 'Diterima'], true);
+            }));
+        }
 
         $searchedDistribusi = SearchHelper::searchArray($allDistribusi, $search, [
             'no_distribusi',
@@ -719,10 +663,16 @@ class TransaksiController
 
         $distribusiModel = new Distribusi();
 
-        if ($distribusiModel->markAsReceived($idDistribusi, $_SESSION['user_id'])) {
-            $_SESSION['success'] = 'Distribusi berhasil ditandai sebagai diterima.';
-        } else {
-            $_SESSION['error'] = 'Gagal menerima distribusi. Kemungkinan status sudah bukan Dikirim.';
+        try {
+            if ($distribusiModel->markAsReceived($idDistribusi, $_SESSION['user_id'])) {
+                $_SESSION['success'] = 'Distribusi berhasil ditandai sebagai diterima.';
+            } else {
+                $_SESSION['error'] = 'Gagal menerima distribusi. Kemungkinan status sudah bukan Dikirim.';
+            }
+        } catch (mysqli_sql_exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+        } catch (Throwable $e) {
+            $_SESSION['error'] = 'Terjadi kesalahan saat menerima distribusi.';
         }
 
         header('Location: /transaksi/distribusi');
@@ -853,7 +803,7 @@ class TransaksiController
 
         $currentUser = $userModel->findByid($_SESSION['user_id']);
         $id_gudang = $currentUser['id_gudang'] ?? null;
-        
+
         if ($id_gudang) {
             $data['anak'] = $pemeriksaanModel->getAnakByPosyandu($id_gudang);
         } else {
@@ -921,6 +871,13 @@ class TransaksiController
         $usiaBulan = ($diff->y * 12) + $diff->m;
 
         $pemeriksaanModel = new Pemeriksaan();
+
+        if ($pemeriksaanModel->existsInSameMonth($idAnak, $tanggalPemeriksaan)) {
+            $_SESSION['error'] = 'Anak ini sudah melakukan pemeriksaan pada bulan yang sama. Pemeriksaan hanya boleh dilakukan satu kali setiap bulan.';
+            header('Location: /transaksi/pemeriksaan/create');
+            exit;
+        }
+
         $hasil = $pemeriksaanModel->hitungStatusGizi($usiaBulan, $anak['jenis_kelamin'], $beratBadan, $tinggiBadan);
         $statusGizi = $hasil['status_gizi'];
         $skalaPrioritas = $hasil['skala_prioritas'];
@@ -938,14 +895,16 @@ class TransaksiController
         ];
 
         if ($pemeriksaanModel->create($dataPemeriksaan)) {
-            $_SESSION['success'] = 'Data pemeriksaan anak berhasil disimpan.';
+            $pemeriksaanModel->updateStatusAnak($idAnak, $statusGizi, $skalaPrioritas);
+
+            $_SESSION['success'] = 'Data pemeriksaan anak berhasil disimpan dan status anak diperbarui.';
             header('Location: /transaksi/pemeriksaan');
             exit;
-        } else {
-            $_SESSION['error'] = 'Gagal menyimpan data pemeriksaan.';
-            header('Location: /transaksi/pemeriksaan/create');
-            exit;
         }
+
+        $_SESSION['error'] = 'Gagal menyimpan data pemeriksaan.';
+        header('Location: /transaksi/pemeriksaan/create');
+        exit;
     }
 
     public function deletePemeriksaan()
@@ -969,6 +928,21 @@ class TransaksiController
 
         header('Location: /transaksi/pemeriksaan');
         exit;
+    }
+
+    private function getSkalaPrioritasByStatusGizi($statusGizi)
+    {
+        $status = strtolower(trim($statusGizi));
+
+        if (str_contains($status, 'stunting') || str_contains($status, 'risiko')) {
+            return 1;
+        }
+
+        if (str_contains($status, 'kurang')) {
+            return 2;
+        }
+
+        return 3;
     }
 
     public function kalkulasiGizi()
@@ -1013,4 +987,3 @@ class TransaksiController
         exit;
     }
 }
-

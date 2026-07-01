@@ -5,6 +5,9 @@ $pageSubtitle = 'Buat akun baru untuk Admin atau Kader.';
 $old = $_SESSION['old'] ?? [];
 unset($_SESSION['old']);
 
+$gudangPusat = $gudangPusat ?? [];
+$posyandus = $posyandus ?? [];
+
 ob_start();
 ?>
 
@@ -48,7 +51,7 @@ ob_start();
 
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <label class="cursor-pointer">
-                            <input type="radio" name="role" value="<?= ROLE_ADMIN ?>"
+                            <input type="radio" id="role_admin" name="role" value="<?= ROLE_ADMIN ?>"
                                 class="peer sr-only"
                                 <?= (($old['role'] ?? '') === ROLE_ADMIN) ? 'checked' : ''; ?>
                                 required>
@@ -65,7 +68,7 @@ ob_start();
                         </label>
 
                         <label class="cursor-pointer">
-                            <input type="radio" name="role" value="<?= ROLE_KADER ?>"
+                            <input type="radio" id="role_kader" name="role" value="<?= ROLE_KADER ?>"
                                 class="peer sr-only"
                                 <?= (($old['role'] ?? '') === ROLE_KADER) ? 'checked' : ''; ?>
                                 required>
@@ -120,17 +123,41 @@ ob_start();
                         class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-100">
                 </div>
 
-                <!-- Posyandu (Only for Kader) -->
+                <!-- Gudang Pusat untuk Admin -->
+                <div id="gudang_pusat_section" class="hidden">
+                    <label for="id_gudang_admin" class="mb-2 block text-sm font-bold text-gray-700">
+                        Gudang Pusat / Puskesmas <span class="text-red-500">*</span>
+                    </label>
+
+                    <select id="id_gudang_admin" name="id_gudang" disabled
+                        class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100 bg-white">
+                        <option value="" disabled selected>-- Pilih Gudang Pusat --</option>
+
+                        <?php foreach ($gudangPusat as $gudang): ?>
+                            <option value="<?= htmlspecialchars($gudang['id_gudang']); ?>"
+                                <?= (($old['id_gudang'] ?? '') == $gudang['id_gudang']) ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($gudang['nama_gudang']); ?>
+                                - <?= htmlspecialchars($gudang['lokasi_gudang'] ?? '-'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Posyandu untuk Kader -->
                 <div id="posyandu_section" class="hidden">
-                    <label for="id_gudang" class="mb-2 block text-sm font-bold text-gray-700">
+                    <label for="id_gudang_kader" class="mb-2 block text-sm font-bold text-gray-700">
                         Posyandu Tugas <span class="text-red-500">*</span>
                     </label>
-                    <select id="id_gudang" name="id_gudang"
+
+                    <select id="id_gudang_kader" name="id_gudang" disabled
                         class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100 bg-white">
-                        <option value="">-- Pilih Posyandu --</option>
+                        <option value="" disabled selected>-- Pilih Posyandu --</option>
+
                         <?php foreach ($posyandus as $p): ?>
-                            <option value="<?= htmlspecialchars($p['id_gudang']); ?>">
-                                <?= htmlspecialchars($p['nama_gudang']); ?> - <?= htmlspecialchars($p['lokasi_gudang'] ?? '-'); ?>
+                            <option value="<?= htmlspecialchars($p['id_gudang']); ?>"
+                                <?= (($old['id_gudang'] ?? '') == $p['id_gudang']) ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($p['nama_gudang']); ?>
+                                - <?= htmlspecialchars($p['lokasi_gudang'] ?? '-'); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -151,26 +178,58 @@ ob_start();
             </form>
 
             <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const roleKader = document.getElementById('role_kader');
-                const roleAdmin = document.getElementById('role_admin');
-                const posyanduSection = document.getElementById('posyandu_section');
-                const posyanduSelect = document.getElementById('id_gudang');
+                document.addEventListener('DOMContentLoaded', function() {
+                    const roleKader = document.getElementById('role_kader');
+                    const roleAdmin = document.getElementById('role_admin');
 
-                function togglePosyandu() {
-                    if (roleKader.checked) {
-                        posyanduSection.classList.remove('hidden');
-                        posyanduSelect.setAttribute('required', 'required');
-                    } else {
-                        posyanduSection.classList.add('hidden');
-                        posyanduSelect.removeAttribute('required');
-                        posyanduSelect.value = '';
+                    const gudangPusatSection = document.getElementById('gudang_pusat_section');
+                    const posyanduSection = document.getElementById('posyandu_section');
+
+                    const gudangAdminSelect = document.getElementById('id_gudang_admin');
+                    const gudangKaderSelect = document.getElementById('id_gudang_kader');
+
+                    function disableSelect(select) {
+                        select.disabled = true;
+                        select.required = false;
+                        select.value = '';
                     }
-                }
 
-                roleKader.addEventListener('change', togglePosyandu);
-                roleAdmin.addEventListener('change', togglePosyandu);
-            });
+                    function enableSelect(select) {
+                        select.disabled = false;
+                        select.required = true;
+                    }
+
+                    function toggleGudang() {
+                        if (roleAdmin.checked) {
+                            gudangPusatSection.classList.remove('hidden');
+                            posyanduSection.classList.add('hidden');
+
+                            enableSelect(gudangAdminSelect);
+                            disableSelect(gudangKaderSelect);
+                            return;
+                        }
+
+                        if (roleKader.checked) {
+                            posyanduSection.classList.remove('hidden');
+                            gudangPusatSection.classList.add('hidden');
+
+                            enableSelect(gudangKaderSelect);
+                            disableSelect(gudangAdminSelect);
+                            return;
+                        }
+
+                        gudangPusatSection.classList.add('hidden');
+                        posyanduSection.classList.add('hidden');
+
+                        disableSelect(gudangAdminSelect);
+                        disableSelect(gudangKaderSelect);
+                    }
+
+                    roleAdmin.addEventListener('change', toggleGudang);
+                    roleKader.addEventListener('change', toggleGudang);
+
+                    toggleGudang();
+                });
             </script>
         </div>
     </div>

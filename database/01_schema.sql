@@ -1143,3 +1143,127 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+/* implementasi SP di database */
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_buat_penyerahan_dari_prioritas_anak$$
+
+CREATE PROCEDURE sp_buat_penyerahan_dari_prioritas_anak(
+    IN p_id_ibu INT,
+    IN p_id_anak INT,
+    IN p_id_gudang INT,
+    IN p_tanggal_penyerahan DATE,
+    IN p_catatan TEXT,
+    OUT p_id_penyerahan INT
+)
+BEGIN
+    DECLARE v_skala_prioritas INT DEFAULT 0;
+    DECLARE v_id_paket INT DEFAULT 0;
+    DECLARE v_total_detail INT DEFAULT 0;
+    DECLARE v_stok_kurang INT DEFAULT 0;
+    DECLARE v_no_penyerahan VARCHAR(50);
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT COALESCE(skala_prioritas, 0)
+    INTO v_skala_prioritas
+    FROM anak
+    WHERE id_anak = p_id_anak
+      AND id_ibu = p_id_ibu
+      AND deleted_at IS NULL
+    LIMIT 1;
+
+    IF v_skala_prioritas NOT IN (1, 2, 3) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Skala prioritas anak tidak valid atau belum diisi.';
+    END IF;
+
+    SELECT COALESCE(id_paket, 0)
+    INTO v_id_paket
+    FROM paket_gizi
+    WHERE kode_prioritas = CONCAT('PRIORITAS_', v_skala_prioritas)
+      AND is_active = 1
+    LIMIT 1;
+
+    IF v_id_paket <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Paket gizi untuk prioritas anak belum tersedia atau tidak aktif.';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_total_detail
+    FROM paket_gizi_detail
+    WHERE id_paket = v_id_paket;
+
+    IF v_total_detail = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Paket gizi belum memiliki detail komoditas.';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_stok_kurang
+    FROM paket_gizi_detail pgd
+    LEFT JOIN stok_log sl
+        ON sl.id_gudang = p_id_gudang
+        AND sl.id_komoditas = pgd.id_komoditas
+    WHERE pgd.id_paket = v_id_paket
+      AND COALESCE(sl.qty_current, 0) < pgd.jumlah;
+
+    IF v_stok_kurang > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Stok posyandu tidak mencukupi untuk paket prioritas anak.';
+    END IF;
+
+    SET v_no_penyerahan = CONCAT(
+        'PNY-',
+        DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
+        '-',
+        LPAD(FLOOR(RAND() * 1000), 3, '0')
+    );
+
+    INSERT INTO t_penyerahan (
+        no_penyerahan,
+        id_ibu,
+        id_anak,
+        id_gudang,
+        id_paket,
+        tanggal_penyerahan,
+        status_penyerahan,
+        catatan
+    ) VALUES (
+        v_no_penyerahan,
+        p_id_ibu,
+        p_id_anak,
+        p_id_gudang,
+        v_id_paket,
+        p_tanggal_penyerahan,
+        'Diproses',
+        p_catatan
+    );
+
+    SET p_id_penyerahan = LAST_INSERT_ID();
+
+    INSERT INTO t_penyerahan_detail (
+        id_penyerahan,
+        id_komoditas,
+        jumlah
+    )
+    SELECT
+        p_id_penyerahan,
+        id_komoditas,
+        jumlah
+    FROM paket_gizi_detail
+    WHERE id_paket = v_id_paket;
+
+    COMMIT;
+END$$
+
+DELIMITER ;

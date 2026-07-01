@@ -1,3 +1,20 @@
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
+
 @import './theme.css';
 @import 'tailwindcss';
+
 @source "../../views";
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 96px;
+    }
+}
+
+@layer components {
+    .nav-link.active {
+        color: #0f766e;
+        font-weight: 800;
+    }
+}

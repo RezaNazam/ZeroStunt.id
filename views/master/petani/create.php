@@ -115,7 +115,7 @@
                         </div>
 
                         <div>
-                            <label for="alamat_lahan" class="block text-sm font-bold text-gray-700 mb-2">
+                              <label for="alamat_lahan" class="block text-sm font-bold text-gray-700 mb-2">
                                 Alamat Lahan
                             </label>
 

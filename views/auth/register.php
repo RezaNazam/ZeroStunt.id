@@ -5,56 +5,71 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Register - ZeroStunt.id</title>
+    <link rel="icon" type="image/png" href="/img/icon-logo.png?v=2">
+    <link rel="shortcut icon" type="image/png" href="/img/icon-logo.png?v=2">
+    <link rel="apple-touch-icon" href="/img/icon-logo.png?v=2">
     <link href="/css/tailwind.css" rel="stylesheet">
 </head>
 
 <body class="min-h-screen bg-gray-50 text-gray-900">
     <main class="min-h-screen grid lg:grid-cols-2">
         <!-- Left Side -->
-        <section class="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-teal-700 to-teal-900 px-12 py-10 text-white">
+        <section
+            class="hidden lg:flex lg:sticky lg:top-0 lg:h-screen relative overflow-hidden bg-gradient-to-br from-teal-700 to-teal-900 text-white"
+            style="padding: 32px 56px;">
             <div class="absolute inset-0 opacity-10"
                 style="background-image: radial-gradient(circle, #ffffff 1px, transparent 1px); background-size: 32px 32px;">
             </div>
 
-            <div class="relative z-10 flex flex-col justify-between w-full max-w-xl">
-                <a href="/" class="inline-flex items-center gap-3 font-bold text-2xl">
-                    <span class="w-11 h-11 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center">
-                        🌱
+            <div class="relative z-10 flex h-full w-full max-w-2xl flex-col">
+                <!-- Logo -->
+                <a href="/" class="inline-flex items-center gap-4 font-bold text-2xl">
+                    <span class="w-12 h-12 rounded-2xl bg-white text-teal-700 flex items-center justify-center text-sm font-extrabold shadow-lg">
+                        ZS
                     </span>
-                    ZeroStunt<span class="text-amber-300">.id</span>
+
+                    <span class="text-white">
+                        ZeroStunt<span class="text-amber-300">.id</span>
+                    </span>
                 </a>
 
-                <div>
-                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-400/15 border border-amber-300/30 text-amber-100 text-sm font-bold mb-6">
+                <!-- Main Text -->
+                <div class="flex flex-1 flex-col justify-center py-8">
+                    <div class="inline-flex w-max items-center gap-2 px-5 py-2.5 rounded-full bg-amber-400/15 border border-amber-300/30 text-amber-100 text-sm font-bold mb-8">
                         Akun Penerima & Mitra
                     </div>
 
-                    <h1 class="text-4xl xl:text-5xl font-extrabold leading-tight mb-6">
+                    <h1 class="max-w-xl text-4xl xl:text-[52px] font-extrabold leading-[1.12] mb-6">
                         Daftar sebagai bagian dari ekosistem pencegahan stunting.
                     </h1>
 
-                    <p class="text-teal-100 text-lg leading-relaxed mb-8">
+                    <p class="max-w-xl text-teal-100 text-lg leading-relaxed mb-8">
                         Buat akun untuk mengakses sistem sesuai peran Anda sebagai ibu penerima manfaat
                         atau petani lokal penyedia komoditas pangan.
                     </p>
 
-                    <div class="space-y-4">
+                    <div class="max-w-xl space-y-4">
                         <div class="rounded-2xl bg-white/10 border border-white/15 p-5">
-                            <p class="font-bold text-amber-300 mb-1">Ibu / Penerima</p>
-                            <p class="text-sm text-teal-100">
+                            <p class="font-bold text-amber-300 mb-1">
+                                Ibu / Penerima
+                            </p>
+                            <p class="text-sm text-teal-100 leading-relaxed">
                                 Melihat data pertumbuhan anak dan riwayat bantuan gizi.
                             </p>
                         </div>
 
                         <div class="rounded-2xl bg-white/10 border border-white/15 p-5">
-                            <p class="font-bold text-amber-300 mb-1">Petani Lokal</p>
-                            <p class="text-sm text-teal-100">
+                            <p class="font-bold text-amber-300 mb-1">
+                                Petani Lokal
+                            </p>
+                            <p class="text-sm text-teal-100 leading-relaxed">
                                 Memantau kontrak pengadaan dan histori penyaluran komoditas.
                             </p>
                         </div>
                     </div>
                 </div>
 
+                <!-- Footer -->
                 <p class="text-sm text-teal-100">
                     © 2025 ZeroStunt.id — Versi 1.0
                 </p>

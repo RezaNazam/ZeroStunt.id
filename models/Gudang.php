@@ -104,4 +104,36 @@ class Gudang
 
         return $executed;
     }
+
+    public function getPosyanduOnly()
+    {
+        $query = "
+        SELECT id_gudang, nama_gudang, jenis_gudang
+        FROM gudang
+        WHERE LOWER(jenis_gudang) = 'posyandu'
+          AND is_deleted = 0
+        ORDER BY nama_gudang ASC
+    ";
+
+        $result = mysqli_query($this->db, $query);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
+
+    public function getByJenis($jenisGudang)
+    {
+        $query = "
+        SELECT id_gudang, nama_gudang, lokasi_gudang, jenis_gudang
+        FROM gudang
+        WHERE LOWER(jenis_gudang) = LOWER(?)
+        AND is_deleted = 0
+        ORDER BY nama_gudang ASC
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+        mysqli_stmt_bind_param($stmt, 's', $jenisGudang);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
 }

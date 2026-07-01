@@ -55,6 +55,8 @@ return [
     '/master/petani/store' => [MasterController::class, 'storePetani', [ROLE_PETANI]],
     '/master/petani/riwayat-ekonomi' => [MasterController::class, 'riwayatEkonomi', [ROLE_PETANI]],
     '/master/petani/profil-lahan' => [MasterController::class, 'profilLahan', [ROLE_PETANI]],
+    '/master/petani/lahan/create' => [MasterController::class, 'createLahanPetani', [ROLE_PETANI]],
+    '/master/petani/lahan/store' => [MasterController::class, 'storeLahanPetani', [ROLE_PETANI]],
 
     // --- Master: Gudang ---
     '/master/gudang' => [MasterController::class, 'indexGudang', [ROLE_ADMIN]],
@@ -71,6 +73,7 @@ return [
     '/master/komoditas/edit' => [MasterController::class, 'editKomoditas', [ROLE_ADMIN]],
     '/master/komoditas/update' => [MasterController::class, 'updateKomoditas', [ROLE_ADMIN]],
     '/master/komoditas/delete' => [MasterController::class, 'deleteKomoditas', [ROLE_ADMIN]],
+    '/master/komoditas/restore' => [MasterController::class, 'restoreKomoditas', [ROLE_ADMIN]],
 
     // --- Master: Satuan ---
     '/master/satuan' => [MasterController::class, 'indexSatuan', [ROLE_ADMIN]],
@@ -84,7 +87,12 @@ return [
     '/master/standar-pertumbuhan' => [MasterController::class, 'callStandarPertumbuhan', [ROLE_ADMIN, ROLE_KADER]],
 
     // --- Master: Stok Posyandu ---
-    '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_KADER]],
+    '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_ADMIN, ROLE_KADER]],
+
+    // --- Master: Paket Gizi ---
+    '/master/paket-gizi' => [MasterController::class, 'paketGizi', [ROLE_ADMIN]],
+    '/master/paket-gizi/edit' => [MasterController::class, 'editPaketGizi', [ROLE_ADMIN]],
+    '/master/paket-gizi/update' => [MasterController::class, 'updatePaketGizi', [ROLE_ADMIN]],
 
     // -- route mater diatas --
 
@@ -118,6 +126,9 @@ return [
     '/transaksi/pemeriksaan/kalkulasi' => [TransaksiController::class, 'kalkulasiGizi', [ROLE_ADMIN, ROLE_KADER]],
 
 
+    // --- Laporan ---
+    '/laporan' => [LaporanController::class, 'index', [ROLE_ADMIN, ROLE_KADER, ROLE_IBU, ROLE_PETANI]],
+    '/laporan/pdf' => [LaporanController::class, 'downloadPdf', [ROLE_ADMIN, ROLE_KADER, ROLE_IBU, ROLE_PETANI]],
 
     // --- (tambahkan route lain di sini saat development) ---
 

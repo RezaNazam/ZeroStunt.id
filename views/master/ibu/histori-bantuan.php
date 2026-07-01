@@ -77,10 +77,9 @@ $tableColumns = [
 
             $class = 'bg-gray-100 text-gray-700';
 
-            if ($status === 'Diterima' || $status === 'Selesai') {
+            if ($status === 'Diterima' || $status === 'Selesai' || $status === 'Diserahkan') {
                 $class = 'bg-green-50 text-green-700';
-            } elseif ($status === 'Pending' || $status === 'Menunggu') {
-                $class = 'bg-amber-50 text-amber-700';
+            } elseif ($status === 'Pending' || $status === 'Menunggu' || $status === 'Diproses') {
             } elseif ($status === 'Ditolak' || $status === 'Gagal') {
                 $class = 'bg-red-50 text-red-700';
             }

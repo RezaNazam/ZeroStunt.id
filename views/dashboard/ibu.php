@@ -4,54 +4,151 @@ require_once '../views/components/metric-card.php';
 $pageTitle = 'Dashboard Ibu';
 $pageSubtitle = 'Ringkasan data anak, status gizi, dan riwayat bantuan.';
 
+$anaks = $anaks ?? [];
+
+$formatAngka = function ($value) {
+    $value = (float) $value;
+
+    if (floor($value) == $value) {
+        return number_format($value, 0, ',', '.');
+    }
+
+    return number_format($value, 1, ',', '.');
+};
+
+$getBadgeStatusGizi = function ($status) {
+    $status = strtolower(trim($status ?? ''));
+
+    if (
+        str_contains($status, 'prioritas 1') ||
+        str_contains($status, 'berisiko stunting') ||
+        str_contains($status, 'stunting') ||
+        str_contains($status, 'buruk')
+    ) {
+        return 'bg-red-100 text-red-700';
+    }
+
+    if (
+        str_contains($status, 'prioritas 2') ||
+        str_contains($status, 'perlu pemantauan') ||
+        str_contains($status, 'pemantauan') ||
+        str_contains($status, 'kurang')
+    ) {
+        return 'bg-amber-100 text-amber-700';
+    }
+
+    return 'bg-green-100 text-green-700';
+};
+
+$getBadgePrioritas = function ($prioritas) {
+    if ((int) $prioritas === 1) {
+        return 'bg-red-600 text-white';
+    }
+
+    if ((int) $prioritas === 2) {
+        return 'bg-amber-500 text-white';
+    }
+
+    return 'bg-gray-200 text-gray-700';
+};
+
+$totalAnak = count($anaks);
+
+$totalSudahDiperiksa = count(array_filter($anaks, function ($anak) {
+    return !empty($anak['tanggal_pemeriksaan_terakhir']);
+}));
+
+$prioritasTertinggi = null;
+
+foreach ($anaks as $anak) {
+    $prioritas = (int) ($anak['skala_prioritas'] ?? 3);
+
+    if ($prioritasTertinggi === null || $prioritas < $prioritasTertinggi) {
+        $prioritasTertinggi = $prioritas;
+    }
+}
+
+$anakTerbaru = null;
+
+foreach ($anaks as $anak) {
+    if (!empty($anak['tanggal_pemeriksaan_terakhir'])) {
+        if (
+            $anakTerbaru === null ||
+            strtotime($anak['tanggal_pemeriksaan_terakhir']) > strtotime($anakTerbaru['tanggal_pemeriksaan_terakhir'])
+        ) {
+            $anakTerbaru = $anak;
+        }
+    }
+}
+
+if (!empty($anakTerbaru['tanggal_pemeriksaan_terakhir'])) {
+    $dayOfWeek = date('D', strtotime($anakTerbaru['tanggal_pemeriksaan_terakhir']));
+    $dayNames = [
+        'Sun' => 'Minggu',
+        'Mon' => 'Senin',
+        'Tue' => 'Selasa',
+        'Wed' => 'Rabu',
+        'Thu' => 'Kamis',
+        'Fri' => "Jum'at",
+        'Sat' => 'Sabtu'
+    ];
+    $dayName = $dayNames[$dayOfWeek] ?? '';
+    $monthName = date('F', strtotime($anakTerbaru['tanggal_pemeriksaan_terakhir']));
+    $monthNames = [
+        'January' => 'Januari',
+        'February' => 'Februari',
+        'March' => 'Maret',
+        'April' => 'April',
+        'May' => 'Mei',
+        'June' => 'Juni',
+        'July' => 'Juli',
+        'August' => 'Agustus',
+        'September' => 'September',
+        'October' => 'Oktober',
+        'November' => 'November',
+        'December' => 'Desember'
+    ];
+    $monthName = $monthNames[$monthName] ?? '';
+    $formattedDate = date('j', strtotime($anakTerbaru['tanggal_pemeriksaan_terakhir'])) . ' ' . $monthName . ' ' . date('Y', strtotime($anakTerbaru['tanggal_pemeriksaan_terakhir']));
+    $tanggalPemeriksaanTerakhir = $dayName . ', ' . $formattedDate;
+} else {
+    $tanggalPemeriksaanTerakhir = '-';
+}
+
 $metrics = [
     [
-        'title' => 'Nama Anak',
-        'value' => 'Aisyah',
-        'caption' => 'Usia 18 bulan',
-        'icon' => '<i class="fa-solid fa-baby"></i>',
+        'title' => 'Anak Terdaftar',
+        'value' => $totalAnak,
+        'caption' => 'Data anak pada akun ini',
+        'icon' => '<i class="fa-solid fa-children"></i>',
         'tone' => 'teal',
     ],
     [
-        'title' => 'Z-Score Terakhir',
-        'value' => '-1.4 SD',
-        'caption' => 'Status masih normal',
-        'icon' => '<i class="fa-solid fa-chart-line"></i>',
+        'title' => 'Sudah Diperiksa',
+        'value' => $totalSudahDiperiksa,
+        'caption' => 'Memiliki riwayat pemeriksaan',
+        'icon' => '<i class="fa-solid fa-user-doctor"></i>',
         'tone' => 'green',
     ],
     [
-        'title' => 'Status Prioritas',
-        'value' => 'Normal',
-        'caption' => 'Monitoring rutin',
-        'icon' => '<i class="fa-solid fa-circle-check"></i>',
-        'tone' => 'blue',
-    ],
-    [
-        'title' => 'Bantuan Diterima',
-        'value' => '3x',
-        'caption' => 'Dalam 6 bulan terakhir',
-        'icon' => '<i class="fa-solid fa-gift"></i>',
+        'title' => 'Prioritas Tertinggi',
+        'value' => $prioritasTertinggi ? 'Prioritas ' . $prioritasTertinggi : '-',
+        'caption' => 'Berdasarkan data anak',
+        'icon' => '<i class="fa-solid fa-triangle-exclamation"></i>',
         'tone' => 'amber',
     ],
-];
-
-$growthHistory = [
-    ['bulan' => 'Januari', 'berat' => '8.1 kg', 'tinggi' => '72 cm', 'zscore' => '-1.8 SD', 'status' => 'Normal', 'badge' => 'green'],
-    ['bulan' => 'Februari', 'berat' => '8.3 kg', 'tinggi' => '73 cm', 'zscore' => '-1.7 SD', 'status' => 'Normal', 'badge' => 'green'],
-    ['bulan' => 'Maret', 'berat' => '8.5 kg', 'tinggi' => '74 cm', 'zscore' => '-1.6 SD', 'status' => 'Normal', 'badge' => 'green'],
-    ['bulan' => 'April', 'berat' => '8.7 kg', 'tinggi' => '75 cm', 'zscore' => '-1.4 SD', 'status' => 'Normal', 'badge' => 'green'],
-];
-
-$aidHistory = [
-    ['tanggal' => '05 Juni 2025', 'paket' => 'Paket Prioritas 3', 'isi' => '0.5 kg sayur + 3 telur', 'status' => 'Diterima', 'badge' => 'green'],
-    ['tanggal' => '05 Mei 2025', 'paket' => 'Paket Prioritas 3', 'isi' => '0.5 kg sayur + 3 telur', 'status' => 'Diterima', 'badge' => 'green'],
-    ['tanggal' => '05 April 2025', 'paket' => 'Paket Prioritas 3', 'isi' => '0.5 kg sayur + 3 telur', 'status' => 'Diterima', 'badge' => 'green'],
+    [
+        'title' => 'Pemeriksaan Terakhir',
+        'value' => $tanggalPemeriksaanTerakhir,
+        'caption' => !empty($anakTerbaru['nama_anak']) ? $anakTerbaru['nama_anak'] : 'Belum ada pemeriksaan',
+        'icon' => '<i class="fa-solid fa-calendar-check"></i>',
+        'tone' => 'blue',
+    ],
 ];
 
 ob_start();
 ?>
 
-<!-- Metric Cards -->
 <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
     <?php foreach ($metrics as $metric): ?>
         <?php renderMetricCard(
@@ -64,175 +161,145 @@ ob_start();
     <?php endforeach; ?>
 </section>
 
-<!-- Main Grid -->
 <section class="grid xl:grid-cols-3 gap-6">
-    <!-- Growth Chart Placeholder -->
-    <div class="xl:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-        <div class="flex items-center justify-between mb-6">
+    <div class="xl:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between gap-4">
             <div>
                 <h2 class="text-xl font-extrabold text-gray-900">
-                    Perkembangan Anak
+                    Ringkasan Anak Saya
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Contoh tren berat badan anak per bulan.
+                    Kondisi terbaru anak berdasarkan data pemeriksaan.
                 </p>
             </div>
 
-            <span class="px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-bold">
-                4 Bulan
-            </span>
+            <a href="/master/anak"
+                class="hidden sm:inline-flex rounded-xl bg-teal-50 px-3 py-2 text-xs font-bold text-teal-700 hover:bg-teal-100">
+                Kelola Anak
+            </a>
         </div>
 
-        <div class="h-72 flex items-end gap-3">
-            <?php foreach ([58, 63, 69, 75] as $index => $height): ?>
-                <div class="flex-1 flex flex-col items-center gap-2">
-                    <div class="w-full rounded-t-xl bg-teal-500/80 hover:bg-teal-600 transition"
-                        style="height: <?= $height * 2; ?>px;">
+        <div class="p-6 grid gap-4 md:grid-cols-2">
+            <?php if (empty($anaks)): ?>
+                <div class="md:col-span-2 rounded-2xl bg-gray-50 px-5 py-8 text-center text-gray-500">
+                    Belum ada data anak.
+                </div>
+            <?php endif; ?>
+
+            <?php foreach ($anaks as $anak): ?>
+                <?php
+                if ($anak['st_gizi_skrg'] === 'Prioritas 1') {
+                    $statusGizi = 'Berisiko Stunting';
+                } elseif ($anak['st_gizi_skrg'] === 'Prioritas 2') {
+                    $statusGizi = 'Perlu Pemantauan';
+                } else {
+                    $statusGizi = 'Normal';
+                }
+                $skalaPrioritas = $anak['skala_prioritas'] ?? 3;
+                ?>
+
+                <div class="rounded-3xl border border-gray-100 bg-gray-50 p-5">
+                    <div class="mb-4 flex items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-lg font-extrabold text-gray-900">
+                                <?= htmlspecialchars($anak['nama_anak'] ?? '-'); ?>
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                <?= ($anak['jenis_kelamin'] ?? '') === 'L' ? 'Laki-laki' : 'Perempuan'; ?> ·
+                                <?= htmlspecialchars($anak['tgl_lahir'] ?? '-'); ?>
+                            </p>
+                        </div>
+
+                        <span class="px-3 py-1 text-xs font-bold rounded <?= $getBadgePrioritas($skalaPrioritas); ?>">
+                            Prioritas <?= htmlspecialchars($skalaPrioritas); ?>
+                        </span>
                     </div>
-                    <span class="text-xs text-gray-400">
-                        <?= ['Jan', 'Feb', 'Mar', 'Apr'][$index]; ?>
-                    </span>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="rounded-2xl bg-white p-4">
+                            <p class="text-xs text-gray-500">Berat Terakhir</p>
+                            <p class="mt-1 text-xl font-extrabold text-teal-700">
+                                <?= !empty($anak['berat_badan_terakhir'])
+                                    ? $formatAngka($anak['berat_badan_terakhir']) . ' Kg'
+                                    : '-'; ?>
+                            </p>
+                        </div>
+
+                        <div class="rounded-2xl bg-white p-4">
+                            <p class="text-xs text-gray-500">Tinggi Terakhir</p>
+                            <p class="mt-1 text-xl font-extrabold text-green-700">
+                                <?= !empty($anak['tinggi_badan_terakhir'])
+                                    ? $formatAngka($anak['tinggi_badan_terakhir']) . ' Cm'
+                                    : '-'; ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl bg-white p-4">
+                        <div class="mb-3 flex items-center justify-between gap-3">
+                            <p class="text-sm font-bold text-gray-700">
+                                Status Gizi
+                            </p>
+
+                            <span class="px-3 py-1 text-xs font-bold rounded-full <?= $getBadgeStatusGizi($statusGizi); ?>">
+                                <?= htmlspecialchars($statusGizi); ?>
+                            </span>
+                        </div>
+
+                        <?php if (!empty($anak['tanggal_pemeriksaan_terakhir'])): ?>
+                            <p class="text-sm text-gray-500">
+                                Pemeriksaan terakhir:
+                                <span class="font-bold text-gray-800">
+                                    <?= date('d/m/Y', strtotime($anak['tanggal_pemeriksaan_terakhir'])); ?>
+                                </span>
+                            </p>
+                            <p class="text-xs text-gray-400 mt-1">
+                                Usia saat pemeriksaan: <?= htmlspecialchars($anak['usia_bulan_terakhir'] ?? '-'); ?> bulan
+                            </p>
+                        <?php else: ?>
+                            <p class="text-sm text-gray-500">
+                                Anak belum memiliki riwayat pemeriksaan.
+                            </p>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
 
-    <!-- Child Summary -->
     <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
         <h2 class="text-xl font-extrabold text-gray-900 mb-5">
-            Ringkasan Anak
+            Informasi Bantuan
         </h2>
 
         <div class="space-y-4">
             <div class="rounded-2xl bg-teal-50 p-4">
-                <p class="text-sm text-teal-700/80">Nama Anak</p>
-                <p class="text-2xl font-extrabold text-teal-700 mt-1">Aisyah</p>
+                <p class="text-sm text-teal-700/80">
+                    Paket bantuan akan mengikuti prioritas anak.
+                </p>
+                <p class="mt-2 text-2xl font-extrabold text-teal-700">
+                    Otomatis
+                </p>
             </div>
 
-            <div class="rounded-2xl bg-green-50 p-4">
-                <p class="text-sm text-green-700/80">Status Gizi</p>
-                <p class="text-2xl font-extrabold text-green-700 mt-1">Normal</p>
+            <div class="rounded-2xl bg-amber-50 p-4">
+                <p class="text-sm text-amber-700/80">
+                    Prioritas 1 mendapat paket dengan jumlah bantuan paling besar.
+                </p>
+                <p class="mt-2 text-lg font-extrabold text-amber-700">
+                    Berdasarkan pemeriksaan
+                </p>
             </div>
 
-            <div class="rounded-2xl bg-blue-50 p-4">
-                <p class="text-sm text-blue-700/80">Posyandu</p>
-                <p class="text-2xl font-extrabold text-blue-700 mt-1">Melati</p>
-            </div>
-        </div>
-    </div>
-</section>
+            <a href="/master/ibu/histori-bantuan"
+                class="inline-flex w-full items-center justify-center rounded-2xl bg-green-50 px-5 py-3 text-sm font-bold text-green-700 hover:bg-green-100">
+                Lihat Riwayat Bantuan
+            </a>
 
-<!-- Tables -->
-<section class="grid xl:grid-cols-2 gap-6 mt-8">
-    <!-- Riwayat Pemeriksaan -->
-    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-5 border-b border-gray-100">
-            <h2 class="text-xl font-extrabold text-gray-900">
-                Riwayat Pemeriksaan
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">
-                Data pemeriksaan anak berdasarkan kunjungan posyandu.
-            </p>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Bulan</th>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Berat</th>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Tinggi</th>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Z-Score</th>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Status</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-gray-100">
-                    <?php foreach ($growthHistory as $row): ?>
-                        <?php
-                        $badgeClass = [
-                            'green' => 'bg-green-50 text-green-700',
-                            'amber' => 'bg-amber-50 text-amber-700',
-                            'red' => 'bg-red-50 text-red-700',
-                        ][$row['badge']];
-                        ?>
-
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 font-semibold text-gray-900">
-                                <?= htmlspecialchars($row['bulan']); ?>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['berat']); ?>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['tinggi']); ?>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['zscore']); ?>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold <?= $badgeClass; ?>">
-                                    <?= htmlspecialchars($row['status']); ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Histori Bantuan -->
-    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-5 border-b border-gray-100">
-            <h2 class="text-xl font-extrabold text-gray-900">
-                Histori Bantuan
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">
-                Riwayat paket gizi yang sudah diterima.
-            </p>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Tanggal</th>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Paket</th>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Isi</th>
-                        <th class="text-left px-6 py-4 font-bold text-gray-600">Status</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-gray-100">
-                    <?php foreach ($aidHistory as $row): ?>
-                        <?php
-                        $badgeClass = [
-                            'green' => 'bg-green-50 text-green-700',
-                            'amber' => 'bg-amber-50 text-amber-700',
-                            'red' => 'bg-red-50 text-red-700',
-                        ][$row['badge']];
-                        ?>
-
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 font-semibold text-gray-900">
-                                <?= htmlspecialchars($row['tanggal']); ?>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['paket']); ?>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">
-                                <?= htmlspecialchars($row['isi']); ?>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold <?= $badgeClass; ?>">
-                                    <?= htmlspecialchars($row['status']); ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <a href="/master/ibu/riwayat-periksa"
+                class="inline-flex w-full items-center justify-center rounded-2xl bg-teal-600 px-5 py-3 text-sm font-bold text-white hover:bg-teal-700">
+                Lihat Riwayat Pemeriksaan
+            </a>
         </div>
     </div>
 </section>
@@ -240,3 +307,4 @@ ob_start();
 <?php
 $content = ob_get_clean();
 require '../views/layouts/dashboard.php';
+?>
