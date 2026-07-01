@@ -370,8 +370,8 @@ class Pemeriksaan
     }
 
     public function getRiwayatByIbuUser($idUser)
-{
-    $query = "
+    {
+        $query = "
         SELECT 
             p.*,
             a.nama_anak,
@@ -388,11 +388,36 @@ class Pemeriksaan
         ORDER BY p.tanggal_pemeriksaan DESC, p.id_pemeriksaan DESC
     ";
 
-    $stmt = mysqli_prepare($this->db, $query);
-    mysqli_stmt_bind_param($stmt, 'i', $idUser);
-    mysqli_stmt_execute($stmt);
+        $stmt = mysqli_prepare($this->db, $query);
+        mysqli_stmt_bind_param($stmt, 'i', $idUser);
+        mysqli_stmt_execute($stmt);
 
-    $result = mysqli_stmt_get_result($stmt);
-    return mysqli_fetch_all($result, MYSQLI_ASSOC);
-}
+        $result = mysqli_stmt_get_result($stmt);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
+
+    public function updateStatusAnak($idAnak, $statusGizi, $skalaPrioritas)
+    {
+        $query = "
+        UPDATE anak
+        SET 
+            st_gizi_skrg = ?,
+            skala_prioritas = ?
+        WHERE id_anak = ?
+          AND deleted_at IS NULL
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'sii', $statusGizi, $skalaPrioritas, $idAnak);
+        $executed = mysqli_stmt_execute($stmt);
+
+        mysqli_stmt_close($stmt);
+
+        return $executed;
+    }
 }

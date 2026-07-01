@@ -1371,12 +1371,13 @@ class MasterController
 
         $anakModel = new Anak();
 
-        // Jika role Ibu: tampilkan hanya anak miliknya sendiri
-        // Jika role Admin/Kader: tampilkan semua anak
         if ($_SESSION['role'] === ROLE_IBU) {
-            $id_ibu = $_SESSION['user_id'];
-            $anaks = $anakModel->findByIbu($id_ibu);
+            $idIbu = (int) $_SESSION['user_id'];
+
+            // pakai query terbaru
+            $anaks = $anakModel->getByIbuIdWithLatestPemeriksaan($idIbu);
         } else {
+
             $anaks = $anakModel->all();
         }
 

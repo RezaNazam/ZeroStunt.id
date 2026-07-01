@@ -33,24 +33,38 @@ class DashboardController
 
         // Kalo rolenya admin, redirect ke dashboard admin
         if ($_SESSION['role'] === ROLE_ADMIN) {
+            $dashboardModel = new Dashboard();
+            $data = $dashboardModel->getAdminDashboard();
+
             require '../views/dashboard/admin.php';
             exit;
         }
 
         // Kalo rolenya ibu, redirect ke dashboard ibu
         if ($_SESSION['role'] === ROLE_IBU) {
+            $anakModel = new Anak();
+
+            $idIbu = (int) $_SESSION['user_id'];
+            $anaks = $anakModel->getByIbuIdWithLatestPemeriksaan($idIbu);
+
             require '../views/dashboard/ibu.php';
             exit;
         }
 
         // Kalo rolenya petani, redirect ke dashboard petani
         if ($_SESSION['role'] === ROLE_PETANI) {
+            $dashboardModel = new Dashboard();
+            $data = $dashboardModel->getPetaniDashboard($_SESSION['user_id']);
+
             require '../views/dashboard/petani.php';
             exit;
         }
 
         // Kalo rolenya kader, redirect ke dashboard kader
         if ($_SESSION['role'] === ROLE_KADER) {
+            $dashboardModel = new Dashboard();
+            $data = $dashboardModel->getKaderDashboard($_SESSION['user_id']);
+
             require '../views/dashboard/kader.php';
             exit;
         }

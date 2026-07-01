@@ -895,14 +895,16 @@ class TransaksiController
         ];
 
         if ($pemeriksaanModel->create($dataPemeriksaan)) {
-            $_SESSION['success'] = 'Data pemeriksaan anak berhasil disimpan.';
+            $pemeriksaanModel->updateStatusAnak($idAnak, $statusGizi, $skalaPrioritas);
+
+            $_SESSION['success'] = 'Data pemeriksaan anak berhasil disimpan dan status anak diperbarui.';
             header('Location: /transaksi/pemeriksaan');
             exit;
-        } else {
-            $_SESSION['error'] = 'Gagal menyimpan data pemeriksaan.';
-            header('Location: /transaksi/pemeriksaan/create');
-            exit;
         }
+
+        $_SESSION['error'] = 'Gagal menyimpan data pemeriksaan.';
+        header('Location: /transaksi/pemeriksaan/create');
+        exit;
     }
 
     public function deletePemeriksaan()
@@ -926,6 +928,21 @@ class TransaksiController
 
         header('Location: /transaksi/pemeriksaan');
         exit;
+    }
+
+    private function getSkalaPrioritasByStatusGizi($statusGizi)
+    {
+        $status = strtolower(trim($statusGizi));
+
+        if (str_contains($status, 'stunting') || str_contains($status, 'risiko')) {
+            return 1;
+        }
+
+        if (str_contains($status, 'kurang')) {
+            return 2;
+        }
+
+        return 3;
     }
 
     public function kalkulasiGizi()

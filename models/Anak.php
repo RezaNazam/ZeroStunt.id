@@ -153,4 +153,47 @@ class Anak
 
         return mysqli_fetch_assoc($result);
     }
+
+    public function getByIbuIdWithLatestPemeriksaan($idIbu)
+    {
+        $query = "
+        SELECT 
+            a.*,
+            i.nama_ibu,
+            p.tanggal_pemeriksaan AS tanggal_pemeriksaan_terakhir,
+            p.berat_badan AS berat_badan_terakhir,
+            p.tinggi_badan AS tinggi_badan_terakhir,
+            p.usia_bulan AS usia_bulan_terakhir,
+            p.status_gizi AS status_gizi_terakhir
+        FROM anak a
+        JOIN ibu i 
+            ON a.id_ibu = i.id_ibu
+        LEFT JOIN t_pemeriksaan p
+            ON p.id_anak = a.id_anak
+            AND p.id_pemeriksaan = (
+                SELECT MAX(p2.id_pemeriksaan)
+                FROM t_pemeriksaan p2
+                WHERE p2.id_anak = a.id_anak
+            )
+        WHERE a.id_ibu = ?
+          AND a.deleted_at IS NULL
+        ORDER BY a.nama_anak ASC
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idIbu);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
+        mysqli_stmt_close($stmt);
+
+        return $data;
+    }
 }
