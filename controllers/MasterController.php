@@ -1671,4 +1671,110 @@ class MasterController
 
         require '../views/master/standar_pertumbuhan/index.php';
     }
+
+    // --- Master: Paket Gizi ---
+    public function paketGizi()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $paketModel = new PaketGizi();
+        $pakets = $paketModel->getAllWithDetails();
+
+        require '../views/master/paket-gizi/index.php';
+    }
+
+    public function editPaketGizi()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $idPaket = (int) ($_GET['id'] ?? 0);
+
+        if ($idPaket <= 0) {
+            $_SESSION['error'] = 'ID paket tidak valid.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $paketModel = new PaketGizi();
+        $paket = $paketModel->findWithDetails($idPaket);
+
+        if (!$paket) {
+            $_SESSION['error'] = 'Paket gizi tidak ditemukan.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $komoditas = $paketModel->getKomoditasOptions();
+
+        require '../views/master/paket-gizi/edit.php';
+    }
+
+    public function updatePaketGizi()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $idPaket = (int) ($_POST['id_paket'] ?? 0);
+        $namaPaket = trim($_POST['nama_paket'] ?? '');
+        $deskripsi = trim($_POST['deskripsi'] ?? '');
+        $isActive = isset($_POST['is_active']) ? 1 : 0;
+
+        $idKomoditasList = $_POST['id_komoditas'] ?? [];
+        $jumlahList = $_POST['jumlah'] ?? [];
+
+        if ($idPaket <= 0 || $namaPaket === '') {
+            $_SESSION['error'] = 'Data paket tidak valid.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $details = [];
+
+        foreach ($idKomoditasList as $index => $idKomoditas) {
+            $idKomoditas = (int) $idKomoditas;
+            $jumlah = (float) ($jumlahList[$index] ?? 0);
+
+            if ($idKomoditas > 0) {
+                if ($jumlah <= 0) {
+                    $_SESSION['error'] = 'Jumlah setiap komoditas wajib lebih dari 0.';
+                    header('Location: /master/paket-gizi/edit?id=' . $idPaket);
+                    exit;
+                }
+
+                $details[] = [
+                    'id_komoditas' => $idKomoditas,
+                    'jumlah' => $jumlah
+                ];
+            }
+        }
+
+        if (empty($details)) {
+            $_SESSION['error'] = 'Minimal isi 1 komoditas dalam paket.';
+            header('Location: /master/paket-gizi/edit?id=' . $idPaket);
+            exit;
+        }
+
+        $paketModel = new PaketGizi();
+
+        $updateHeader = $paketModel->updatePaket($idPaket, $namaPaket, $deskripsi, $isActive);
+        $updateDetail = $paketModel->replaceDetails($idPaket, $details);
+
+        if ($updateHeader && $updateDetail) {
+            $_SESSION['success'] = 'Paket gizi berhasil diperbarui.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal memperbarui paket gizi.';
+        header('Location: /master/paket-gizi/edit?id=' . $idPaket);
+        exit;
+    }
 }

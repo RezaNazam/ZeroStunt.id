@@ -171,6 +171,69 @@ class Penyerahan
         return mysqli_fetch_all($result, MYSQLI_ASSOC);
     }
 
+    public function getAnakOptions()
+    {
+        $query = "
+        SELECT 
+            a.id_anak,
+            a.id_ibu,
+            a.nama_anak,
+            a.st_gizi_skrg,
+            a.skala_prioritas,
+            i.nama_ibu
+        FROM anak a
+        JOIN ibu i ON a.id_ibu = i.id_ibu
+        WHERE a.deleted_at IS NULL
+        ORDER BY i.nama_ibu ASC, a.nama_anak ASC
+    ";
+
+        $result = mysqli_query($this->db, $query);
+
+        if (!$result) {
+            return [];
+        }
+
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
+
+    public function createFromPaket($idIbu, $idAnak, $idGudang, $idPaket, $tanggalPenyerahan, $catatan)
+    {
+        $query = "CALL sp_buat_penyerahan_dari_paket(?, ?, ?, ?, ?, ?, @id_penyerahan)";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            throw new Exception('Gagal menyiapkan stored procedure penyerahan.');
+        }
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            'iiiiss',
+            $idIbu,
+            $idAnak,
+            $idGudang,
+            $idPaket,
+            $tanggalPenyerahan,
+            $catatan
+        );
+
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        while (mysqli_more_results($this->db)) {
+            mysqli_next_result($this->db);
+
+            if ($result = mysqli_store_result($this->db)) {
+                mysqli_free_result($result);
+            }
+        }
+
+        $result = mysqli_query($this->db, "SELECT @id_penyerahan AS id_penyerahan");
+        $row = mysqli_fetch_assoc($result);
+
+        return (int) ($row['id_penyerahan'] ?? 0);
+    }
+
     public function getRiwayatBantuanByIbuUser($idUser)
     {
         $query = "
@@ -219,5 +282,42 @@ class Penyerahan
 
         $result = mysqli_stmt_get_result($stmt);
         return mysqli_fetch_all($result, MYSQLI_ASSOC);
+    }
+
+    public function createFromPrioritasAnak($idIbu, $idAnak, $idGudang, $tanggalPenyerahan, $catatan)
+    {
+        $query = "CALL sp_buat_penyerahan_dari_prioritas_anak(?, ?, ?, ?, ?, @id_penyerahan)";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            throw new Exception('Gagal menyiapkan stored procedure penyerahan.');
+        }
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            'iiiss',
+            $idIbu,
+            $idAnak,
+            $idGudang,
+            $tanggalPenyerahan,
+            $catatan
+        );
+
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        while (mysqli_more_results($this->db)) {
+            mysqli_next_result($this->db);
+
+            if ($result = mysqli_store_result($this->db)) {
+                mysqli_free_result($result);
+            }
+        }
+
+        $result = mysqli_query($this->db, "SELECT @id_penyerahan AS id_penyerahan");
+        $row = mysqli_fetch_assoc($result);
+
+        return (int) ($row['id_penyerahan'] ?? 0);
     }
 }

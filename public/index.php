@@ -16,6 +16,7 @@ require_once '../helpers/ErrorHelper.php';
 require_once '../helpers/PaginationHelper.php';
 require_once '../helpers/SearchHelper.php';
 require_once '../helpers/NumberHelper.php';
+require_once '../models/PaketGizi.php';
 
 // --- Load Models ---
 foreach (glob('../models/*.php') as $file) {

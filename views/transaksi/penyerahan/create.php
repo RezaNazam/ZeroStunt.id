@@ -1,7 +1,8 @@
 <?php
 $ibus = $ibus ?? [];
+$anaks = $anaks ?? [];
 $gudangs = $gudangs ?? [];
-$komoditas = $komoditas ?? [];
+$pakets = $pakets ?? [];
 
 ob_start();
 ?>
@@ -27,75 +28,71 @@ ob_start();
     <form action="/transaksi/penyerahan/store" method="POST"
         class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
 
-        <!-- IBU -->
-        <div>
-            <label class="block text-sm font-bold mb-2">Ibu Penerima</label>
-            <select name="id_ibu" required
-                class="w-full rounded-xl border border-gray-200 px-4 py-3">
-                <option value="">Pilih Ibu</option>
-                <?php foreach ($ibus as $ibu): ?>
-                    <option value="<?= $ibu['id_ibu']; ?>">
-                        <?= htmlspecialchars($ibu['nama_ibu']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <!-- GUDANG / POSYANDU -->
-        <div>
-            <label class="block text-sm font-bold mb-2">Gudang / Posyandu</label>
-            <select name="id_gudang" required
-                class="w-full rounded-xl border border-gray-200 px-4 py-3">
-                <option value="" disabled selected>Pilih Gudang Posyandu</option>
-
-                <?php foreach ($gudangs as $gudang): ?>
-                    <option value="<?= htmlspecialchars($gudang['id_gudang']); ?>">
-                        <?= htmlspecialchars($gudang['nama_gudang']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <!-- TANGGAL -->
-        <div>
-            <label class="block text-sm font-bold mb-2">Tanggal Penyerahan</label>
-            <input type="date" name="tanggal_penyerahan" required
-                class="w-full rounded-xl border border-gray-200 px-4 py-3">
-        </div>
-
-        <!-- DETAIL BANTUAN -->
-        <div>
-            <div class="mb-3 flex items-center justify-between">
-                <label class="block text-sm font-bold">Detail Bantuan</label>
-
-                <button type="button" id="addDetail"
-                    class="rounded-xl bg-teal-50 px-3 py-2 text-xs font-bold text-teal-700 hover:bg-teal-100">
-                    + Tambah Item
-                </button>
+        <div class="grid gap-5 md:grid-cols-2">
+            <!-- IBU -->
+            <div>
+                <label class="block text-sm font-bold mb-2">Ibu Penerima</label>
+                <select name="id_ibu" id="id_ibu" required
+                    class="w-full rounded-xl border border-gray-200 px-4 py-3">
+                    <option value="" disabled selected>Pilih Ibu</option>
+                    <?php foreach ($ibus as $ibu): ?>
+                        <option value="<?= htmlspecialchars($ibu['id_ibu']); ?>">
+                            <?= htmlspecialchars($ibu['nama_ibu']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
-            <div id="detailWrapper" class="space-y-3">
-                <div class="detail-row grid grid-cols-1 gap-3 md:grid-cols-[1fr_160px_90px]">
-                    <select name="id_komoditas[]" required
-                        class="w-full rounded-xl border border-gray-200 px-4 py-3">
-                        <option value="" disabled selected>Pilih Komoditas</option>
+            <!-- ANAK -->
+            <div>
+                <label class="block text-sm font-bold mb-2">Anak Penerima</label>
+                <select name="id_anak" id="id_anak" required
+                    class="w-full rounded-xl border border-gray-200 px-4 py-3">
+                    <option value="" disabled selected>Pilih Ibu terlebih dahulu</option>
+                </select>
+            </div>
 
-                        <?php foreach ($komoditas as $item): ?>
-                            <option value="<?= htmlspecialchars($item['id_komoditas']); ?>">
-                                <?= htmlspecialchars($item['nama_komoditas']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+            <!-- GUDANG -->
+            <div>
+                <label class="block text-sm font-bold mb-2">Gudang / Posyandu</label>
+                <select name="id_gudang" required
+                    class="w-full rounded-xl border border-gray-200 px-4 py-3">
+                    <option value="" disabled selected>Pilih Gudang Posyandu</option>
 
-                    <input type="number" name="jumlah[]" step="0.01" min="0.01" required
-                        placeholder="Jumlah"
-                        class="w-full rounded-xl border border-gray-200 px-4 py-3">
+                    <?php foreach ($gudangs as $gudang): ?>
+                        <option value="<?= htmlspecialchars($gudang['id_gudang']); ?>">
+                            <?= htmlspecialchars($gudang['nama_gudang']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
-                    <button type="button"
-                        class="removeDetail rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100">
-                        Hapus
-                    </button>
-                </div>
+            <!-- TANGGAL -->
+            <div>
+                <label class="block text-sm font-bold mb-2">Tanggal Penyerahan</label>
+                <input type="date" name="tanggal_penyerahan" required
+                    class="w-full rounded-xl border border-gray-200 px-4 py-3">
+            </div>
+        </div>
+
+
+        <!-- DETAIL BANTUAN -->
+        <div class="rounded-2xl border border-teal-100 bg-teal-50 p-4">
+            <div class="mb-3">
+                <h3 class="text-sm font-extrabold text-teal-900">
+                    Paket Bantuan Otomatis
+                </h3>
+                <p class="text-sm text-teal-700">
+                    Paket ditentukan otomatis berdasarkan skala prioritas anak.
+                </p>
+            </div>
+
+            <div id="anakInfo" class="mb-3 rounded-xl bg-white px-4 py-3 text-sm text-gray-600">
+                Pilih anak untuk melihat status gizi dan prioritas.
+            </div>
+
+            <div id="paketPreview" class="space-y-2 text-sm text-gray-600">
+                Isi paket akan muncul setelah anak dipilih.
             </div>
         </div>
 
@@ -115,36 +112,95 @@ ob_start();
 </div>
 
 <script>
-    const detailWrapper = document.getElementById('detailWrapper');
-    const addDetail = document.getElementById('addDetail');
+    const anakData = <?= json_encode($anaks, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    const paketData = <?= json_encode($pakets, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
-    addDetail.addEventListener('click', function () {
-        const firstRow = detailWrapper.querySelector('.detail-row');
-        const newRow = firstRow.cloneNode(true);
+    const ibuSelect = document.getElementById('id_ibu');
+    const anakSelect = document.getElementById('id_anak');
+    const anakInfo = document.getElementById('anakInfo');
+    const paketPreview = document.getElementById('paketPreview');
 
-        newRow.querySelectorAll('select, input').forEach(function (input) {
-            input.value = '';
+    function getPaketByPrioritas(prioritas) {
+        return paketData.find(function (paket) {
+            return paket.kode_prioritas === 'PRIORITAS_' + prioritas;
+        });
+    }
+
+    function renderAnakOptions() {
+        const idIbu = ibuSelect.value;
+
+        anakSelect.innerHTML = '<option value="" disabled selected>Pilih Anak</option>';
+        anakInfo.innerHTML = 'Pilih anak untuk melihat status gizi dan prioritas.';
+        paketPreview.innerHTML = 'Isi paket akan muncul setelah anak dipilih.';
+
+        const filteredAnak = anakData.filter(function (anak) {
+            return String(anak.id_ibu) === String(idIbu);
         });
 
-        detailWrapper.appendChild(newRow);
-    });
-
-    detailWrapper.addEventListener('click', function (event) {
-        if (!event.target.classList.contains('removeDetail')) {
+        if (filteredAnak.length === 0) {
+            anakSelect.innerHTML = '<option value="" disabled selected>Ibu ini belum memiliki data anak</option>';
             return;
         }
 
-        const rows = detailWrapper.querySelectorAll('.detail-row');
+        filteredAnak.forEach(function (anak) {
+            const option = document.createElement('option');
+            option.value = anak.id_anak;
+            option.textContent = anak.nama_anak + ' - Prioritas ' + anak.skala_prioritas;
+            anakSelect.appendChild(option);
+        });
+    }
 
-        if (rows.length <= 1) {
-            rows[0].querySelectorAll('select, input').forEach(function (input) {
-                input.value = '';
-            });
+    function renderPaketOtomatis() {
+        const idAnak = anakSelect.value;
+
+        const anak = anakData.find(function (item) {
+            return String(item.id_anak) === String(idAnak);
+        });
+
+        if (!anak) {
+            anakInfo.innerHTML = 'Pilih anak untuk melihat status gizi dan prioritas.';
+            paketPreview.innerHTML = 'Isi paket akan muncul setelah anak dipilih.';
             return;
         }
 
-        event.target.closest('.detail-row').remove();
-    });
+        const prioritas = anak.skala_prioritas;
+        const paket = getPaketByPrioritas(prioritas);
+
+        anakInfo.innerHTML = `
+            <div class="flex flex-col gap-1">
+                <p class="font-bold text-gray-900">${anak.nama_anak}</p>
+                <p>Status gizi: <span class="font-bold">${anak.st_gizi_skrg || '-'}</span></p>
+                <p>Skala prioritas: <span class="font-bold text-teal-700">Prioritas ${prioritas}</span></p>
+            </div>
+        `;
+
+        if (!paket || !paket.details || paket.details.length === 0) {
+            paketPreview.innerHTML = `
+                <div class="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-red-700">
+                    Paket Prioritas ${prioritas} belum aktif atau belum memiliki detail komoditas.
+                </div>
+            `;
+            return;
+        }
+
+        paketPreview.innerHTML = `
+            <div class="mb-2 font-bold text-teal-900">
+                ${paket.nama_paket}
+            </div>
+        ` + paket.details.map(function (detail) {
+            return `
+                <div class="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3">
+                    <span class="font-bold text-gray-800">${detail.nama_komoditas}</span>
+                    <span class="font-extrabold text-teal-700">
+                        ${Number(detail.jumlah).toLocaleString('id-ID')} ${detail.satuan}
+                    </span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    ibuSelect.addEventListener('change', renderAnakOptions);
+    anakSelect.addEventListener('change', renderPaketOtomatis);
 </script>
 
 <?php

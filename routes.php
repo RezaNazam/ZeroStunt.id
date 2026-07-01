@@ -89,6 +89,11 @@ return [
     // --- Master: Stok Posyandu ---
     '/master/kader/stok' => [MasterController::class, 'stokPosyandu', [ROLE_ADMIN, ROLE_KADER]],
 
+    // --- Master: Paket Gizi ---
+    '/master/paket-gizi' => [MasterController::class, 'paketGizi', [ROLE_ADMIN]],
+    '/master/paket-gizi/edit' => [MasterController::class, 'editPaketGizi', [ROLE_ADMIN]],
+    '/master/paket-gizi/update' => [MasterController::class, 'updatePaketGizi', [ROLE_ADMIN]],
+
     // -- route mater diatas --
 
     // --- TRANSAKSI DATA ROUTE
