@@ -17,12 +17,28 @@ $kontrak_pending = [];
 $kontrak_lunas = [];
 
 foreach ($all_pengadaan as $p) {
-    if (isset($p['status_bayar']) && $p['status_bayar'] === 'Pending') {
-        $kontrak_pending[] = $p;
-    } else {
+    $statusBayar = $p['status_bayar'] ?? '';
+    $statusKontrak = $p['status_kontrak'] ?? '';
+
+    if ($statusKontrak === 'Dibatalkan' || $statusBayar === 'Lunas') {
         $kontrak_lunas[] = $p;
+    } else {
+        $kontrak_pending[] = $p;
     }
 }
+
+usort($kontrak_lunas, function ($a, $b) {
+    $aDibatalkan = ($a['status_kontrak'] ?? '') === 'Dibatalkan';
+    $bDibatalkan = ($b['status_kontrak'] ?? '') === 'Dibatalkan';
+
+    // Yang dibatalkan turun ke bawah
+    if ($aDibatalkan !== $bDibatalkan) {
+        return $aDibatalkan <=> $bDibatalkan;
+    }
+
+    // Di dalam grup masing-masing, tetap urut terbaru dulu
+    return ((int) ($b['id_pengadaan'] ?? 0)) <=> ((int) ($a['id_pengadaan'] ?? 0));
+});
 
 $renderAdminPengadaanTable = function ($daftar_kontrak) use ($data, $kontrak_lunas) {
 ?>
@@ -91,16 +107,24 @@ $renderAdminPengadaanTable = function ($daftar_kontrak) use ($data, $kontrak_lun
                             $statusKontrak = $p['status_kontrak'] ?? '';
                             ?>
 
-                            <?php if ($statusBayar === 'Lunas'): ?>
-                                <div class="flex flex-wrap gap-2">
-                                    <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700">
-                                        Lunas
-                                    </span>
-                                </div>
+                            <?php if ($statusKontrak === 'Dibatalkan'): ?>
+
+                                <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-700">
+                                    Dibatalkan
+                                </span>
+
+                            <?php elseif ($statusBayar === 'Lunas'): ?>
+
+                                <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700">
+                                    Lunas
+                                </span>
+
                             <?php else: ?>
+
                                 <span class="px-2.5 py-1 text-xs font-bold rounded-full <?= $statusKontrak === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' ?>">
                                     <?= htmlspecialchars($statusKontrak ?: '-'); ?>
                                 </span>
+
                             <?php endif; ?>
                         </td>
 
@@ -328,7 +352,7 @@ ob_start();
             <div class="border-b border-gray-100 px-6 py-4 bg-gray-50/50">
                 <h3 class="text-sm font-bold text-green-800 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-green-500"></span>
-                    Riwayat Pasokan Kontrak Selesai / Terverifikasi
+                    Riwayat Pasokan Kontrak Selesai / Dibatalkan
                 </h3>
             </div>
             <?php $renderAdminPengadaanTable($kontrak_lunas); ?>

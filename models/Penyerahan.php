@@ -446,4 +446,162 @@ class Penyerahan
 
         return $executed && $affectedRows > 0;
     }
+
+    public function getIbuOptionsByGudang($idGudang)
+    {
+        $query = "
+        SELECT 
+            id_ibu,
+            nama_ibu,
+            NIK_ibu,
+            alamat,
+            no_telp,
+            id_gudang
+        FROM ibu
+        WHERE id_gudang = ?
+        ORDER BY nama_ibu ASC
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idGudang);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
+        mysqli_stmt_close($stmt);
+
+        return $data;
+    }
+
+    public function getAnakOptionsByGudang($idGudang)
+    {
+        $query = "
+        SELECT 
+            a.id_anak,
+            a.id_ibu,
+            a.nama_anak,
+            a.NIK_anak,
+            a.tgl_lahir,
+            a.jenis_kelamin,
+            a.st_gizi_skrg,
+            a.skala_prioritas,
+            i.nama_ibu,
+            i.id_gudang
+        FROM anak a
+        JOIN ibu i 
+            ON a.id_ibu = i.id_ibu
+        WHERE i.id_gudang = ?
+        ORDER BY a.nama_anak ASC
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idGudang);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
+        mysqli_stmt_close($stmt);
+
+        return $data;
+    }
+
+    public function getGudangById($idGudang)
+    {
+        $query = "
+        SELECT 
+            id_gudang,
+            nama_gudang,
+            jenis_gudang,
+            alamat_lengkap
+        FROM gudang
+        WHERE id_gudang = ?
+        LIMIT 1
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return null;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idGudang);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_assoc($result);
+
+        mysqli_stmt_close($stmt);
+
+        return $data ?: null;
+    }
+
+    public function isIbuInGudang($idIbu, $idGudang)
+    {
+        $query = "
+        SELECT id_ibu
+        FROM ibu
+        WHERE id_ibu = ?
+          AND id_gudang = ?
+        LIMIT 1
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'ii', $idIbu, $idGudang);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_assoc($result);
+
+        mysqli_stmt_close($stmt);
+
+        return !empty($data);
+    }
+
+    public function isAnakValidForPenyerahan($idAnak, $idIbu, $idGudang)
+    {
+        $query = "
+        SELECT 
+            a.id_anak
+        FROM anak a
+        JOIN ibu i 
+            ON a.id_ibu = i.id_ibu
+        WHERE a.id_anak = ?
+          AND a.id_ibu = ?
+          AND i.id_gudang = ?
+        LIMIT 1
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'iii', $idAnak, $idIbu, $idGudang);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_assoc($result);
+
+        mysqli_stmt_close($stmt);
+
+        return !empty($data);
+    }
 }

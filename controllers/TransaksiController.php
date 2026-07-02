@@ -340,6 +340,36 @@ class TransaksiController
         exit;
     }
 
+    public function batalPengadaan()
+    {
+        if (
+            $_SERVER['REQUEST_METHOD'] !== 'POST' ||
+            empty($_SESSION['user_id']) ||
+            strtolower($_SESSION['role'] ?? '') !== 'admin'
+        ) {
+            header('Location: /transaksi/pengadaan');
+            exit;
+        }
+
+        $idPengadaan = (int) ($_POST['id_pengadaan'] ?? 0);
+
+        if ($idPengadaan <= 0) {
+            $_SESSION['error'] = 'ID transaksi pengadaan tidak valid.';
+            header('Location: /transaksi/pengadaan');
+            exit;
+        }
+
+        $pengadaanModel = new Pengadaan();
+
+        if ($pengadaanModel->batalPengadaan($idPengadaan)) {
+            $_SESSION['success'] = 'Pengadaan berhasil dibatalkan.';
+        } else {
+            $_SESSION['error'] = 'Pengadaan gagal dibatalkan. Kemungkinan sudah diambil petani atau sudah disetujui.';
+        }
+
+        header('Location: /transaksi/pengadaan/detail?id=' . $idPengadaan);
+        exit;
+    }
 
     //----------------------------------------
     // --- TRANSAKSI PENYERAHAN ---
@@ -360,12 +390,29 @@ class TransaksiController
             exit;
         }
 
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+
+        $idGudangKader = (int) ($currentUser['id_gudang'] ?? 0);
+
+        if ($idGudangKader <= 0) {
+            $_SESSION['error'] = 'Akun kader belum terhubung dengan gudang/posyandu.';
+            header('Location: /dashboard');
+            exit;
+        }
+
         $penyerahanModel = new Penyerahan();
         $paketModel = new PaketGizi();
 
-        $ibus = $penyerahanModel->getIbuOptions();
-        $anaks = $penyerahanModel->getAnakOptions();
-        $gudangs = $penyerahanModel->getGudangPosyanduOptions();
+        // Kader hanya lihat ibu dan anak dari gudangnya sendiri
+        $ibus = $penyerahanModel->getIbuOptionsByGudang($idGudangKader);
+        $anaks = $penyerahanModel->getAnakOptionsByGudang($idGudangKader);
+
+        // Gudang dibuat fixed dari akun kader
+        $gudangKader = $penyerahanModel->getGudangById($idGudangKader);
+        $gudangs = $gudangKader ? [$gudangKader] : [];
+
+        $idGudangDefault = $idGudangKader;
 
         $pakets = array_values(array_filter(
             $paketModel->getAllWithDetails(),
@@ -384,20 +431,44 @@ class TransaksiController
             exit;
         }
 
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+
+        // Ini yang penting: id_gudang tidak dipercaya dari POST
+        $idGudang = (int) ($currentUser['id_gudang'] ?? 0);
+
         $idIbu = (int) ($_POST['id_ibu'] ?? 0);
         $idAnak = (int) ($_POST['id_anak'] ?? 0);
-        $idGudang = (int) ($_POST['id_gudang'] ?? 0);
         $tanggalPenyerahan = $_POST['tanggal_penyerahan'] ?? '';
         $catatan = trim($_POST['catatan'] ?? '');
 
         if ($idIbu <= 0 || $idAnak <= 0 || $idGudang <= 0 || $tanggalPenyerahan === '') {
-            $_SESSION['error'] = 'Data penyerahan belum lengkap.';
+            $_SESSION['error'] = 'Data penyerahan belum lengkap atau akun belum terhubung dengan gudang.';
             header('Location: /transaksi/penyerahan/create');
             exit;
         }
 
         try {
             $penyerahanModel = new Penyerahan();
+
+            // Validasi: ibu harus berada di gudang kader
+            if (!$penyerahanModel->isIbuInGudang($idIbu, $idGudang)) {
+                $_SESSION['error'] = 'Ibu penerima tidak sesuai dengan posyandu Anda.';
+                header('Location: /transaksi/penyerahan/create');
+                exit;
+            }
+
+            // Validasi: anak harus milik ibu tersebut dan dari gudang yang sama
+            if (!$penyerahanModel->isAnakValidForPenyerahan($idAnak, $idIbu, $idGudang)) {
+                $_SESSION['error'] = 'Data anak tidak sesuai dengan ibu penerima atau posyandu Anda.';
+                header('Location: /transaksi/penyerahan/create');
+                exit;
+            }
 
             $idPenyerahan = $penyerahanModel->createFromPrioritasAnak(
                 $idIbu,
@@ -757,7 +828,9 @@ class TransaksiController
         }
 
         $role = $_SESSION['role'] ?? '';
-        $isKader = defined('ROLE_KADER') ? $role === ROLE_KADER : strtolower($role) === 'kader';
+        $isKader = defined('ROLE_KADER')
+            ? $role === ROLE_KADER
+            : strtolower($role) === 'kader';
 
         if (!$isKader) {
             $_SESSION['error'] = 'Hanya kader yang dapat menerima distribusi.';
@@ -773,7 +846,37 @@ class TransaksiController
             exit;
         }
 
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+
+        $idGudangKader = (int) ($currentUser['id_gudang'] ?? 0);
+
+        if ($idGudangKader <= 0) {
+            $_SESSION['error'] = 'Akun kader belum terhubung dengan gudang/posyandu.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
         $distribusiModel = new Distribusi();
+        $distribusi = $distribusiModel->findById($idDistribusi);
+
+        if (!$distribusi) {
+            $_SESSION['error'] = 'Data distribusi tidak ditemukan.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        if ((int) ($distribusi['id_gudang_tujuan'] ?? 0) !== $idGudangKader) {
+            $_SESSION['error'] = 'Anda tidak memiliki akses untuk menerima distribusi ini.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
+
+        if (($distribusi['status_distribusi'] ?? '') !== 'Dikirim') {
+            $_SESSION['error'] = 'Distribusi ini sudah tidak berstatus Dikirim.';
+            header('Location: /transaksi/distribusi');
+            exit;
+        }
 
         try {
             if ($distribusiModel->markAsReceived($idDistribusi, $_SESSION['user_id'])) {
@@ -1005,6 +1108,18 @@ class TransaksiController
             'skala_prioritas' => $skalaPrioritas,
             'catatan' => $catatan
         ];
+
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+        $idGudangKader = (int) ($currentUser['id_gudang'] ?? 0);
+
+        $anakModel = new Anak();
+
+        if (!$anakModel->isAnakInGudang($idAnak, $idGudangKader)) {
+            $_SESSION['error'] = 'Anak yang diperiksa tidak terdaftar di posyandu Anda.';
+            header('Location: /transaksi/pemeriksaan/create');
+            exit;
+        }
 
         if ($pemeriksaanModel->create($dataPemeriksaan)) {
             $pemeriksaanModel->updateStatusAnak($idAnak, $statusGizi, $skalaPrioritas);

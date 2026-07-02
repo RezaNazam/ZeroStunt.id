@@ -53,18 +53,24 @@ ob_start();
             </div>
 
             <!-- GUDANG -->
-            <div>
-                <label class="block text-sm font-bold mb-2">Gudang / Posyandu</label>
-                <select name="id_gudang" required
-                    class="w-full rounded-xl border border-gray-200 px-4 py-3">
-                    <option value="" disabled selected>Pilih Gudang Posyandu</option>
+            <?php $gudangAktif = $gudangs[0] ?? null; ?>
 
-                    <?php foreach ($gudangs as $gudang): ?>
-                        <option value="<?= htmlspecialchars($gudang['id_gudang']); ?>">
-                            <?= htmlspecialchars($gudang['nama_gudang']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+            <input type="hidden" name="id_gudang" value="<?= (int) ($idGudangDefault ?? 0); ?>">
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">
+                    Posyandu / Gudang
+                </label>
+
+                <div class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <div class="font-bold text-gray-900">
+                        <?= htmlspecialchars($gudangAktif['nama_gudang'] ?? 'Gudang tidak ditemukan'); ?>
+                    </div>
+
+                </div>
+                <div class="mt-1 text-xs text-gray-500">
+                    Otomatis berdasarkan akun kader yang sedang login.
+                </div>
             </div>
 
             <!-- TANGGAL -->
@@ -121,7 +127,7 @@ ob_start();
     const paketPreview = document.getElementById('paketPreview');
 
     function getPaketByPrioritas(prioritas) {
-        return paketData.find(function (paket) {
+        return paketData.find(function(paket) {
             return paket.kode_prioritas === 'PRIORITAS_' + prioritas;
         });
     }
@@ -133,7 +139,7 @@ ob_start();
         anakInfo.innerHTML = 'Pilih anak untuk melihat status gizi dan prioritas.';
         paketPreview.innerHTML = 'Isi paket akan muncul setelah anak dipilih.';
 
-        const filteredAnak = anakData.filter(function (anak) {
+        const filteredAnak = anakData.filter(function(anak) {
             return String(anak.id_ibu) === String(idIbu);
         });
 
@@ -142,7 +148,7 @@ ob_start();
             return;
         }
 
-        filteredAnak.forEach(function (anak) {
+        filteredAnak.forEach(function(anak) {
             const option = document.createElement('option');
             option.value = anak.id_anak;
             option.textContent = anak.nama_anak + ' - Prioritas ' + anak.skala_prioritas;
@@ -153,7 +159,7 @@ ob_start();
     function renderPaketOtomatis() {
         const idAnak = anakSelect.value;
 
-        const anak = anakData.find(function (item) {
+        const anak = anakData.find(function(item) {
             return String(item.id_anak) === String(idAnak);
         });
 
@@ -187,7 +193,7 @@ ob_start();
             <div class="mb-2 font-bold text-teal-900">
                 ${paket.nama_paket}
             </div>
-        ` + paket.details.map(function (detail) {
+        ` + paket.details.map(function(detail) {
             return `
                 <div class="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3">
                     <span class="font-bold text-gray-800">${detail.nama_komoditas}</span>

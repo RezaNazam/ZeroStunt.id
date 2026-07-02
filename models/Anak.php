@@ -196,4 +196,34 @@ class Anak
 
         return $data;
     }
+
+    public function isAnakInGudang($idAnak, $idGudang)
+{
+    $query = "
+        SELECT 
+            a.id_anak
+        FROM anak a
+        JOIN ibu i 
+            ON a.id_ibu = i.id_ibu
+        WHERE a.id_anak = ?
+          AND i.id_gudang = ?
+        LIMIT 1
+    ";
+
+    $stmt = mysqli_prepare($this->db, $query);
+
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, 'ii', $idAnak, $idGudang);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+    $data = mysqli_fetch_assoc($result);
+
+    mysqli_stmt_close($stmt);
+
+    return !empty($data);
+}
 }

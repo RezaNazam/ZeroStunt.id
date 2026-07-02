@@ -241,6 +241,52 @@ class Distribusi
         return mysqli_fetch_assoc($result);
     }
 
+    public function findById($idDistribusi)
+    {
+        $query = "
+        SELECT 
+            d.*,
+            ga.nama_gudang AS gudang_asal,
+            gt.nama_gudang AS gudang_tujuan,
+            u1.username AS dibuat_oleh,
+            u2.username AS diterima_oleh
+        FROM t_distribusi d
+        JOIN gudang ga 
+            ON d.id_gudang_asal = ga.id_gudang
+        JOIN gudang gt 
+            ON d.id_gudang_tujuan = gt.id_gudang
+        LEFT JOIN users u1 
+            ON d.created_by = u1.id_user
+        LEFT JOIN users u2 
+            ON d.received_by = u2.id_user
+        WHERE d.id_distribusi = ?
+          AND d.deleted_at IS NULL
+        LIMIT 1
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return null;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idDistribusi);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_assoc($result);
+
+        mysqli_stmt_close($stmt);
+
+        if (!$data) {
+            return null;
+        }
+
+        $data['details'] = $this->getDetails($idDistribusi);
+
+        return $data;
+    }
+
     public function markAsReceived($idDistribusi, $receivedBy)
     {
         $query = "

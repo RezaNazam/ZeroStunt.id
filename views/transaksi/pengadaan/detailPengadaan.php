@@ -111,10 +111,23 @@ ob_start();
                 </div>
                 <div class="pt-2">
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Tahapan Kerja
-                        Sama</span>
-                    <span
-                        class="px-3 py-1.5 text-xs font-bold rounded-full inline-block <?= $nota['status_kontrak'] === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' ?>">
-                        <?= htmlspecialchars($nota['status_kontrak']) ?>
+                        Sama
+                    </span>
+
+                    <?php
+                    $statusKontrak = $nota['status_kontrak'] ?? '-';
+
+                    $statusKontrakClass = 'bg-amber-100 text-amber-700';
+
+                    if ($statusKontrak === 'Disetujui') {
+                        $statusKontrakClass = 'bg-green-100 text-green-700';
+                    } elseif ($statusKontrak === 'Dibatalkan') {
+                        $statusKontrakClass = 'bg-red-100 text-red-700';
+                    }
+                    ?>
+
+                    <span class="px-3 py-1.5 text-xs font-bold rounded-full inline-block <?= $statusKontrakClass; ?>">
+                        <?= htmlspecialchars($statusKontrak); ?>
                     </span>
                 </div>
                 <div class="pt-2">
@@ -140,6 +153,32 @@ ob_start();
                             <button type="submit"
                                 class="w-full text-center rounded-2xl bg-teal-600 py-3 text-sm font-bold text-white transition hover:bg-teal-700 shadow-md shadow-teal-100">
                                 Verifikasi & Lunasi Kontrak
+                            </button>
+                        </form>
+                    </div>
+                <?php endif; ?>
+
+
+                <?php if (
+                    $isAdmin &&
+                    empty($nota['id_petani']) &&
+                    ($nota['status_bayar'] ?? '') === 'Pending' &&
+                    ($nota['status_kontrak'] ?? '') === 'Mencari Petani'
+                ): ?>
+                    <div class="pt-4 border-t border-gray-100">
+                        <form action="/transaksi/pengadaan/batal" method="POST"
+                            data-confirm
+                            data-confirm-title="Batalkan pengadaan?"
+                            data-confirm-message="Pengadaan ini akan dibatalkan dan tidak akan muncul lagi sebagai lowongan untuk petani."
+                            data-confirm-text="Ya, batalkan"
+                            data-confirm-tone="danger">
+
+                            <input type="hidden" name="id_pengadaan"
+                                value="<?= !empty($nota['id_pengadaan']) ? (int) $nota['id_pengadaan'] : (int) $_GET['id'] ?>">
+
+                            <button type="submit"
+                                class="w-full text-center rounded-2xl bg-red-600 py-3 text-sm font-bold text-white transition hover:bg-red-700 shadow-md shadow-red-100">
+                                Batalkan Pengadaan
                             </button>
                         </form>
                     </div>
