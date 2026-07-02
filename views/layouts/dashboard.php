@@ -101,6 +101,7 @@
             sidebar?.classList.add('-translate-x-full');
         });
     </script>
+    <?php require_once '../views/components/confirm-modal.php'; ?>
 </body>
 
 </html>

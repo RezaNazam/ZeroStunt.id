@@ -48,7 +48,11 @@ $tableColumns = [
                     </a>
 
                     <a href="/master/satuan/delete?id=' . $id . '"
-                        onclick="return confirm(\'Yakin ingin menghapus satuan ini?\')"
+                        data-confirm
+                        data-confirm-title="Hapus satuan?"
+                        data-confirm-message="Data satuan ini akan dihapus dari sistem. Pastikan satuan tidak sedang digunakan oleh komoditas."
+                        data-confirm-text="Ya, hapus"
+                        data-confirm-tone="danger"
                         class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
                         Hapus
                     </a>

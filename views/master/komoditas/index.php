@@ -122,7 +122,11 @@ $tableColumns = [
                 return '
                     <div class="flex justify-end gap-2">
                         <a href="/master/komoditas/restore?id=' . $id . '"
-                            onclick="return confirm(\'Pulihkan komoditas ini?\')"
+                            data-confirm
+                            data-confirm-title="Pulihkan komoditas?"
+                            data-confirm-message="Komoditas ini akan diaktifkan kembali dan dapat digunakan lagi dalam transaksi."
+                            data-confirm-text="Ya, pulihkan"
+                            data-confirm-tone="success"
                             class="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100">
                             Pulihkan
                         </a>
@@ -138,9 +142,13 @@ $tableColumns = [
                     </a>
 
                     <a href="/master/komoditas/delete?id=' . $id . '"
-                        onclick="return confirm(\'Yakin ingin menonaktifkan komoditas ini?\')"
+                        data-confirm
+                        data-confirm-title="Nonaktifkan komoditas?"
+                        data-confirm-message="Komoditas ini akan dinonaktifkan dan tidak muncul sebagai pilihan transaksi baru."
+                        data-confirm-text="Ya, nonaktifkan"
+                        data-confirm-tone="warning"
                         class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
-                        Hapus
+                        Nonaktifkan
                     </a>
                 </div>
             ';

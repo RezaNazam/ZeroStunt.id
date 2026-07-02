@@ -224,7 +224,11 @@ ob_start();
                                     </a>
 
                                     <a href="/master/anak/delete?id=<?= (int) $anak['id_anak']; ?>"
-                                        onclick="return confirm('Hapus data anak ini?')"
+                                        data-confirm
+                                        data-confirm-title="Hapus data anak?"
+                                        data-confirm-message="Data anak ini akan dihapus dari sistem. Pastikan data ini memang sudah tidak diperlukan."
+                                        data-confirm-text="Ya, hapus"
+                                        data-confirm-tone="danger"
                                         class="text-red-600 hover:text-red-800 font-bold text-xs bg-red-50 px-3 py-1.5 rounded-xl">
                                         Hapus
                                     </a>

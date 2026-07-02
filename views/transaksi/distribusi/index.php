@@ -117,8 +117,15 @@ $renderDistribusiRows = function (array $list, string $emptyMessage) use ($forma
                         <td class="px-6 py-4 text-right">
                             <?php if (($d['status_distribusi'] ?? '') === 'Dikirim' && $isKader): ?>
                                 <form action="/transaksi/distribusi/terima" method="POST"
-                                    onsubmit="return confirm('Tandai distribusi ini sebagai diterima?')">
-                                    <input type="hidden" name="id_distribusi" value="<?= htmlspecialchars($d['id_distribusi'] ?? ''); ?>">
+                                    data-confirm
+                                    data-confirm-title="Terima distribusi?"
+                                    data-confirm-message="Pastikan stok fisik sudah diterima di posyandu sebelum menandai distribusi sebagai diterima."
+                                    data-confirm-text="Ya, terima"
+                                    data-confirm-tone="success">
+
+                                    <input type="hidden"
+                                        name="id_distribusi"
+                                        value="<?= htmlspecialchars($d['id_distribusi'] ?? ''); ?>">
 
                                     <button type="submit"
                                         class="rounded-xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100">
@@ -128,8 +135,15 @@ $renderDistribusiRows = function (array $list, string $emptyMessage) use ($forma
 
                             <?php elseif (($d['status_distribusi'] ?? '') === 'Dikirim' && $isAdmin): ?>
                                 <form action="/transaksi/distribusi/batal" method="POST"
-                                    onsubmit="return confirm('Batalkan distribusi ini?')">
-                                    <input type="hidden" name="id_distribusi" value="<?= htmlspecialchars($d['id_distribusi'] ?? ''); ?>">
+                                    data-confirm
+                                    data-confirm-title="Batalkan distribusi?"
+                                    data-confirm-message="Distribusi ini akan dibatalkan dan tidak dapat diterima oleh kader."
+                                    data-confirm-text="Ya, batalkan"
+                                    data-confirm-tone="danger">
+
+                                    <input type="hidden"
+                                        name="id_distribusi"
+                                        value="<?= htmlspecialchars($d['id_distribusi'] ?? ''); ?>">
 
                                     <button type="submit"
                                         class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">

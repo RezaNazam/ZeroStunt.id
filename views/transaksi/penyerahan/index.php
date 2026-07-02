@@ -173,16 +173,19 @@ ob_start();
 
                                 <?php if (($p['status_penyerahan'] ?? 'Diproses') === 'Diproses'): ?>
 
-                                    <form action="/transaksi/penyerahan/serahkan" method="POST">
+                                    <form action="/transaksi/penyerahan/serahkan" method="POST"
+                                        data-confirm
+                                        data-confirm-title="Tandai bantuan diserahkan?"
+                                        data-confirm-message="Status penyerahan akan berubah menjadi Diserahkan dan stok posyandu akan diperbarui."
+                                        data-confirm-text="Ya, serahkan"
+                                        data-confirm-tone="success">
 
                                         <input type="hidden"
                                             name="id_penyerahan"
-                                            value="<?= $p['id_penyerahan']; ?>">
+                                            value="<?= (int) $p['id_penyerahan']; ?>">
 
                                         <button type="submit"
-                                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
-                                                bg-green-100 text-green-700 border border-green-200
-                                                hover:bg-green-200 transition">
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition">
                                             Tandai Diserahkan
                                         </button>
                                     </form>

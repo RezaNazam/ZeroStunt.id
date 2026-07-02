@@ -38,7 +38,7 @@ ob_start();
                             foreach ($nota['details'] as $item):
                                 $subtotalItem = $item['jumlah'] * $item['harga_satuan'];
                                 $totalKeseluruhan += $subtotalItem;
-                                ?>
+                            ?>
                                 <tr>
                                     <td class="px-4 py-3.5 font-semibold text-gray-900">
                                         <?= htmlspecialchars($item['nama_komoditas']) ?>
@@ -128,11 +128,14 @@ ob_start();
                 <?php if ($isAdmin && $nota['status_kontrak'] === 'Disetujui' && $nota['status_bayar'] === 'Pending'): ?>
                     <div class="pt-4 border-t border-gray-100">
                         <form action="/transaksi/pengadaan/lunasi" method="POST"
-                            onsubmit="return confirm('Apakah Anda yakin barang fisik dari petani sudah sampai di gudang dan siap dilunasi?');">
+                            data-confirm
+                            data-confirm-title="Lunasi kontrak pengadaan?"
+                            data-confirm-message="Pastikan barang fisik dari petani sudah sampai di gudang sebelum kontrak dilunasi."
+                            data-confirm-text="Ya, lunasi"
+                            data-confirm-tone="success">
 
-                            <!-- Perbaikan utama: Menggunakan ID langsung dari data nota atau parameter GET URL -->
                             <input type="hidden" name="id_pengadaan"
-                                value="<?= !empty($nota['id_pengadaan']) ? $nota['id_pengadaan'] : (int) $_GET['id'] ?>">
+                                value="<?= !empty($nota['id_pengadaan']) ? (int) $nota['id_pengadaan'] : (int) $_GET['id'] ?>">
 
                             <button type="submit"
                                 class="w-full text-center rounded-2xl bg-teal-600 py-3 text-sm font-bold text-white transition hover:bg-teal-700 shadow-md shadow-teal-100">
