@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jun 26, 2026 at 03:09 AM
+-- Generation Time: Jul 02, 2026 at 06:24 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -20,6 +20,227 @@ SET time_zone = "+00:00";
 --
 -- Database: `zerostunt_db`
 --
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_paket` (IN `p_id_ibu` INT, IN `p_id_anak` INT, IN `p_id_gudang` INT, IN `p_id_paket` INT, IN `p_tanggal_penyerahan` DATE, IN `p_catatan` TEXT, OUT `p_id_penyerahan` INT)   BEGIN
+    DECLARE v_paket_aktif INT DEFAULT 0;
+    DECLARE v_total_detail INT DEFAULT 0;
+    DECLARE v_stok_kurang INT DEFAULT 0;
+    DECLARE v_anak_valid INT DEFAULT 0;
+    DECLARE v_no_penyerahan VARCHAR(50);
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT COUNT(*)
+    INTO v_paket_aktif
+    FROM paket_gizi
+    WHERE id_paket = p_id_paket
+      AND is_active = 1;
+
+    IF v_paket_aktif = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Paket gizi tidak aktif atau tidak ditemukan.';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_total_detail
+    FROM paket_gizi_detail
+    WHERE id_paket = p_id_paket;
+
+    IF v_total_detail = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Paket gizi belum memiliki detail komoditas.';
+    END IF;
+
+    IF p_id_anak IS NOT NULL AND p_id_anak > 0 THEN
+        SELECT COUNT(*)
+        INTO v_anak_valid
+        FROM anak
+        WHERE id_anak = p_id_anak
+          AND id_ibu = p_id_ibu;
+
+        IF v_anak_valid = 0 THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Anak tidak sesuai dengan ibu penerima.';
+        END IF;
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_stok_kurang
+    FROM paket_gizi_detail pgd
+    LEFT JOIN stok_log sl
+        ON sl.id_gudang = p_id_gudang
+        AND sl.id_komoditas = pgd.id_komoditas
+    WHERE pgd.id_paket = p_id_paket
+      AND COALESCE(sl.qty_current, 0) < pgd.jumlah;
+
+    IF v_stok_kurang > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Stok posyandu tidak mencukupi untuk paket yang dipilih.';
+    END IF;
+
+    SET v_no_penyerahan = CONCAT(
+        'PNY-',
+        DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
+        '-',
+        LPAD(FLOOR(RAND() * 1000), 3, '0')
+    );
+
+    INSERT INTO t_penyerahan (
+        no_penyerahan,
+        id_ibu,
+        id_anak,
+        id_gudang,
+        id_paket,
+        tanggal_penyerahan,
+        status_penyerahan,
+        catatan
+    ) VALUES (
+        v_no_penyerahan,
+        p_id_ibu,
+        NULLIF(p_id_anak, 0),
+        p_id_gudang,
+        p_id_paket,
+        p_tanggal_penyerahan,
+        'Diproses',
+        p_catatan
+    );
+
+    SET p_id_penyerahan = LAST_INSERT_ID();
+
+    INSERT INTO t_penyerahan_detail (
+        id_penyerahan,
+        id_komoditas,
+        jumlah
+    )
+    SELECT
+        p_id_penyerahan,
+        id_komoditas,
+        jumlah
+    FROM paket_gizi_detail
+    WHERE id_paket = p_id_paket;
+
+    COMMIT;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_prioritas_anak` (IN `p_id_ibu` INT, IN `p_id_anak` INT, IN `p_id_gudang` INT, IN `p_tanggal_penyerahan` DATE, IN `p_catatan` TEXT, OUT `p_id_penyerahan` INT)   BEGIN
+    DECLARE v_skala_prioritas INT DEFAULT 0;
+    DECLARE v_id_paket INT DEFAULT 0;
+    DECLARE v_total_detail INT DEFAULT 0;
+    DECLARE v_stok_kurang INT DEFAULT 0;
+    DECLARE v_no_penyerahan VARCHAR(50);
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT COALESCE(skala_prioritas, 0)
+    INTO v_skala_prioritas
+    FROM anak
+    WHERE id_anak = p_id_anak
+      AND id_ibu = p_id_ibu
+      AND deleted_at IS NULL
+    LIMIT 1;
+
+    IF v_skala_prioritas NOT IN (1, 2, 3) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Skala prioritas anak tidak valid atau belum diisi.';
+    END IF;
+
+    SELECT COALESCE(id_paket, 0)
+    INTO v_id_paket
+    FROM paket_gizi
+    WHERE kode_prioritas = CONCAT('PRIORITAS_', v_skala_prioritas)
+      AND is_active = 1
+    LIMIT 1;
+
+    IF v_id_paket <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Paket gizi untuk prioritas anak belum tersedia atau tidak aktif.';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_total_detail
+    FROM paket_gizi_detail
+    WHERE id_paket = v_id_paket;
+
+    IF v_total_detail = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Paket gizi belum memiliki detail komoditas.';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_stok_kurang
+    FROM paket_gizi_detail pgd
+    LEFT JOIN stok_log sl
+        ON sl.id_gudang = p_id_gudang
+        AND sl.id_komoditas = pgd.id_komoditas
+    WHERE pgd.id_paket = v_id_paket
+      AND COALESCE(sl.qty_current, 0) < pgd.jumlah;
+
+    IF v_stok_kurang > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Stok posyandu tidak mencukupi untuk paket prioritas anak.';
+    END IF;
+
+    SET v_no_penyerahan = CONCAT(
+        'PNY-',
+        DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
+        '-',
+        LPAD(FLOOR(RAND() * 1000), 3, '0')
+    );
+
+    INSERT INTO t_penyerahan (
+        no_penyerahan,
+        id_ibu,
+        id_anak,
+        id_gudang,
+        id_paket,
+        tanggal_penyerahan,
+        status_penyerahan,
+        catatan
+    ) VALUES (
+        v_no_penyerahan,
+        p_id_ibu,
+        p_id_anak,
+        p_id_gudang,
+        v_id_paket,
+        p_tanggal_penyerahan,
+        'Diproses',
+        p_catatan
+    );
+
+    SET p_id_penyerahan = LAST_INSERT_ID();
+
+    INSERT INTO t_penyerahan_detail (
+        id_penyerahan,
+        id_komoditas,
+        jumlah
+    )
+    SELECT
+        p_id_penyerahan,
+        id_komoditas,
+        jumlah
+    FROM paket_gizi_detail
+    WHERE id_paket = v_id_paket;
+
+    COMMIT;
+END$$
+
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -45,7 +266,12 @@ CREATE TABLE `anak` (
 --
 
 INSERT INTO `anak` (`id_anak`, `id_ibu`, `NIK_anak`, `nama_anak`, `tgl_lahir`, `jenis_kelamin`, `st_gizi_skrg`, `skala_prioritas`, `tgl_created`, `deleted_at`) VALUES
-(1, 3, '6894867', 'Asep maulana', '2021-01-13', 'L', NULL, NULL, '2026-06-15 01:45:01', NULL);
+(1, 7, '3275011503210001', 'Bima Pratama', '2021-03-15', 'L', 'Prioritas 1', '1', '2026-07-02 06:22:01', NULL),
+(2, 7, '3275011006220002', 'Citra Aulia', '2022-06-10', 'P', 'Prioritas 2', '2', '2026-07-02 06:22:01', NULL),
+(3, 8, '3275012011230003', 'Daffa Alfarizi', '2023-11-20', 'L', 'Prioritas 3', '3', '2026-07-02 06:22:01', NULL),
+(4, 9, '3275010505210004', 'Eka Maharani', '2021-05-05', 'P', 'Prioritas 1', '1', '2026-07-02 06:22:01', NULL),
+(5, 10, '3275011808220005', 'Fajar Nugraha', '2022-08-18', 'L', 'Prioritas 2', '2', '2026-07-02 06:22:01', NULL),
+(6, 10, '3275012501240006', 'Gita Permata', '2024-01-25', 'P', 'Prioritas 3', '3', '2026-07-02 06:22:01', NULL);
 
 -- --------------------------------------------------------
 
@@ -69,9 +295,10 @@ CREATE TABLE `gudang` (
 --
 
 INSERT INTO `gudang` (`id_gudang`, `nama_gudang`, `lokasi_gudang`, `jenis_gudang`, `alamat_lengkap`, `nama_pengelola`, `tgl_created`, `is_deleted`) VALUES
-(1, 'gudang suka maju', 'jalan suka maju', 'Pusat', 'jalan suka maju aja', 'kader', '2026-06-07 17:03:38', 0),
-(2, 'gudang hebat', 'bekasi', 'Posyandu', 'jalan jalan hebat', 'reza', '2026-06-19 03:09:08', 0),
-(3, 'gudang mantap', 'mantap', 'Pusat', 'dadasds', 'kader', '2026-06-26 01:58:25', 0);
+(1, 'Gudang Pusat Sehat Sentosa', 'Bekasi Selatan', 'Pusat', 'Jl. Sentosa Raya No. 10, Bekasi Selatan', 'Admin Pusat', '2026-07-02 06:22:01', 0),
+(2, 'Gudang Pusat Harapan Gizi', 'Bekasi Timur', 'Pusat', 'Jl. Harapan Gizi No. 22, Bekasi Timur', 'Admin Cabang', '2026-07-02 06:22:01', 0),
+(3, 'Posyandu Melati', 'Rawalumbu', 'Posyandu', 'Jl. Melati Indah No. 5, Rawalumbu', 'Kader Melati', '2026-07-02 06:22:01', 0),
+(4, 'Posyandu Kenanga', 'Mustika Jaya', 'Posyandu', 'Jl. Kenanga Asri No. 8, Mustika Jaya', 'Kader Kenanga', '2026-07-02 06:22:01', 0);
 
 -- --------------------------------------------------------
 
@@ -96,9 +323,10 @@ CREATE TABLE `ibu` (
 --
 
 INSERT INTO `ibu` (`id_ibu`, `NIK_ibu`, `nama_ibu`, `no_telp`, `alamat`, `id_gudang`, `is_pregnant`, `tgl_created`, `deleted_at`) VALUES
-(3, '01test0128', 'testibuform', '0821038', 'testalamat', 1, 1, '2026-06-07 12:36:56', NULL),
-(5, '0920250021', 'ibu', '0138746563728', 'ibu', 1, 1, '2026-06-11 00:54:09', NULL),
-(6, '1234567890123452', 'ibu', '89575345435', 'bekasi', 1, 0, '2026-06-16 14:01:44', NULL);
+(7, '3275010101010001', 'Ani Rahmawati', '081234560001', 'Jl. Melati 1, Rawalumbu', 3, 0, '2026-07-02 06:22:01', NULL),
+(8, '3275010101010002', 'Rina Kartika', '081234560002', 'Jl. Melati 2, Rawalumbu', 3, 1, '2026-07-02 06:22:01', NULL),
+(9, '3275010101010003', 'Dewi Lestari', '081234560003', 'Jl. Kenanga 1, Mustika Jaya', 4, 0, '2026-07-02 06:22:01', NULL),
+(10, '3275010101010004', 'Maya Safitri', '081234560004', 'Jl. Kenanga 2, Mustika Jaya', 4, 1, '2026-07-02 06:22:01', NULL);
 
 -- --------------------------------------------------------
 
@@ -121,7 +349,103 @@ CREATE TABLE `komoditas_pangan` (
 --
 
 INSERT INTO `komoditas_pangan` (`id_komoditas`, `nama_komoditas`, `kategori_gizi`, `id_satuan`, `deskripsi`, `tgl_created`, `is_deleted`) VALUES
-(2, 'ikan', 'Protein Hewani', 2, 'ikan segar', '2026-06-19 03:10:25', 0);
+(1, 'Ikan Nila', 'Protein Hewani', 1, 'Ikan nila segar untuk sumber protein hewani.', '2026-07-02 06:22:01', 0),
+(2, 'Telur Ayam', 'Protein Hewani', 2, 'Telur ayam untuk kebutuhan protein harian.', '2026-07-02 06:22:01', 0),
+(3, 'Sayur Bayam', 'Vitamin dan Mineral', 3, 'Sayur hijau kaya zat besi dan vitamin.', '2026-07-02 06:22:01', 0),
+(4, 'Tempe', 'Protein Nabati', 1, 'Tempe segar sebagai sumber protein nabati.', '2026-07-02 06:22:01', 0),
+(5, 'Beras Fortifikasi', 'Karbohidrat', 1, 'Beras fortifikasi untuk tambahan energi keluarga.', '2026-07-02 06:22:01', 0),
+(6, 'Kacang Hijau', 'Protein Nabati', 1, 'Kacang hijau untuk olahan bubur atau makanan tambahan.', '2026-07-02 06:22:01', 0),
+(7, 'Susu UHT', 'Protein dan Kalsium', 4, 'Susu UHT sebagai tambahan protein dan kalsium.', '2026-07-02 06:22:01', 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `paket_gizi`
+--
+
+CREATE TABLE `paket_gizi` (
+  `id_paket` int NOT NULL,
+  `kode_prioritas` varchar(20) NOT NULL,
+  `nama_paket` varchar(100) NOT NULL,
+  `deskripsi` text,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `tgl_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `paket_gizi`
+--
+
+INSERT INTO `paket_gizi` (`id_paket`, `kode_prioritas`, `nama_paket`, `deskripsi`, `is_active`, `tgl_created`, `tgl_updated`) VALUES
+(1, 'PRIORITAS_1', 'Paket Prioritas 1', 'Paket untuk anak berisiko tinggi dan membutuhkan intervensi gizi intensif.', 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
+(2, 'PRIORITAS_2', 'Paket Prioritas 2', 'Paket untuk anak yang perlu pemantauan dan dukungan gizi sedang.', 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
+(3, 'PRIORITAS_3', 'Paket Prioritas 3', 'Paket pemenuhan rutin untuk menjaga status gizi tetap baik.', 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `paket_gizi_detail`
+--
+
+CREATE TABLE `paket_gizi_detail` (
+  `id_paket_detail` int NOT NULL,
+  `id_paket` int NOT NULL,
+  `id_komoditas` int NOT NULL,
+  `jumlah` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `paket_gizi_detail`
+--
+
+INSERT INTO `paket_gizi_detail` (`id_paket_detail`, `id_paket`, `id_komoditas`, `jumlah`, `tgl_created`) VALUES
+(1, 1, 1, '1.50', '2026-07-02 06:22:01'),
+(2, 1, 2, '10.00', '2026-07-02 06:22:01'),
+(3, 1, 3, '2.00', '2026-07-02 06:22:01'),
+(4, 1, 4, '1.00', '2026-07-02 06:22:01'),
+(5, 1, 5, '5.00', '2026-07-02 06:22:01'),
+(6, 2, 1, '1.00', '2026-07-02 06:22:01'),
+(7, 2, 2, '8.00', '2026-07-02 06:22:01'),
+(8, 2, 3, '1.00', '2026-07-02 06:22:01'),
+(9, 2, 5, '3.00', '2026-07-02 06:22:01'),
+(10, 2, 6, '1.00', '2026-07-02 06:22:01'),
+(11, 3, 2, '4.00', '2026-07-02 06:22:01'),
+(12, 3, 3, '1.00', '2026-07-02 06:22:01'),
+(13, 3, 5, '2.00', '2026-07-02 06:22:01');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `petani_lahan_komoditas`
+--
+
+CREATE TABLE `petani_lahan_komoditas` (
+  `id_petani_komoditas` int NOT NULL,
+  `id_petani` int NOT NULL,
+  `id_komoditas` int NOT NULL,
+  `luas_area` decimal(10,2) DEFAULT NULL,
+  `satuan_luas` enum('m2','ha') NOT NULL DEFAULT 'ha',
+  `estimasi_panen` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `catatan` text,
+  `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `tgl_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `petani_lahan_komoditas`
+--
+
+INSERT INTO `petani_lahan_komoditas` (`id_petani_komoditas`, `id_petani`, `id_komoditas`, `luas_area`, `satuan_luas`, `estimasi_panen`, `catatan`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
+(1, 5, 1, '1.20', 'ha', '180.00', 'Kolam ikan nila aktif.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(2, 5, 3, '0.80', 'ha', '120.00', 'Kebun sayur bayam siap panen mingguan.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(3, 5, 5, '1.50', 'ha', '300.00', 'Beras fortifikasi kerja sama penggilingan lokal.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(4, 6, 2, '0.60', 'ha', '900.00', 'Produksi telur dari peternakan kecil.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(5, 6, 4, '0.75', 'ha', '150.00', 'Produksi tempe harian.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(6, 6, 6, '1.00', 'ha', '180.00', 'Kacang hijau panen bulanan.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(7, 6, 7, '0.40', 'ha', '240.00', 'Pasokan susu UHT dari koperasi.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
 
 -- --------------------------------------------------------
 
@@ -131,19 +455,28 @@ INSERT INTO `komoditas_pangan` (`id_komoditas`, `nama_komoditas`, `kategori_gizi
 
 CREATE TABLE `petani_lokal` (
   `id_petani` int NOT NULL,
+  `id_user` int DEFAULT NULL,
   `nama_lahan` varchar(100) NOT NULL,
   `alamat_lahan` text,
+  `luas_lahan` decimal(10,2) DEFAULT NULL,
+  `satuan_luas` enum('m2','ha') NOT NULL DEFAULT 'ha',
+  `jenis_usaha` varchar(100) DEFAULT NULL,
+  `status_lahan` enum('Aktif','Nonaktif') NOT NULL DEFAULT 'Aktif',
   `no_rekening` varchar(30) DEFAULT NULL,
   `kapasitas_panen_bulan` decimal(10,2) DEFAULT NULL,
-  `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `deskripsi_lahan` text,
+  `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `tgl_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `petani_lokal`
 --
 
-INSERT INTO `petani_lokal` (`id_petani`, `nama_lahan`, `alamat_lahan`, `no_rekening`, `kapasitas_panen_bulan`, `tgl_created`) VALUES
-(4, 'lahan suka maju', 'jalan suka maju', '0129392', '100.00', '2026-06-07 13:41:59');
+INSERT INTO `petani_lokal` (`id_petani`, `id_user`, `nama_lahan`, `alamat_lahan`, `luas_lahan`, `satuan_luas`, `jenis_usaha`, `status_lahan`, `no_rekening`, `kapasitas_panen_bulan`, `deskripsi_lahan`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
+(5, 5, 'Lahan Budi Makmur', 'Jl. Sawah Makmur No. 12, Bekasi', '3.50', 'ha', 'Perikanan dan sayuran', 'Aktif', '1234567890', '450.00', 'Mitra penyedia ikan nila, sayuran, dan beras fortifikasi.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(6, 6, 'Kebun Sari Sejahtera', 'Jl. Tani Sejahtera No. 18, Bekasi', '2.75', 'ha', 'Peternakan kecil dan palawija', 'Aktif', '9876543210', '360.00', 'Mitra penyedia telur, tempe, kacang hijau, dan susu.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
 
 -- --------------------------------------------------------
 
@@ -164,7 +497,10 @@ CREATE TABLE `satuan` (
 --
 
 INSERT INTO `satuan` (`id_satuan`, `nama_satuan`, `singkat`, `tgl_created`, `is_deleted`) VALUES
-(2, 'Kilogram', 'Kg', '2026-06-19 03:10:10', 0);
+(1, 'Kilogram', 'Kg', '2026-07-02 06:22:01', 0),
+(2, 'Butir', 'Butir', '2026-07-02 06:22:01', 0),
+(3, 'Ikat', 'Ikat', '2026-07-02 06:22:01', 0),
+(4, 'Liter', 'Liter', '2026-07-02 06:22:01', 0);
 
 -- --------------------------------------------------------
 
@@ -455,8 +791,34 @@ CREATE TABLE `stok_log` (
 --
 
 INSERT INTO `stok_log` (`id_stok_log`, `id_gudang`, `id_komoditas`, `qty_in`, `qty_out`, `last_updated`) VALUES
-(3, 3, 2, '100.00', '10.00', '2026-06-26 02:47:15'),
-(5, 2, 2, '10.00', '0.00', '2026-06-26 02:47:15');
+(1, 1, 1, '420.00', '20.00', '2026-07-02 06:22:01'),
+(2, 1, 2, '3000.00', '200.00', '2026-07-02 06:22:01'),
+(3, 1, 3, '280.00', '30.00', '2026-07-02 06:22:01'),
+(4, 1, 4, '150.00', '0.00', '2026-07-02 06:22:01'),
+(5, 1, 5, '600.00', '60.00', '2026-07-02 06:22:01'),
+(6, 1, 6, '150.00', '0.00', '2026-07-02 06:22:01'),
+(7, 1, 7, '200.00', '0.00', '2026-07-02 06:22:01'),
+(8, 2, 1, '160.00', '0.00', '2026-07-02 06:22:01'),
+(9, 2, 2, '2300.00', '0.00', '2026-07-02 06:22:01'),
+(10, 2, 3, '140.00', '0.00', '2026-07-02 06:22:01'),
+(11, 2, 4, '140.00', '0.00', '2026-07-02 06:22:01'),
+(12, 2, 5, '350.00', '0.00', '2026-07-02 06:22:01'),
+(13, 2, 6, '145.00', '0.00', '2026-07-02 06:22:01'),
+(14, 2, 7, '150.00', '0.00', '2026-07-02 06:22:01'),
+(15, 3, 1, '60.00', '1.50', '2026-07-02 06:22:01'),
+(16, 3, 2, '440.00', '10.00', '2026-07-02 06:22:01'),
+(17, 3, 3, '90.00', '2.00', '2026-07-02 06:22:01'),
+(18, 3, 4, '25.00', '1.00', '2026-07-02 06:22:01'),
+(19, 3, 5, '160.00', '5.00', '2026-07-02 06:22:01'),
+(20, 3, 6, '40.00', '0.00', '2026-07-02 06:22:01'),
+(21, 3, 7, '30.00', '0.00', '2026-07-02 06:22:01'),
+(22, 4, 1, '30.00', '1.50', '2026-07-02 06:22:01'),
+(23, 4, 2, '180.00', '10.00', '2026-07-02 06:22:01'),
+(24, 4, 3, '45.00', '2.00', '2026-07-02 06:22:01'),
+(25, 4, 4, '20.00', '1.00', '2026-07-02 06:22:01'),
+(26, 4, 5, '90.00', '5.00', '2026-07-02 06:22:01'),
+(27, 4, 6, '35.00', '0.00', '2026-07-02 06:22:01'),
+(28, 4, 7, '25.00', '0.00', '2026-07-02 06:22:01');
 
 -- --------------------------------------------------------
 
@@ -485,7 +847,9 @@ CREATE TABLE `t_distribusi` (
 --
 
 INSERT INTO `t_distribusi` (`id_distribusi`, `no_distribusi`, `id_gudang_asal`, `id_gudang_tujuan`, `tanggal_distribusi`, `status_distribusi`, `catatan`, `created_by`, `received_by`, `received_at`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
-(4, 'DIST-20260626-002', 3, 2, '2026-06-26', 'Diterima', '', 1, 8, '2026-06-26 09:47:15', '2026-06-26 02:46:54', '2026-06-26 02:47:15', NULL);
+(1, 'DIST-202607-001', 1, 3, '2026-07-02', 'Diterima', 'Distribusi rutin untuk Posyandu Melati.', 1, 3, '2026-07-02 09:00:00', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(2, 'DIST-202607-002', 1, 4, '2026-07-03', 'Dikirim', 'Distribusi menunggu diterima oleh Posyandu Kenanga.', 1, NULL, NULL, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(3, 'DIST-202607-003', 2, 4, '2026-07-03', 'Dibatalkan', 'Distribusi contoh yang dibatalkan.', 2, NULL, NULL, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
 
 --
 -- Triggers `t_distribusi`
@@ -575,7 +939,15 @@ CREATE TABLE `t_distribusi_detail` (
 --
 
 INSERT INTO `t_distribusi_detail` (`id_distribusi_detail`, `id_distribusi`, `id_komoditas`, `jumlah`, `tgl_created`) VALUES
-(4, 4, 2, '10.00', '2026-06-26 02:46:54');
+(1, 1, 1, '20.00', '2026-07-02 06:22:01'),
+(2, 1, 2, '200.00', '2026-07-02 06:22:01'),
+(3, 1, 3, '30.00', '2026-07-02 06:22:01'),
+(4, 1, 5, '60.00', '2026-07-02 06:22:01'),
+(5, 2, 1, '15.00', '2026-07-02 06:22:01'),
+(6, 2, 2, '120.00', '2026-07-02 06:22:01'),
+(7, 2, 3, '25.00', '2026-07-02 06:22:01'),
+(8, 2, 5, '40.00', '2026-07-02 06:22:01'),
+(9, 3, 7, '20.00', '2026-07-02 06:22:01');
 
 -- --------------------------------------------------------
 
@@ -596,8 +968,20 @@ CREATE TABLE `t_pemeriksaan` (
   `catatan` text,
   `tgl_created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `tgl_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` datetime DEFAULT NULL
+  `deleted_at` datetime DEFAULT NULL,
+  `periode_pemeriksaan` char(7) GENERATED ALWAYS AS (date_format(`tanggal_pemeriksaan`,_utf8mb4'%Y-%m')) STORED
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `t_pemeriksaan`
+--
+
+INSERT INTO `t_pemeriksaan` (`id_pemeriksaan`, `id_anak`, `id_kader`, `tanggal_pemeriksaan`, `berat_badan`, `tinggi_badan`, `lingkar_kepala`, `usia_bulan`, `status_gizi`, `catatan`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
+(1, 1, 3, '2026-07-01', '11.20', '91.00', NULL, 63, 'Prioritas 1', 'Berat dan tinggi perlu pemantauan intensif.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(2, 2, 3, '2026-06-20', '12.80', '88.50', NULL, 48, 'Prioritas 2', 'Perlu dukungan pangan tambahan.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(3, 3, 3, '2026-06-22', '11.50', '81.00', NULL, 31, 'Prioritas 3', 'Pertumbuhan dalam pemantauan rutin.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(4, 4, 4, '2026-07-01', '10.90', '89.20', NULL, 62, 'Prioritas 1', 'Masuk prioritas tinggi untuk bantuan.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(5, 5, 4, '2026-06-24', '12.20', '87.00', NULL, 46, 'Prioritas 2', 'Perlu pemantauan bulan berikutnya.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
 
 -- --------------------------------------------------------
 
@@ -624,12 +1008,11 @@ CREATE TABLE `t_pengadaan` (
 --
 
 INSERT INTO `t_pengadaan` (`id_pengadaan`, `id_petani`, `id_gudang`, `no_kontrak`, `tgl_pengadaan`, `total_bayar`, `status_bayar`, `status_kontrak`, `keterangan`, `tgl_created`, `tgl_updated`) VALUES
-(1, 4, 2, 'REQ-202606-001', '2026-06-24', '0.00', 'Lunas', 'Disetujui', NULL, '2026-06-23 17:14:41', '2026-06-24 02:33:28'),
-(2, 4, 1, 'REQ-202606-002', '2026-06-23', '0.00', 'Lunas', 'Disetujui', 'Tambahan saftey untuk telur karena mudah pecah', '2026-06-23 17:26:19', '2026-06-24 07:11:29'),
-(3, 4, 2, 'REQ-202606-003', '2026-06-23', '0.00', 'Pending', 'Disetujui', 'Ikan Tuna ya', '2026-06-23 17:53:30', '2026-06-23 17:55:26'),
-(4, NULL, 2, 'REQ-202606-004', '2026-06-23', '0.00', 'Pending', 'Mencari Petani', 'yang segar', '2026-06-23 17:57:30', '2026-06-23 17:57:30'),
-(5, 4, 1, 'REQ-202606-005', '2026-06-24', '0.00', 'Lunas', 'Disetujui', 'test', '2026-06-24 07:15:36', '2026-06-24 07:18:26'),
-(6, 4, 3, 'REQ-202606-006', '2026-06-26', '0.00', 'Lunas', 'Disetujui', '', '2026-06-26 02:39:43', '2026-06-26 02:40:44');
+(1, 5, 1, 'REQ-202607-001', '2026-07-01', '3450000.00', 'Lunas', 'Disetujui', 'Pasokan awal ikan, sayur, dan beras dari Lahan Budi Makmur.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
+(2, 6, 1, 'REQ-202607-002', '2026-07-02', '1600000.00', 'Pending', 'Disetujui', 'Kontrak sudah disanggupi petani, menunggu verifikasi barang fisik.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
+(3, NULL, 2, 'REQ-202607-003', '2026-07-02', '1250000.00', 'Pending', 'Mencari Petani', 'Lowongan pengadaan terbuka untuk petani.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
+(4, NULL, 2, 'REQ-202607-004', '2026-07-02', '650000.00', 'Pending', 'Dibatalkan', 'Contoh pengadaan yang salah input lalu dibatalkan admin.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
+(5, 6, 2, 'REQ-202607-005', '2026-07-03', '1825000.00', 'Lunas', 'Disetujui', 'Pasokan telur, tempe, dan kacang hijau dari Kebun Sari Sejahtera.', '2026-07-02 06:22:01', '2026-07-02 06:22:01');
 
 --
 -- Triggers `t_pengadaan`
@@ -672,12 +1055,17 @@ CREATE TABLE `t_pengadaan_detail` (
 --
 
 INSERT INTO `t_pengadaan_detail` (`id_pengadaan_detail`, `id_pengadaan`, `id_komoditas`, `jumlah`, `harga_satuan`) VALUES
-(1, 1, 2, '100.00', '15000.00'),
-(2, 2, 3, '200.00', '5000.00'),
-(3, 3, 2, '10.00', '20000.00'),
-(4, 4, 3, '10.00', '50000.00'),
-(5, 5, 3, '10.00', '50000.00'),
-(6, 6, 2, '100.00', '3000.00');
+(1, 1, 1, '120.00', '18000.00'),
+(2, 1, 3, '80.00', '7500.00'),
+(3, 1, 5, '100.00', '6900.00'),
+(4, 2, 2, '400.00', '2500.00'),
+(5, 2, 4, '60.00', '10000.00'),
+(6, 3, 1, '50.00', '19000.00'),
+(7, 3, 6, '30.00', '10000.00'),
+(8, 4, 7, '50.00', '13000.00'),
+(9, 5, 2, '500.00', '2500.00'),
+(10, 5, 4, '40.00', '10000.00'),
+(11, 5, 6, '25.00', '7000.00');
 
 -- --------------------------------------------------------
 
@@ -691,6 +1079,7 @@ CREATE TABLE `t_penyerahan` (
   `id_ibu` int NOT NULL,
   `id_anak` int DEFAULT NULL,
   `id_gudang` int NOT NULL,
+  `id_paket` int DEFAULT NULL,
   `tanggal_penyerahan` date NOT NULL,
   `status_penyerahan` enum('Diproses','Diserahkan','Dibatalkan') NOT NULL DEFAULT 'Diproses',
   `catatan` text,
@@ -704,8 +1093,10 @@ CREATE TABLE `t_penyerahan` (
 -- Dumping data for table `t_penyerahan`
 --
 
-INSERT INTO `t_penyerahan` (`id_penyerahan`, `no_penyerahan`, `id_ibu`, `id_anak`, `id_gudang`, `tanggal_penyerahan`, `status_penyerahan`, `catatan`, `created_by`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
-(1, 'PNY-20260626022846', 3, 1, 1, '2026-06-26', 'Diproses', '', 1, '2026-06-26 02:28:46', '2026-06-26 02:28:46', NULL);
+INSERT INTO `t_penyerahan` (`id_penyerahan`, `no_penyerahan`, `id_ibu`, `id_anak`, `id_gudang`, `id_paket`, `tanggal_penyerahan`, `status_penyerahan`, `catatan`, `created_by`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
+(1, 'PNY-20260702132201-144', 7, 1, 3, 1, '2026-07-02', 'Diserahkan', 'Bantuan prioritas tinggi untuk Bima.', 3, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(2, 'PNY-20260702132201-056', 8, 3, 3, 3, '2026-07-03', 'Diproses', 'Bantuan rutin untuk Daffa, masih diproses.', 3, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(3, 'PNY-20260702132201-851', 9, 4, 4, 1, '2026-07-02', 'Diserahkan', 'Bantuan prioritas tinggi untuk Eka.', 4, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
 
 --
 -- Triggers `t_penyerahan`
@@ -777,7 +1168,19 @@ CREATE TABLE `t_penyerahan_detail` (
 --
 
 INSERT INTO `t_penyerahan_detail` (`id_penyerahan_detail`, `id_penyerahan`, `id_komoditas`, `jumlah`, `tgl_created`) VALUES
-(1, 1, 2, '1.50', '2026-06-26 02:28:46');
+(1, 1, 1, '1.50', '2026-07-02 06:22:01'),
+(2, 1, 2, '10.00', '2026-07-02 06:22:01'),
+(3, 1, 3, '2.00', '2026-07-02 06:22:01'),
+(4, 1, 4, '1.00', '2026-07-02 06:22:01'),
+(5, 1, 5, '5.00', '2026-07-02 06:22:01'),
+(8, 2, 2, '4.00', '2026-07-02 06:22:01'),
+(9, 2, 3, '1.00', '2026-07-02 06:22:01'),
+(10, 2, 5, '2.00', '2026-07-02 06:22:01'),
+(11, 3, 1, '1.50', '2026-07-02 06:22:01'),
+(12, 3, 2, '10.00', '2026-07-02 06:22:01'),
+(13, 3, 3, '2.00', '2026-07-02 06:22:01'),
+(14, 3, 4, '1.00', '2026-07-02 06:22:01'),
+(15, 3, 5, '5.00', '2026-07-02 06:22:01');
 
 -- --------------------------------------------------------
 
@@ -790,6 +1193,7 @@ CREATE TABLE `users` (
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('Admin','Kader','Petani','Ibu') NOT NULL,
+  `id_gudang` int DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -800,15 +1204,17 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id_user`, `username`, `password`, `role`, `is_active`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'admin', '$2y$12$eoq1NXMct2oLGC1LbLydZ.HzVB0wZQq5U3UtjJ9wia/JL1YjJh/rm', 'Admin', 1, '2026-06-07 07:20:10', '2026-06-07 07:20:10', NULL),
-(3, 'ibuTest', '$2y$12$JbFlTwwiXvoMmrBOXwY.ueFMJktMM4stGS8std32yxVUyrWLPz8v6', 'Ibu', 1, '2026-06-07 12:32:28', '2026-06-07 12:32:28', NULL),
-(4, 'petaniTest', '$2y$12$xSBT.byrEMjONcIV4SGTfekgDJagzrHxyM/7DstNyoQkTaqTqoT5u', 'Petani', 1, '2026-06-07 12:33:41', '2026-06-07 12:33:41', NULL),
-(5, 'ibu2', '$2y$12$bv1m0/6XjXnPPi3jJMSjjOkIpD8rp1383hfyusIiopLVDL3PJ0xb6', 'Ibu', 1, '2026-06-11 00:52:30', '2026-06-11 00:52:30', NULL),
-(6, 'ibuku', '$2y$10$0bZmguPBcerJQT1x.i0BsedA8Eh4FsXxWrx1sAXbigDjAxZg0Eu7S', 'Ibu', 0, '2026-06-16 13:23:28', '2026-06-19 02:50:51', '2026-06-19 02:50:51'),
-(7, 'ibu_', '$2y$10$SlTVfu0FTviwc.p6ERFdIurXGTvh6WRpTE1nmcQhnZAbM/qSLT2/S', 'Ibu', 1, '2026-06-19 02:11:41', '2026-06-19 02:11:58', NULL),
-(8, 'kader', '$2y$10$CB8nEEWOViMizuREKJfuC.5YaxExZjaev/Xl.Ya0rNySufOKVtaoi', 'Kader', 1, '2026-06-19 03:07:16', '2026-06-19 03:07:16', NULL),
-(12, 'petani1', '$2y$10$ySgBi.xEcsf2S/Cv4cvwf.uod8WI4W41LtbIvM9IhxsbLh4ISHVr.', 'Petani', 1, '2026-06-26 02:56:44', '2026-06-26 02:56:44', NULL);
+INSERT INTO `users` (`id_user`, `username`, `password`, `role`, `id_gudang`, `is_active`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'admin_pusat', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Admin', 1, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(2, 'admin_cabang', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Admin', 2, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(3, 'kader_melati', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Kader', 3, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(4, 'kader_kenanga', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Kader', 4, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(5, 'petani_budi', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Petani', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(6, 'petani_sari', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Petani', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(7, 'ibu_ani', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(8, 'ibu_rina', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(9, 'ibu_dewi', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(10, 'ibu_maya', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
 
 --
 -- Indexes for dumped tables
@@ -844,10 +1250,34 @@ ALTER TABLE `komoditas_pangan`
   ADD KEY `fk_komoditas_satuan` (`id_satuan`);
 
 --
+-- Indexes for table `paket_gizi`
+--
+ALTER TABLE `paket_gizi`
+  ADD PRIMARY KEY (`id_paket`),
+  ADD UNIQUE KEY `kode_prioritas` (`kode_prioritas`);
+
+--
+-- Indexes for table `paket_gizi_detail`
+--
+ALTER TABLE `paket_gizi_detail`
+  ADD PRIMARY KEY (`id_paket_detail`),
+  ADD KEY `fk_paket_gizi_detail_paket` (`id_paket`),
+  ADD KEY `fk_paket_gizi_detail_komoditas` (`id_komoditas`);
+
+--
+-- Indexes for table `petani_lahan_komoditas`
+--
+ALTER TABLE `petani_lahan_komoditas`
+  ADD PRIMARY KEY (`id_petani_komoditas`),
+  ADD KEY `idx_petani_lahan_komoditas_petani` (`id_petani`),
+  ADD KEY `idx_petani_lahan_komoditas_komoditas` (`id_komoditas`);
+
+--
 -- Indexes for table `petani_lokal`
 --
 ALTER TABLE `petani_lokal`
-  ADD PRIMARY KEY (`id_petani`);
+  ADD PRIMARY KEY (`id_petani`),
+  ADD UNIQUE KEY `uq_petani_lokal_user` (`id_user`);
 
 --
 -- Indexes for table `satuan`
@@ -930,7 +1360,8 @@ ALTER TABLE `t_penyerahan`
   ADD KEY `idx_t_penyerahan_anak` (`id_anak`),
   ADD KEY `idx_t_penyerahan_gudang` (`id_gudang`),
   ADD KEY `idx_t_penyerahan_status` (`status_penyerahan`),
-  ADD KEY `idx_t_penyerahan_tanggal` (`tanggal_penyerahan`);
+  ADD KEY `idx_t_penyerahan_tanggal` (`tanggal_penyerahan`),
+  ADD KEY `fk_t_penyerahan_paket` (`id_paket`);
 
 --
 -- Indexes for table `t_penyerahan_detail`
@@ -945,7 +1376,8 @@ ALTER TABLE `t_penyerahan_detail`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id_user`),
-  ADD UNIQUE KEY `username` (`username`);
+  ADD UNIQUE KEY `username` (`username`),
+  ADD KEY `fk_users_gudang` (`id_gudang`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -961,19 +1393,37 @@ ALTER TABLE `anak`
 -- AUTO_INCREMENT for table `gudang`
 --
 ALTER TABLE `gudang`
-  MODIFY `id_gudang` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_gudang` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `komoditas_pangan`
 --
 ALTER TABLE `komoditas_pangan`
-  MODIFY `id_komoditas` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_komoditas` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `paket_gizi`
+--
+ALTER TABLE `paket_gizi`
+  MODIFY `id_paket` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `paket_gizi_detail`
+--
+ALTER TABLE `paket_gizi_detail`
+  MODIFY `id_paket_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT for table `petani_lahan_komoditas`
+--
+ALTER TABLE `petani_lahan_komoditas`
+  MODIFY `id_petani_komoditas` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `satuan`
 --
 ALTER TABLE `satuan`
-  MODIFY `id_satuan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_satuan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `standar_pertumbuhan`
@@ -985,37 +1435,37 @@ ALTER TABLE `standar_pertumbuhan`
 -- AUTO_INCREMENT for table `stok_log`
 --
 ALTER TABLE `stok_log`
-  MODIFY `id_stok_log` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_stok_log` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `t_distribusi`
 --
 ALTER TABLE `t_distribusi`
-  MODIFY `id_distribusi` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_distribusi` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `t_distribusi_detail`
 --
 ALTER TABLE `t_distribusi_detail`
-  MODIFY `id_distribusi_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_distribusi_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `t_pemeriksaan`
 --
 ALTER TABLE `t_pemeriksaan`
-  MODIFY `id_pemeriksaan` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_pemeriksaan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `t_pengadaan`
 --
 ALTER TABLE `t_pengadaan`
-  MODIFY `id_pengadaan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_pengadaan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `t_pengadaan_detail`
 --
 ALTER TABLE `t_pengadaan_detail`
-  MODIFY `id_pengadaan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_pengadaan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `t_penyerahan`
@@ -1027,13 +1477,13 @@ ALTER TABLE `t_penyerahan`
 -- AUTO_INCREMENT for table `t_penyerahan_detail`
 --
 ALTER TABLE `t_penyerahan_detail`
-  MODIFY `id_penyerahan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_penyerahan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id_user` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_user` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Constraints for dumped tables
@@ -1059,9 +1509,24 @@ ALTER TABLE `komoditas_pangan`
   ADD CONSTRAINT `fk_komoditas_satuan` FOREIGN KEY (`id_satuan`) REFERENCES `satuan` (`id_satuan`) ON DELETE RESTRICT;
 
 --
+-- Constraints for table `paket_gizi_detail`
+--
+ALTER TABLE `paket_gizi_detail`
+  ADD CONSTRAINT `fk_paket_gizi_detail_komoditas` FOREIGN KEY (`id_komoditas`) REFERENCES `komoditas_pangan` (`id_komoditas`),
+  ADD CONSTRAINT `fk_paket_gizi_detail_paket` FOREIGN KEY (`id_paket`) REFERENCES `paket_gizi` (`id_paket`);
+
+--
+-- Constraints for table `petani_lahan_komoditas`
+--
+ALTER TABLE `petani_lahan_komoditas`
+  ADD CONSTRAINT `fk_petani_lahan_komoditas_komoditas` FOREIGN KEY (`id_komoditas`) REFERENCES `komoditas_pangan` (`id_komoditas`),
+  ADD CONSTRAINT `fk_petani_lahan_komoditas_petani` FOREIGN KEY (`id_petani`) REFERENCES `petani_lokal` (`id_petani`);
+
+--
 -- Constraints for table `petani_lokal`
 --
 ALTER TABLE `petani_lokal`
+  ADD CONSTRAINT `fk_petani_lokal_user` FOREIGN KEY (`id_user`) REFERENCES `users` (`id_user`),
   ADD CONSTRAINT `fk_petani_user` FOREIGN KEY (`id_petani`) REFERENCES `users` (`id_user`) ON DELETE RESTRICT;
 
 --
@@ -1108,7 +1573,8 @@ ALTER TABLE `t_penyerahan`
   ADD CONSTRAINT `fk_t_penyerahan_anak` FOREIGN KEY (`id_anak`) REFERENCES `anak` (`id_anak`),
   ADD CONSTRAINT `fk_t_penyerahan_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id_user`),
   ADD CONSTRAINT `fk_t_penyerahan_gudang` FOREIGN KEY (`id_gudang`) REFERENCES `gudang` (`id_gudang`),
-  ADD CONSTRAINT `fk_t_penyerahan_ibu` FOREIGN KEY (`id_ibu`) REFERENCES `ibu` (`id_ibu`);
+  ADD CONSTRAINT `fk_t_penyerahan_ibu` FOREIGN KEY (`id_ibu`) REFERENCES `ibu` (`id_ibu`),
+  ADD CONSTRAINT `fk_t_penyerahan_paket` FOREIGN KEY (`id_paket`) REFERENCES `paket_gizi` (`id_paket`);
 
 --
 -- Constraints for table `t_penyerahan_detail`
@@ -1116,6 +1582,12 @@ ALTER TABLE `t_penyerahan`
 ALTER TABLE `t_penyerahan_detail`
   ADD CONSTRAINT `fk_t_penyerahan_detail_komoditas` FOREIGN KEY (`id_komoditas`) REFERENCES `komoditas_pangan` (`id_komoditas`),
   ADD CONSTRAINT `fk_t_penyerahan_detail_penyerahan` FOREIGN KEY (`id_penyerahan`) REFERENCES `t_penyerahan` (`id_penyerahan`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `fk_users_gudang` FOREIGN KEY (`id_gudang`) REFERENCES `gudang` (`id_gudang`) ON DELETE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
