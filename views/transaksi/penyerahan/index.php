@@ -1,29 +1,49 @@
 <?php
 $penyerahan = $penyerahan ?? [];
+
+$getBadgePaket = function ($row) {
+    $namaPaket = strtolower($row['nama_paket'] ?? '');
+    $idPaket = (int) ($row['id_paket'] ?? 0);
+
+    if (str_contains($namaPaket, 'prioritas 1') || $idPaket === 1) {
+        return 'bg-red-50 text-red-700';
+    }
+
+    if (str_contains($namaPaket, 'prioritas 2') || $idPaket === 2) {
+        return 'bg-amber-50 text-amber-700';
+    }
+
+    if (str_contains($namaPaket, 'prioritas 3') || $idPaket === 3) {
+        return 'bg-green-50 text-green-700';
+    }
+
+    return 'bg-teal-50 text-teal-700';
+};
+
 ob_start();
 ?>
 
 <div class="space-y-6">
 
     <!-- HEADER -->
-     <div class="flex justify-between items-center">
-         <div>
-             <h1 class="text-2xl font-extrabold text-gray-900">
-                 Penyerahan Bantuan Gizi
-             </h1>
-             <p class="text-sm text-gray-500 mt-1">
-                 Data seluruh penyerahan bantuan kepada ibu penerima.
-             </p>
-         </div>
-     
-         <!-- BUTTON -->
-         <div class="flex justify-end">
-             <a href="/transaksi/penyerahan/create"
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-extrabold text-gray-900">
+                Penyerahan Bantuan Gizi
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Data seluruh penyerahan bantuan kepada ibu penerima.
+            </p>
+        </div>
+
+        <!-- BUTTON -->
+        <div class="flex justify-end">
+            <a href="/transaksi/penyerahan/create"
                 class="bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 rounded-xl font-bold">
-                 + Tambah Penyerahan
-             </a>
-         </div>
-     </div>
+                + Tambah Penyerahan
+            </a>
+        </div>
+    </div>
 
     <!-- SUCCESS -->
     <?php if (!empty($_SESSION['success'])): ?>
@@ -52,6 +72,7 @@ ob_start();
                         <th class="px-6 py-4 text-left font-bold text-gray-600">No</th>
                         <th class="px-6 py-4 text-left font-bold text-gray-600">Ibu</th>
                         <th class="px-6 py-4 text-left font-bold text-gray-600">Tanggal</th>
+                        <th class="px-6 py-4 text-left font-bold text-gray-600">Paket Gizi</th>
                         <th class="px-6 py-4 text-left font-bold text-gray-600">Status</th>
                         <th class="px-6 py-4 text-left font-bold text-gray-600">Catatan</th>
                         <th class="px-6 py-4 text-left font-bold text-gray-600">Aksi</th>
@@ -69,21 +90,70 @@ ob_start();
                     <?php endif; ?>
 
                     <?php $index = 0; ?>
-                    
+
                     <?php foreach ($penyerahan as $p): ?>
                         <tr class="hover:bg-gray-50">
-                            <?php $index++; ?>
+                            <?php $index++;
+
+                            $dayOfWeek = date('D', strtotime($p['tanggal_penyerahan']));
+                            $dayNames = [
+                                'Sun' => 'Minggu',
+                                'Mon' => 'Senin',
+                                'Tue' => 'Selasa',
+                                'Wed' => 'Rabu',
+                                'Thu' => 'Kamis',
+                                'Fri' => "Jum'at",
+                                'Sat' => 'Sabtu'
+                            ];
+                            $dayName = $dayNames[$dayOfWeek] ?? '';
+                            $monthName = date('F', strtotime($p['tanggal_penyerahan']));
+                            $monthNames = [
+                                'January' => 'Januari',
+                                'February' => 'Februari',
+                                'March' => 'Maret',
+                                'April' => 'April',
+                                'May' => 'Mei',
+                                'June' => 'Juni',
+                                'July' => 'Juli',
+                                'August' => 'Agustus',
+                                'September' => 'September',
+                                'October' => 'Oktober',
+                                'November' => 'November',
+                                'December' => 'Desember'
+                            ];
+                            $monthName = $monthNames[$monthName] ?? '';
+                            $formattedDate = date('j', strtotime($p['tanggal_penyerahan'])) . ' ' . $monthName . ' ' . date('Y', strtotime($p['tanggal_penyerahan']));
+                            $tanggalFormat = $dayName . ', ' . $formattedDate;
+                            ?>
 
                             <td class="px-6 py-4 font-bold text-gray-900">
                                 <?= htmlspecialchars($index) ?>
                             </td>
 
                             <td class="px-6 py-4 text-gray-700">
-                                <?= htmlspecialchars($p['nama_ibu'] ?? '-') ?>
+                                <div class="font-semibold text-gray-900">
+                                    <?= htmlspecialchars($p['nama_ibu'] ?? '-') ?>
+                                </div>
+
+                                <a href="/transaksi/penyerahan/detail?id=<?= (int) $p['id_penyerahan']; ?>"
+                                    class="mt-1 inline-flex text-xs font-bold text-teal-700 hover:text-teal-800">
+                                    Lihat detail
+                                </a>
                             </td>
 
                             <td class="px-6 py-4 text-gray-700">
-                                <?= htmlspecialchars($p['tanggal_penyerahan']) ?>
+                                <?= htmlspecialchars($tanggalFormat) ?>
+                            </td>
+
+                            <td class="px-6 py-4 text-gray-700">
+                                <?php
+                                $namaPaket = $p['nama_paket'] ?? 'Paket #' . ($p['id_paket'] ?? '-');
+                                $badgePaket = $getBadgePaket($p);
+                                ?>
+
+                                <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold <?= $badgePaket; ?>">
+                                    <?= htmlspecialchars($namaPaket); ?>
+                                </span>
                             </td>
 
                             <td class="px-6 py-4">
@@ -106,8 +176,8 @@ ob_start();
                                     <form action="/transaksi/penyerahan/serahkan" method="POST">
 
                                         <input type="hidden"
-                                               name="id_penyerahan"
-                                               value="<?= $p['id_penyerahan']; ?>">
+                                            name="id_penyerahan"
+                                            value="<?= $p['id_penyerahan']; ?>">
 
                                         <button type="submit"
                                             class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
@@ -115,7 +185,6 @@ ob_start();
                                                 hover:bg-green-200 transition">
                                             Tandai Diserahkan
                                         </button>
-
                                     </form>
 
                                 <?php else: ?>

@@ -112,6 +112,7 @@ return [
     '/transaksi/penyerahan/create' => [TransaksiController::class, 'createPenyerahan', [ROLE_KADER]],
     '/transaksi/penyerahan/store' => [TransaksiController::class, 'storePenyerahan', [ROLE_KADER]],
     '/transaksi/penyerahan/serahkan' => [TransaksiController::class, 'serahkanPenyerahan', [ROLE_KADER]],
+    '/transaksi/penyerahan/detail' => [TransaksiController::class, 'detailPenyerahan', [ROLE_KADER, ROLE_IBU]],
 
     // --- Transaksi Distribusi ---
     '/transaksi/distribusi' => [TransaksiController::class, 'distribusi', [ROLE_ADMIN, ROLE_KADER]],

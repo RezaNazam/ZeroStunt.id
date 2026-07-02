@@ -421,6 +421,118 @@ class TransaksiController
         }
     }
 
+    public function detailPenyerahan()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $idPenyerahan = (int) ($_GET['id'] ?? 0);
+
+        if ($idPenyerahan <= 0) {
+            $_SESSION['error'] = 'ID penyerahan tidak valid.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        $penyerahanModel = new Penyerahan();
+        $penyerahan = $penyerahanModel->getDetailById($idPenyerahan);
+
+        if (!$penyerahan) {
+            $_SESSION['error'] = 'Data penyerahan tidak ditemukan.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+
+        if ($role === ROLE_KADER) {
+            $userModel = new User();
+            $currentUser = $userModel->findByid($_SESSION['user_id']);
+            $idGudangUser = (int) ($currentUser['id_gudang'] ?? 0);
+
+            if ((int) ($penyerahan['id_gudang'] ?? 0) !== $idGudangUser) {
+                $_SESSION['error'] = 'Anda tidak memiliki akses ke detail penyerahan ini.';
+                header('Location: /transaksi/penyerahan');
+                exit;
+            }
+        }
+
+        if ($role === ROLE_IBU) {
+            if ((int) ($penyerahan['id_ibu'] ?? 0) !== (int) $_SESSION['user_id']) {
+                $_SESSION['error'] = 'Anda tidak memiliki akses ke detail bantuan ini.';
+                header('Location: /master/ibu/histori-bantuan');
+                exit;
+            }
+        }
+
+        require '../views/transaksi/penyerahan/detail.php';
+    }
+
+    public function serahkanPenyerahan()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['user_id'])) {
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        $isKader = defined('ROLE_KADER') ? $role === ROLE_KADER : strtolower($role) === 'kader';
+
+        if (!$isKader) {
+            $_SESSION['error'] = 'Anda tidak memiliki akses untuk memperbarui penyerahan.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        $idPenyerahan = (int) ($_POST['id_penyerahan'] ?? 0);
+
+        if ($idPenyerahan <= 0) {
+            $_SESSION['error'] = 'ID penyerahan tidak valid.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        $penyerahanModel = new Penyerahan();
+        $penyerahan = $penyerahanModel->getDetailById($idPenyerahan);
+
+        if (!$penyerahan) {
+            $_SESSION['error'] = 'Data penyerahan tidak ditemukan.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+        $idGudangUser = (int) ($currentUser['id_gudang'] ?? 0);
+
+        if ((int) ($penyerahan['id_gudang'] ?? 0) !== $idGudangUser) {
+            $_SESSION['error'] = 'Anda tidak memiliki akses ke penyerahan ini.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        if (($penyerahan['status_penyerahan'] ?? '') === 'Diserahkan') {
+            $_SESSION['success'] = 'Penyerahan ini sudah berstatus Diserahkan.';
+            header('Location: /transaksi/penyerahan');
+            exit;
+        }
+
+        try {
+            if ($penyerahanModel->markAsDiserahkan($idPenyerahan)) {
+                $_SESSION['success'] = 'Penyerahan berhasil ditandai sebagai Diserahkan.';
+            } else {
+                $_SESSION['error'] = 'Gagal memperbarui status penyerahan.';
+            }
+        } catch (Throwable $e) {
+            $_SESSION['error'] = $e->getMessage();
+        }
+
+        header('Location: /transaksi/penyerahan');
+        exit;
+    }
+
     //----------------------------------------
     //--- TRANSAKSI DISTRIBUSI ---
     //----------------------------------------

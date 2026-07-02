@@ -12,24 +12,31 @@ class Penyerahan
 
     public function all()
     {
-        $result = mysqli_query(
-            $this->db,
-            "SELECT
-    p.*,
-    ibu.nama_ibu
-    FROM t_penyerahan p
-    LEFT JOIN ibu
-    ON p.id_ibu = ibu.id_ibu
-    ORDER BY p.id_penyerahan DESC"
-        );
+        $query = "
+        SELECT 
+            p.*,
+            i.nama_ibu,
+            a.nama_anak,
+            g.nama_gudang,
+            pg.nama_paket
+        FROM t_penyerahan p
+        JOIN ibu i 
+            ON p.id_ibu = i.id_ibu
+        LEFT JOIN anak a 
+            ON p.id_anak = a.id_anak
+        LEFT JOIN gudang g 
+            ON p.id_gudang = g.id_gudang
+        LEFT JOIN paket_gizi pg 
+            ON p.id_paket = pg.id_paket
+        ORDER BY p.tanggal_penyerahan DESC, p.id_penyerahan DESC";
 
-        $data = [];
+        $result = mysqli_query($this->db, $query);
 
-        while ($row = mysqli_fetch_assoc($result)) {
-            $data[] = $row;
+        if (!$result) {
+            return [];
         }
 
-        return $data;
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
     }
 
 
@@ -89,32 +96,6 @@ class Penyerahan
             $id_penyerahan,
             $id_komoditas,
             $jumlah
-        );
-
-        $executed = mysqli_stmt_execute($stmt);
-
-        mysqli_stmt_close($stmt);
-
-        return $executed;
-    }
-
-    public function serahkan($id_penyerahan)
-    {
-        $stmt = mysqli_prepare(
-            $this->db,
-            "UPDATE t_penyerahan
-    SET status_penyerahan = 'Diserahkan'
-    WHERE id_penyerahan = ?"
-        );
-
-        if (!$stmt) {
-            return false;
-        }
-
-        mysqli_stmt_bind_param(
-            $stmt,
-            'i',
-            $id_penyerahan
         );
 
         $executed = mysqli_stmt_execute($stmt);
@@ -234,7 +215,7 @@ class Penyerahan
         return (int) ($row['id_penyerahan'] ?? 0);
     }
 
-    public function getRiwayatBantuanByIbuUser($idUser)
+    public function getRiwayatBantuanByIbuUser($idIbu)
     {
         $query = "
         SELECT 
@@ -243,21 +224,29 @@ class Penyerahan
             p.id_ibu,
             p.id_anak,
             p.id_gudang,
+            p.id_paket,
             p.tanggal_penyerahan,
             p.status_penyerahan,
             p.catatan,
-            p.tgl_created,
 
-            a.nama_anak,
             i.nama_ibu,
+            a.nama_anak,
             g.nama_gudang AS nama_posyandu,
+            pg.nama_paket,
 
-            pd.id_penyerahan_detail,
-            pd.id_komoditas,
-            pd.jumlah,
+            COUNT(pd.id_penyerahan_detail) AS total_item,
 
-            k.nama_komoditas,
-            s.singkat AS satuan
+            GROUP_CONCAT(
+                CONCAT(
+                    k.nama_komoditas,
+                    ' ',
+                    pd.jumlah,
+                    ' ',
+                    COALESCE(s.singkat, '-')
+                )
+                ORDER BY k.nama_komoditas ASC
+                SEPARATOR '||'
+            ) AS detail_bantuan
         FROM t_penyerahan p
         JOIN ibu i 
             ON p.id_ibu = i.id_ibu
@@ -265,23 +254,47 @@ class Penyerahan
             ON p.id_anak = a.id_anak
         LEFT JOIN gudang g 
             ON p.id_gudang = g.id_gudang
+        LEFT JOIN paket_gizi pg 
+            ON p.id_paket = pg.id_paket
         LEFT JOIN t_penyerahan_detail pd 
             ON p.id_penyerahan = pd.id_penyerahan
         LEFT JOIN komoditas_pangan k 
             ON pd.id_komoditas = k.id_komoditas
         LEFT JOIN satuan s 
             ON k.id_satuan = s.id_satuan
-        WHERE i.id_ibu = ?
-          AND p.status_penyerahan = 'Diserahkan'
+        WHERE p.id_ibu = ?
+        GROUP BY
+            p.id_penyerahan,
+            p.no_penyerahan,
+            p.id_ibu,
+            p.id_anak,
+            p.id_gudang,
+            p.id_paket,
+            p.tanggal_penyerahan,
+            p.status_penyerahan,
+            p.catatan,
+            i.nama_ibu,
+            a.nama_anak,
+            g.nama_gudang,
+            pg.nama_paket
         ORDER BY p.tanggal_penyerahan DESC, p.id_penyerahan DESC
     ";
 
         $stmt = mysqli_prepare($this->db, $query);
-        mysqli_stmt_bind_param($stmt, 'i', $idUser);
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idIbu);
         mysqli_stmt_execute($stmt);
 
         $result = mysqli_stmt_get_result($stmt);
-        return mysqli_fetch_all($result, MYSQLI_ASSOC);
+        $data = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
+        mysqli_stmt_close($stmt);
+
+        return $data;
     }
 
     public function createFromPrioritasAnak($idIbu, $idAnak, $idGudang, $tanggalPenyerahan, $catatan)
@@ -319,5 +332,118 @@ class Penyerahan
         $row = mysqli_fetch_assoc($result);
 
         return (int) ($row['id_penyerahan'] ?? 0);
+    }
+
+    public function getDetailById($idPenyerahan)
+    {
+        $query = "
+        SELECT 
+            p.id_penyerahan,
+            p.no_penyerahan,
+            p.id_ibu,
+            p.id_anak,
+            p.id_gudang,
+            p.id_paket,
+            p.tanggal_penyerahan,
+            p.status_penyerahan,
+            p.catatan,
+            p.tgl_created,
+
+            i.nama_ibu,
+            i.NIK_ibu,
+            i.no_telp,
+            i.alamat,
+
+            a.nama_anak,
+            a.NIK_anak,
+            a.tgl_lahir,
+            a.jenis_kelamin,
+            a.st_gizi_skrg,
+            a.skala_prioritas,
+
+            g.nama_gudang AS nama_posyandu,
+            pg.nama_paket
+        FROM t_penyerahan p
+        JOIN ibu i ON p.id_ibu = i.id_ibu
+        LEFT JOIN anak a ON p.id_anak = a.id_anak
+        LEFT JOIN gudang g ON p.id_gudang = g.id_gudang
+        LEFT JOIN paket_gizi pg ON p.id_paket = pg.id_paket
+        WHERE p.id_penyerahan = ?
+        LIMIT 1
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return null;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idPenyerahan);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $penyerahan = mysqli_fetch_assoc($result);
+
+        mysqli_stmt_close($stmt);
+
+        if (!$penyerahan) {
+            return null;
+        }
+
+        $detailQuery = "
+        SELECT 
+            pd.id_penyerahan_detail,
+            pd.id_komoditas,
+            pd.jumlah,
+            k.nama_komoditas,
+            s.singkat AS satuan
+        FROM t_penyerahan_detail pd
+        JOIN komoditas_pangan k ON pd.id_komoditas = k.id_komoditas
+        LEFT JOIN satuan s ON k.id_satuan = s.id_satuan
+        WHERE pd.id_penyerahan = ?
+        ORDER BY k.nama_komoditas ASC
+    ";
+
+        $detailStmt = mysqli_prepare($this->db, $detailQuery);
+
+        if (!$detailStmt) {
+            $penyerahan['details'] = [];
+            return $penyerahan;
+        }
+
+        mysqli_stmt_bind_param($detailStmt, 'i', $idPenyerahan);
+        mysqli_stmt_execute($detailStmt);
+
+        $detailResult = mysqli_stmt_get_result($detailStmt);
+        $penyerahan['details'] = mysqli_fetch_all($detailResult, MYSQLI_ASSOC);
+
+        mysqli_stmt_close($detailStmt);
+
+        return $penyerahan;
+    }
+
+    public function markAsDiserahkan($idPenyerahan)
+    {
+        $query = "
+        UPDATE t_penyerahan
+        SET status_penyerahan = 'Diserahkan'
+        WHERE id_penyerahan = ?
+          AND status_penyerahan = 'Diproses'
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idPenyerahan);
+        $executed = mysqli_stmt_execute($stmt);
+
+        $affectedRows = mysqli_stmt_affected_rows($stmt);
+
+        mysqli_stmt_close($stmt);
+
+        return $executed && $affectedRows > 0;
     }
 }
