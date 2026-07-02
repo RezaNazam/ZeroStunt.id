@@ -26,8 +26,8 @@ $renderPemeriksaanTable = function () use ($pemeriksaanList, $isAdmin, $isKader,
                     <th class="px-6 py-4 text-left font-bold text-gray-600">Usia</th>
                     <th class="px-6 py-4 text-left font-bold text-gray-600">Status Gizi</th>
                     <?php if (!$isIbu): ?>
-                    <th class="px-6 py-4 text-left font-bold text-gray-600">Posyandu</th>
-                    <th class="px-6 py-4 text-left font-bold text-gray-600">Kader</th>
+                        <th class="px-6 py-4 text-left font-bold text-gray-600">Posyandu</th>
+                        <th class="px-6 py-4 text-left font-bold text-gray-600">Kader</th>
                     <?php endif; ?>
                     <?php if ($isAdmin): ?>
                         <th class="px-6 py-4 text-right font-bold text-gray-600">Aksi</th>
@@ -39,19 +39,19 @@ $renderPemeriksaanTable = function () use ($pemeriksaanList, $isAdmin, $isKader,
                 <?php if (empty($pemeriksaanList)): ?>
                     <tr>
                         <td colspan="<?php
-                            $cols = 8;
-                            if (!$isIbu) $cols += 2;
-                            if ($isAdmin) $cols++;
-                            echo $cols;
-                        ?>" class="px-6 py-10 text-center text-gray-500">
+                                        $cols = 8;
+                                        if (!$isIbu) $cols += 2;
+                                        if ($isAdmin) $cols++;
+                                        echo $cols;
+                                        ?>" class="px-6 py-10 text-center text-gray-500">
                             Belum ada data pemeriksaan.
                         </td>
                     </tr>
                 <?php endif; ?>
 
-                <?php 
+                <?php
                 $no = (($data['current_page'] ?? 1) - 1) * ($data['per_halaman'] ?? 20) + 1;
-                foreach ($pemeriksaanList as $p): 
+                foreach ($pemeriksaanList as $p):
                 ?>
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 font-semibold text-gray-500">
@@ -106,21 +106,25 @@ $renderPemeriksaanTable = function () use ($pemeriksaanList, $isAdmin, $isKader,
                         </td>
 
                         <?php if (!$isIbu): ?>
-                        <td class="px-6 py-4 text-gray-500 text-xs">
-                            <?= htmlspecialchars($p['nama_posyandu'] ?? '-'); ?>
-                        </td>
+                            <td class="px-6 py-4 text-gray-500 text-xs">
+                                <?= htmlspecialchars($p['nama_posyandu'] ?? '-'); ?>
+                            </td>
 
-                        <td class="px-6 py-4 text-gray-500 text-xs">
-                            <?= htmlspecialchars($p['nama_kader'] ?? '-'); ?>
-                        </td>
+                            <td class="px-6 py-4 text-gray-500 text-xs">
+                                <?= htmlspecialchars($p['nama_kader'] ?? '-'); ?>
+                            </td>
                         <?php endif; ?>
 
                         <?php if ($isAdmin): ?>
                             <td class="px-6 py-4 text-right">
-                                <a href="/transaksi/pemeriksaan/delete?id=<?= htmlspecialchars($p['id_pemeriksaan']); ?>" 
-                                   onclick="return confirm('Hapus data pemeriksaan ini?')"
-                                   class="inline-flex items-center justify-center rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
-                                   Hapus
+                                <a href="/transaksi/pemeriksaan/delete?id=<?= htmlspecialchars($p['id_pemeriksaan']); ?>"
+                                    data-confirm
+                                    data-confirm-title="Hapus data pemeriksaan?"
+                                    data-confirm-message="Data pemeriksaan anak ini akan dihapus dari sistem. Aksi ini dapat memengaruhi riwayat pemeriksaan."
+                                    data-confirm-text="Ya, hapus"
+                                    data-confirm-tone="danger"
+                                    class="inline-flex items-center justify-center rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
+                                    Hapus
                                 </a>
                             </td>
                         <?php endif; ?>
@@ -164,10 +168,10 @@ ob_start();
         </div>
 
         <?php if ($isKader): ?>
-        <a href="/transaksi/pemeriksaan/create"
-            class="inline-flex items-center justify-center rounded-2xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700">
-            + Input Pemeriksaan Baru
-        </a>
+            <a href="/transaksi/pemeriksaan/create"
+                class="inline-flex items-center justify-center rounded-2xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700">
+                + Input Pemeriksaan Baru
+            </a>
         <?php endif; ?>
     </div>
 

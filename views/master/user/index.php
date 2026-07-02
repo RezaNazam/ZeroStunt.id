@@ -88,7 +88,11 @@ $tableColumns = [
                     </a>
 
                     <a href="/master/users/delete?id=' . $id . '"
-                        onclick="return confirm(\'Yakin ingin menghapus user ini?\')"
+                        data-confirm
+                        data-confirm-title="Hapus pengguna?"
+                        data-confirm-message="Pengguna ini akan dihapus dari sistem dan tidak dapat digunakan lagi untuk login."
+                        data-confirm-text="Ya, hapus"
+                        data-confirm-tone="danger"
                         class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100">
                         Hapus
                     </a>

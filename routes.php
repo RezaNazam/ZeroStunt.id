@@ -106,12 +106,14 @@ return [
     '/transaksi/pengadaan/simpan' => [TransaksiController::class, 'simpanPengadaan', [ROLE_ADMIN]],
     '/transaksi/pengadaan/detail' => [TransaksiController::class, 'detailPengadaan', [ROLE_PETANI, ROLE_ADMIN]],
     '/transaksi/pengadaan/lunasi' => [TransaksiController::class, 'lunasiPengadaan', [ROLE_ADMIN]],
+    '/transaksi/pengadaan/batal' => [TransaksiController::class, 'batalPengadaan', [ROLE_ADMIN]],
 
     // --- Transaksi Penyerahan ---
     '/transaksi/penyerahan' => [TransaksiController::class, 'penyerahan', [ROLE_KADER]],
     '/transaksi/penyerahan/create' => [TransaksiController::class, 'createPenyerahan', [ROLE_KADER]],
     '/transaksi/penyerahan/store' => [TransaksiController::class, 'storePenyerahan', [ROLE_KADER]],
     '/transaksi/penyerahan/serahkan' => [TransaksiController::class, 'serahkanPenyerahan', [ROLE_KADER]],
+    '/transaksi/penyerahan/detail' => [TransaksiController::class, 'detailPenyerahan', [ROLE_KADER, ROLE_IBU]],
 
     // --- Transaksi Distribusi ---
     '/transaksi/distribusi' => [TransaksiController::class, 'distribusi', [ROLE_ADMIN, ROLE_KADER]],

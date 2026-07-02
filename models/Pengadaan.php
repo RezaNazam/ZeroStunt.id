@@ -197,12 +197,22 @@ class Pengadaan
     // Menghitung total lowongan pengadaan yang masih tersedia
     public function countAvailable(): int
     {
-        $query = "SELECT COUNT(*) as total FROM t_pengadaan WHERE status_kontrak = 'Mencari Petani'";
+        $query = "
+        SELECT COUNT(*) AS total 
+        FROM t_pengadaan 
+        WHERE status_kontrak = 'Mencari Petani'
+          AND status_bayar = 'Pending'
+          AND id_petani IS NULL
+    ";
+
         $result = mysqli_query($this->db, $query);
+
         if (!$result) {
             return 0;
         }
+
         $row = mysqli_fetch_assoc($result);
+
         return (int) ($row['total'] ?? 0);
     }
 
@@ -210,13 +220,18 @@ class Pengadaan
     public function getAvailablePaginated($limit, $offset): array
     {
         $stmt = mysqli_prepare($this->db, "
-            SELECT p.*, g.nama_gudang 
-            FROM t_pengadaan p
-            JOIN gudang g ON p.id_gudang = g.id_gudang
-            WHERE p.status_kontrak = 'Mencari Petani'
-            ORDER BY p.id_pengadaan DESC
-            LIMIT ? OFFSET ?
-        ");
+        SELECT 
+            p.*, 
+            g.nama_gudang 
+        FROM t_pengadaan p
+        JOIN gudang g 
+            ON p.id_gudang = g.id_gudang
+        WHERE p.status_kontrak = 'Mencari Petani'
+          AND p.status_bayar = 'Pending'
+          AND p.id_petani IS NULL
+        ORDER BY p.id_pengadaan DESC
+        LIMIT ? OFFSET ?
+    ");
 
         if (!$stmt) {
             return [];
@@ -224,13 +239,16 @@ class Pengadaan
 
         mysqli_stmt_bind_param($stmt, 'ii', $limit, $offset);
         mysqli_stmt_execute($stmt);
+
         $result = mysqli_stmt_get_result($stmt);
 
         $data = [];
+
         while ($row = mysqli_fetch_assoc($result)) {
             $row['details'] = $this->getDetails($row['id_pengadaan']);
             $data[] = $row;
         }
+
         mysqli_stmt_close($stmt);
 
         return $data;
@@ -569,5 +587,32 @@ class Pengadaan
             mysqli_rollback($this->db);
             throw $e;
         }
+    }
+
+    public function batalPengadaan($idPengadaan)
+    {
+        $query = "
+        UPDATE t_pengadaan
+        SET status_kontrak = 'Dibatalkan'
+        WHERE id_pengadaan = ?
+          AND id_petani IS NULL
+          AND status_kontrak <> 'Disetujui'
+          AND status_bayar = 'Pending'
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idPengadaan);
+
+        $executed = mysqli_stmt_execute($stmt);
+        $affectedRows = mysqli_stmt_affected_rows($stmt);
+
+        mysqli_stmt_close($stmt);
+
+        return $executed && $affectedRows > 0;
     }
 }

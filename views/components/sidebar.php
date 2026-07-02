@@ -23,6 +23,7 @@ if ($isAdmin) {
         ['label' => 'Paket Gizi', 'href' => '/master/paket-gizi', 'icon' => '<i class="fa-solid fa-boxes-stacked"></i>'],
         ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
         ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
+        ['label' => 'Pemeriksaan', 'href' => '/transaksi/pemeriksaan', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
         ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isKader) {
@@ -102,10 +103,17 @@ if ($isAdmin) {
         </nav>
 
         <a href="/auth/logout"
+            data-confirm
+            data-confirm-title="Keluar dari akun?"
+            data-confirm-message="Anda akan keluar dari sesi saat ini dan perlu login kembali untuk mengakses dashboard."
+            data-confirm-text="Ya, logout"
+            data-confirm-tone="warning"
             class="sidebar-logout flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-teal-100 hover:bg-red-500/20 hover:text-white transition">
+
             <span class="flex items-center justify-center w-5 h-5 text-lg shrink-0">
                 <i class="fa-solid fa-right-from-bracket"></i>
             </span>
+
             <span class="sidebar-label whitespace-nowrap">Logout</span>
         </a>
     </div>
