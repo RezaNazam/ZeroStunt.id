@@ -1,6 +1,29 @@
 <?php
-$pageTitle = 'Dashboard Kader';
-$pageSubtitle = 'Ringkasan pemeriksaan anak, stok posyandu, dan penyerahan paket gizi.';
+$role = $_SESSION['role'] ?? '';
+
+$isAdmin = defined('ROLE_ADMIN')
+    ? $role === ROLE_ADMIN
+    : strtolower($role) === 'admin';
+
+$isKader = defined('ROLE_KADER')
+    ? $role === ROLE_KADER
+    : strtolower($role) === 'kader';
+
+$pageTitle = $isAdmin ? 'Stok Gudang Pusat' : 'Dashboard Kader';
+
+$pageSubtitle = $isAdmin
+    ? 'Ringkasan stok pangan di gudang pusat / puskesmas.'
+    : 'Ringkasan pemeriksaan anak, stok posyandu, dan penyerahan paket gizi.';
+
+$stokTitle = $isAdmin ? 'Stok Gudang Pusat' : 'Stok Posyandu';
+
+$stokEmptyMessage = $isAdmin
+    ? 'Belum ada data stok gudang pusat.'
+    : 'Belum ada data stok posyandu.';
+
+$stokSearchPlaceholder = $isAdmin
+    ? 'Cari komoditas, jumlah, gudang pusat, atau status stok...'
+    : 'Cari komoditas, jumlah, posyandu, atau status stok...';
 
 $stoks = $stoks ?? ($data['stoks'] ?? []);
 $tablePagination = $tablePagination ?? ($data['pagination_stok'] ?? []);
@@ -11,7 +34,7 @@ $tablePagination = $tablePagination ?? ($data['pagination_stok'] ?? []);
 |--------------------------------------------------------------------------
 */
 $tableRows = $stoks;
-$tableEmptyMessage = 'Belum ada data stok posyandu.';
+$tableEmptyMessage = $stokEmptyMessage;
 
 $tableColumns = [
     [
@@ -65,8 +88,9 @@ $tableColumns = [
     [
         'label' => 'Status',
         'render' => function ($row) {
-            $jumlah = (int) (
+            $jumlah = (float) (
                 $row['jumlah_stok']
+                ?? $row['qty_current']
                 ?? $row['stok']
                 ?? $row['jumlah']
                 ?? 0
@@ -126,7 +150,7 @@ ob_start();
             <div>
                 <h3 class="text-lg font-extrabold text-gray-900">
                     <i class="fa-solid fa-boxes-stacked text-teal-600 mr-2"></i>
-                    Stok Posyandu
+                    <?= htmlspecialchars($stokTitle); ?>
                 </h3>
                 <p class="text-sm text-gray-500 mt-1">
                     Total data: <?= $tablePagination['total_data'] ?? count($stoks); ?> stok
@@ -136,7 +160,7 @@ ob_start();
             <div class="w-full lg:max-w-md">
                 <?php
                 $searchAction = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-                $searchPlaceholder = 'Cari komoditas, jumlah, lokasi, atau status stok...';
+                $searchPlaceholder = $stokSearchPlaceholder;
                 $searchTarget = 'tableResult';
                 $searchParam = 'q';
                 $pageParam = 'page';

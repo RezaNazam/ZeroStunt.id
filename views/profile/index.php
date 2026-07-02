@@ -8,10 +8,18 @@ $role = $user['role'] ?? ($_SESSION['role'] ?? 'Role');
 $created = $user['created_at'] ?? $user['tgl_created'] ?? null;
 
 $bulanIndonesia = [
-    1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
-    4 => 'April', 5 => 'Mei', 6 => 'Juni',
-    7 => 'Juli', 8 => 'Agustus', 9 => 'September',
-    10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    1 => 'Januari',
+    2 => 'Februari',
+    3 => 'Maret',
+    4 => 'April',
+    5 => 'Mei',
+    6 => 'Juni',
+    7 => 'Juli',
+    8 => 'Agustus',
+    9 => 'September',
+    10 => 'Oktober',
+    11 => 'November',
+    12 => 'Desember',
 ];
 
 if ($created) {
@@ -34,7 +42,7 @@ ob_start();
 <div class="min-h-[calc(100vh-10rem)] flex items-center justify-center py-4">
     <div class="w-full max-w-5xl mx-auto">
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start justify-center">
-            
+
             <!-- Left Column -->
             <div class="lg:col-span-2 space-y-6">
                 <!-- Profile Summary -->
@@ -57,7 +65,11 @@ ob_start();
                     <div class="p-6">
                         <form method="post"
                             action="/profile/delete"
-                            onsubmit="return confirm('Yakin ingin menghapus akun ini? Akun tidak akan bisa digunakan untuk login lagi.');">
+                            data-confirm
+                            data-confirm-title="Hapus akun?"
+                            data-confirm-message="Akun ini tidak akan bisa digunakan untuk login lagi. Pastikan Anda benar-benar ingin menghapus akun."
+                            data-confirm-text="Ya, hapus akun"
+                            data-confirm-tone="danger">
 
                             <button type="submit"
                                 class="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-100 px-5 py-4 text-sm font-extrabold text-red-600 transition hover:bg-red-200">

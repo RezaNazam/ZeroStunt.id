@@ -197,12 +197,22 @@ class Pengadaan
     // Menghitung total lowongan pengadaan yang masih tersedia
     public function countAvailable(): int
     {
-        $query = "SELECT COUNT(*) as total FROM t_pengadaan WHERE status_kontrak = 'Mencari Petani'";
+        $query = "
+        SELECT COUNT(*) AS total 
+        FROM t_pengadaan 
+        WHERE status_kontrak = 'Mencari Petani'
+          AND status_bayar = 'Pending'
+          AND id_petani IS NULL
+    ";
+
         $result = mysqli_query($this->db, $query);
+
         if (!$result) {
             return 0;
         }
+
         $row = mysqli_fetch_assoc($result);
+
         return (int) ($row['total'] ?? 0);
     }
 
@@ -210,13 +220,18 @@ class Pengadaan
     public function getAvailablePaginated($limit, $offset): array
     {
         $stmt = mysqli_prepare($this->db, "
-            SELECT p.*, g.nama_gudang 
-            FROM t_pengadaan p
-            JOIN gudang g ON p.id_gudang = g.id_gudang
-            WHERE p.status_kontrak = 'Mencari Petani'
-            ORDER BY p.id_pengadaan DESC
-            LIMIT ? OFFSET ?
-        ");
+        SELECT 
+            p.*, 
+            g.nama_gudang 
+        FROM t_pengadaan p
+        JOIN gudang g 
+            ON p.id_gudang = g.id_gudang
+        WHERE p.status_kontrak = 'Mencari Petani'
+          AND p.status_bayar = 'Pending'
+          AND p.id_petani IS NULL
+        ORDER BY p.id_pengadaan DESC
+        LIMIT ? OFFSET ?
+    ");
 
         if (!$stmt) {
             return [];
@@ -224,13 +239,16 @@ class Pengadaan
 
         mysqli_stmt_bind_param($stmt, 'ii', $limit, $offset);
         mysqli_stmt_execute($stmt);
+
         $result = mysqli_stmt_get_result($stmt);
 
         $data = [];
+
         while ($row = mysqli_fetch_assoc($result)) {
             $row['details'] = $this->getDetails($row['id_pengadaan']);
             $data[] = $row;
         }
+
         mysqli_stmt_close($stmt);
 
         return $data;
@@ -264,5 +282,337 @@ class Pengadaan
         mysqli_stmt_close($stmt);
 
         return $data;
+    }
+
+    // simpen data ke dua tabel sekaligus (header dan detail)
+    // simpan pengadaan baru
+
+    public function simpanPengadaanBaru(array $dataHeader, array $dataDetail)
+    {
+        mysqli_begin_transaction($this->db);
+
+        try {
+            // --- buat no pengadaan otomatis ---
+            $bulanTahunAktif = date('Ym', strtotime($dataHeader['tanggal_pengadaan']));
+            $formatPrefix = "REQ-" . $bulanTahunAktif . "-";
+
+            // cek nomor
+            $kueriCekNomor = "SELECT no_kontrak FROM t_pengadaan WHERE no_kontrak LIKE '$formatPrefix%' ORDER BY id_pengadaan DESC LIMIT 1";
+            $eksekusiCekNomor = mysqli_query($this->db, $kueriCekNomor);
+
+            $nomorUrutBerikutnya = "001";
+            if ($eksekusiCekNomor && mysqli_num_rows($eksekusiCekNomor) > 0) {
+                // Perbaikan: mysqli_assoc diubah menjadi mysqli_fetch_assoc
+                $barisData = mysqli_fetch_assoc($eksekusiCekNomor);
+
+                $nomorTerakhir = (int) substr($barisData['no_kontrak'], -3);
+                $nomorUrutBerikutnya = str_pad($nomorTerakhir + 1, 3, "0", STR_PAD_LEFT);
+            }
+
+            $nomorKontrakOtomatis = $formatPrefix . $nomorUrutBerikutnya;
+
+
+            // --- SIMPAN DATA KE TABEL HEADER (t_pengadaan) ---
+            $kueriHeader = "INSERT INTO t_pengadaan (no_kontrak, id_gudang, tgl_pengadaan, status_bayar, status_kontrak, keterangan) VALUES (?, ?, ?, 'Pending', 'Mencari Petani', ?)";
+            $stmtHeader = mysqli_prepare($this->db, $kueriHeader);
+
+            if (!$stmtHeader) {
+                throw new Exception("Gagal menyiapkan sistem pencatatan data utama (Header).");
+            }
+
+            mysqli_stmt_bind_param($stmtHeader, 'siss', $nomorKontrakOtomatis, $dataHeader['id_gudang'], $dataHeader['tanggal_pengadaan'], $dataHeader['keterangan']);
+            $suksesSimpanHeader = mysqli_stmt_execute($stmtHeader);
+
+            if (!$suksesSimpanHeader) {
+                throw new Exception("Gagal mengeksekusi penyimpanan data utama pengadaan.");
+            }
+
+            // Ambil ID primary key yang baru saja digenerate oleh auto_increment tabel header
+            $idPengadaanBaru = mysqli_insert_id($this->db);
+            mysqli_stmt_close($stmtHeader);
+
+
+            // --- SIMPAN DATA RINCIAN KE TABEL DETAIL (t_pengadaan_detail) ---
+            $kueriDetail = "INSERT INTO t_pengadaan_detail (id_pengadaan, id_komoditas, jumlah, harga_satuan) VALUES (?, ?, ?, ?)";
+            $stmtDetail = mysqli_prepare($this->db, $kueriDetail);
+
+            if (!$stmtDetail) {
+                throw new Exception("Gagal menyiapkan sistem pencatatan rincian komoditas (Detail).");
+            }
+
+            $totalBarisKomoditas = count($dataDetail['id_komoditas']);
+
+            for ($i = 0; $i < $totalBarisKomoditas; $i++) {
+                $idKomoditas = (int) $dataDetail['id_komoditas'][$i];
+                $jumlahBarang = (float) $dataDetail['jumlah'][$i];
+                $hargaSatuan = (float) $dataDetail['harga_satuan'][$i];
+
+                // --- VALIDASI LEVEL APLIKASI (DATA INTEGRITY BOUNDARY) ---
+                if ($idKomoditas <= 0 || $jumlahBarang <= 0 || $hargaSatuan < 0) {
+                    throw new Exception("Data barang pada baris ke-" . ($i + 1) . " tidak valid. Jumlah harus lebih dari 0 dan harga tidak boleh minus.");
+                }
+
+                mysqli_stmt_bind_param($stmtDetail, 'iidd', $idPengadaanBaru, $idKomoditas, $jumlahBarang, $hargaSatuan);
+                $suksesSimpanDetail = mysqli_stmt_execute($stmtDetail);
+
+                if (!$suksesSimpanDetail) {
+                    throw new Exception("Gagal menyimpan rincian barang pada baris ke-" . ($i + 1));
+                }
+            }
+
+            mysqli_stmt_close($stmtDetail);
+
+            // Jika sampai di sini semua baris data sukses tersimpan, kunci data secara permanen
+            mysqli_commit($this->db);
+            return true;
+        } catch (Exception $kesalahan) {
+            // Jika terjadi kegagalan di dalam blok try, batalkan semua operasi insert di atas
+            mysqli_rollback($this->db);
+            $_SESSION['error'] = $kesalahan->getMessage();
+            return false;
+        }
+    }
+
+    // Mencari data tunggal induk pengadaan berdasarkan ID primary key
+    public function find($id_pengadaan): array
+    {
+        $stmt = mysqli_prepare($this->db, "
+            SELECT p.*, g.nama_gudang, pl.nama_lahan as nama_petani 
+            FROM t_pengadaan p
+            JOIN gudang g ON p.id_gudang = g.id_gudang
+            LEFT JOIN petani_lokal pl ON p.id_petani = pl.id_petani
+            WHERE p.id_pengadaan = ?
+        ");
+
+        if (!$stmt)
+            return [];
+
+        mysqli_stmt_bind_param($stmt, 'i', $id_pengadaan);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_assoc($result) ?: [];
+        mysqli_stmt_close($stmt);
+
+        if (!empty($data)) {
+            $data['details'] = $this->getDetails($id_pengadaan);
+        }
+
+        return $data;
+    }
+
+    // proses verifikasi dan pelunasan ketika status kontrak = disetujui
+
+    public function prosesPelunasanKontrak($idPengadaan): bool
+    {
+        mysqli_begin_transaction($this->db);
+
+        try {
+            $totalQuery = "
+            SELECT 
+                SUM(
+                    COALESCE(NULLIF(subtotal, 0), jumlah * harga_satuan)
+                ) AS total_detail
+            FROM t_pengadaan_detail
+            WHERE id_pengadaan = ?
+        ";
+
+            $stmtTotal = mysqli_prepare($this->db, $totalQuery);
+
+            if (!$stmtTotal) {
+                throw new Exception('Gagal menyiapkan query total pengadaan.');
+            }
+
+            mysqli_stmt_bind_param($stmtTotal, 'i', $idPengadaan);
+            mysqli_stmt_execute($stmtTotal);
+
+            $resultTotal = mysqli_stmt_get_result($stmtTotal);
+            $rowTotal = mysqli_fetch_assoc($resultTotal);
+            mysqli_stmt_close($stmtTotal);
+
+            $totalDetail = (float) ($rowTotal['total_detail'] ?? 0);
+
+            if ($totalDetail <= 0) {
+                throw new Exception('Total detail pengadaan tidak valid.');
+            }
+
+            $updateQuery = "
+            UPDATE t_pengadaan
+            SET 
+                total_bayar = ?,
+                status_bayar = 'Lunas',
+                tgl_updated = NOW()
+            WHERE id_pengadaan = ?
+              AND status_kontrak = 'Disetujui'
+              AND status_bayar = 'Pending'
+        ";
+
+            $stmtUpdate = mysqli_prepare($this->db, $updateQuery);
+
+            if (!$stmtUpdate) {
+                throw new Exception('Gagal menyiapkan query pelunasan pengadaan.');
+            }
+
+            mysqli_stmt_bind_param($stmtUpdate, 'di', $totalDetail, $idPengadaan);
+            mysqli_stmt_execute($stmtUpdate);
+
+            $affectedRows = mysqli_stmt_affected_rows($stmtUpdate);
+            mysqli_stmt_close($stmtUpdate);
+
+            if ($affectedRows <= 0) {
+                throw new Exception('Pengadaan tidak ditemukan, belum disetujui, atau sudah lunas.');
+            }
+
+            mysqli_commit($this->db);
+            return true;
+        } catch (Throwable $e) {
+            mysqli_rollback($this->db);
+            return false;
+        }
+    }
+
+    public function getRiwayatEkonomiByPetani($idPetani)
+    {
+        $query = "
+        SELECT 
+            p.id_pengadaan,
+            p.no_kontrak,
+            p.tgl_pengadaan,
+            p.status_bayar,
+            p.status_kontrak,
+            p.keterangan,
+            g.nama_gudang,
+            SUM(COALESCE(NULLIF(pd.subtotal, 0), pd.jumlah * pd.harga_satuan)) AS total_nilai,
+            GROUP_CONCAT(
+                CONCAT(
+                    k.nama_komoditas,
+                    '||',
+                    pd.jumlah,
+                    '||',
+                    COALESCE(s.singkat, 'Kg'),
+                    '||',
+                    pd.harga_satuan,
+                    '||',
+                    COALESCE(NULLIF(pd.subtotal, 0), pd.jumlah * pd.harga_satuan)
+                )
+                SEPARATOR ';;'
+            ) AS detail_komoditas
+        FROM t_pengadaan p
+        JOIN t_pengadaan_detail pd 
+            ON p.id_pengadaan = pd.id_pengadaan
+        JOIN komoditas_pangan k 
+            ON pd.id_komoditas = k.id_komoditas
+        LEFT JOIN satuan s 
+            ON k.id_satuan = s.id_satuan
+        LEFT JOIN gudang g 
+            ON p.id_gudang = g.id_gudang
+        WHERE p.id_petani = ?
+        GROUP BY 
+            p.id_pengadaan,
+            p.no_kontrak,
+            p.tgl_pengadaan,
+            p.status_bayar,
+            p.status_kontrak,
+            p.keterangan,
+            g.nama_gudang
+        ORDER BY p.tgl_pengadaan DESC, p.id_pengadaan DESC
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return [];
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idPetani);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        $data = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
+        mysqli_stmt_close($stmt);
+
+        return $data;
+    }
+
+    public function lunasiPengadaan($idPengadaan)
+    {
+        mysqli_begin_transaction($this->db);
+
+        try {
+            $totalQuery = "
+            SELECT 
+                SUM(COALESCE(NULLIF(subtotal, 0), jumlah * harga_satuan)) AS total_detail
+            FROM t_pengadaan_detail
+            WHERE id_pengadaan = ?
+        ";
+
+            $stmtTotal = mysqli_prepare($this->db, $totalQuery);
+            mysqli_stmt_bind_param($stmtTotal, 'i', $idPengadaan);
+            mysqli_stmt_execute($stmtTotal);
+
+            $resultTotal = mysqli_stmt_get_result($stmtTotal);
+            $rowTotal = mysqli_fetch_assoc($resultTotal);
+            mysqli_stmt_close($stmtTotal);
+
+            $totalDetail = (float) ($rowTotal['total_detail'] ?? 0);
+
+            if ($totalDetail <= 0) {
+                throw new Exception('Total detail pengadaan tidak valid.');
+            }
+
+            $updateQuery = "
+            UPDATE t_pengadaan
+            SET 
+                total_bayar = ?,
+                status_bayar = 'Lunas',
+                tgl_updated = NOW()
+            WHERE id_pengadaan = ?
+              AND status_bayar = 'Pending'
+        ";
+
+            $stmtUpdate = mysqli_prepare($this->db, $updateQuery);
+            mysqli_stmt_bind_param($stmtUpdate, 'di', $totalDetail, $idPengadaan);
+            mysqli_stmt_execute($stmtUpdate);
+
+            $affected = mysqli_stmt_affected_rows($stmtUpdate);
+            mysqli_stmt_close($stmtUpdate);
+
+            if ($affected <= 0) {
+                throw new Exception('Pengadaan tidak ditemukan atau sudah lunas.');
+            }
+
+            mysqli_commit($this->db);
+            return true;
+        } catch (Throwable $e) {
+            mysqli_rollback($this->db);
+            throw $e;
+        }
+    }
+
+    public function batalPengadaan($idPengadaan)
+    {
+        $query = "
+        UPDATE t_pengadaan
+        SET status_kontrak = 'Dibatalkan'
+        WHERE id_pengadaan = ?
+          AND id_petani IS NULL
+          AND status_kontrak <> 'Disetujui'
+          AND status_bayar = 'Pending'
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+
+        if (!$stmt) {
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $idPengadaan);
+
+        $executed = mysqli_stmt_execute($stmt);
+        $affectedRows = mysqli_stmt_affected_rows($stmt);
+
+        mysqli_stmt_close($stmt);
+
+        return $executed && $affectedRows > 0;
     }
 }

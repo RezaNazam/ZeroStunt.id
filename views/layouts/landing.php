@@ -1,10 +1,13 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZeroStunt.id</title>
+    <link rel="icon" type="image/png" href="/img/icon-logo.png?v=2">
+    <link rel="shortcut icon" type="image/png" href="/img/icon-logo.png?v=2">
+    <link rel="apple-touch-icon" href="/img/icon-logo.png?v=2">
     <link href="/css/tailwind.css" rel="stylesheet">
 </head>
 
@@ -13,17 +16,32 @@
     <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
         <nav class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2 font-bold text-xl text-teal-700">
-                <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center">
-                    🌱
+                <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
+                    ZS
                 </span>
                 ZeroStunt<span class="text-amber-500">.id</span>
             </a>
 
             <div class="hidden md:flex items-center gap-8 text-sm text-gray-600">
-                <a href="#tentang" class="hover:text-teal-700">Tentang</a>
-                <a href="#cara-kerja" class="hover:text-teal-700">Cara Kerja</a>
-                <a href="#fitur" class="hover:text-teal-700">Fitur</a>
-                <a href="#peran" class="hover:text-teal-700">Peran</a>
+                <a href="#tentang" data-section="tentang"
+                    class="nav-link transition hover:text-teal-700">
+                    Tentang
+                </a>
+
+                <a href="#cara-kerja" data-section="cara-kerja"
+                    class="nav-link transition hover:text-teal-700">
+                    Cara Kerja
+                </a>
+
+                <a href="#fitur" data-section="fitur"
+                    class="nav-link transition hover:text-teal-700">
+                    Fitur
+                </a>
+
+                <a href="#peran" data-section="peran"
+                    class="nav-link transition hover:text-teal-700">
+                    Peran
+                </a>
             </div>
 
             <a href="/auth/login"
@@ -34,7 +52,7 @@
     </header>
 
     <main>
-        <section class="max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-12 items-center">
+        <section class="scroll-mt-24 max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-12 items-center">
             <div>
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-700 text-sm font-semibold mb-6">
                     Sistem Pencegahan Stunting Terintegrasi
@@ -82,7 +100,7 @@
                 </div>
             </div>
         </section>
-        <section id="tentang" class="py-20 bg-white">
+        <section id="tentang" class="scroll-mt-24 py-20 bg-white">
             <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
                 <div>
                     <p class="text-sm font-bold text-amber-500 uppercase tracking-widest mb-3">
@@ -147,7 +165,7 @@
             </div>
         </section>
         <!-- Cara Kerja Section -->
-        <section id="cara-kerja" class="py-20 bg-gray-50">
+        <section id="cara-kerja" class="scroll-mt-24 py-20 bg-gray-50">
             <div class="max-w-7xl mx-auto px-6">
                 <div class="text-center mb-14">
                     <p class="text-sm font-bold text-amber-500 uppercase tracking-widest mb-3">
@@ -338,7 +356,7 @@
             </div>
         </section>
         <!-- Fitur Section -->
-        <section id="fitur" class="py-20 bg-white">
+        <section id="fitur" class="scroll-mt-24 py-20 bg-white">
             <div class="max-w-7xl mx-auto px-6">
                 <div class="text-center mb-14">
                     <p class="text-sm font-bold text-amber-500 uppercase tracking-widest mb-3">
@@ -491,7 +509,7 @@
             </div>
         </section>
         <!-- Peran Section -->
-        <section id="peran" class="py-20 bg-gray-50">
+        <section id="peran" class="scroll-mt-24 py-20 bg-gray-50">
             <div class="max-w-7xl mx-auto px-6">
                 <div class="text-center mb-14">
                     <p class="text-sm font-bold text-amber-500 uppercase tracking-widest mb-3">
@@ -648,7 +666,7 @@
             </div>
         </section>
         <!-- CTA Section -->
-        <section class="py-20 bg-gradient-to-br from-teal-700 to-teal-900">
+        <section class="scroll-mt-24 py-20 bg-gradient-to-br from-teal-700 to-teal-900">
             <div class="max-w-4xl mx-auto px-6 text-center">
                 <p class="text-sm font-bold text-amber-300 uppercase tracking-widest mb-3">
                     Mulai Implementasi
@@ -669,7 +687,7 @@
                         Coba Demo Sekarang
                     </a>
 
-                    <a href="mailto:info@zerostunt.id"
+                    <a href="mailto:official@zerostunt.id"
                         class="px-7 py-3 rounded-xl border border-teal-300 text-white font-bold hover:bg-white hover:text-teal-700 transition text-center">
                         Hubungi Kami
                     </a>
@@ -684,8 +702,8 @@
                     <!-- Brand -->
                     <div class="md:col-span-2">
                         <a href="/" class="inline-flex items-center gap-2 font-bold text-xl text-teal-700 mb-4">
-                            <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center">
-                                🌱
+                            <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
+                                ZS
                             </span>
                             ZeroStunt<span class="text-amber-500">.id</span>
                         </a>
@@ -734,7 +752,7 @@
 
                 <div class="border-t border-gray-100 pt-6 flex flex-col md:flex-row justify-between items-center gap-3">
                     <p class="text-xs text-gray-500 text-center md:text-left">
-                        © 2025 ZeroStunt.id — Teknologi Rekayasa Perangkat Lunak, ASTRATECH. Versi 1.0.
+                        © 2026 ZeroStunt.id — Teknologi Rekayasa Perangkat Lunak, ASTRATECH. Versi 1.0.
                     </p>
 
                     <p class="text-xs text-gray-500 text-center md:text-right">
@@ -748,6 +766,127 @@
         </footer>
     </main>
 
+    <button id="backToTop"
+        type="button"
+        aria-label="Kembali ke atas"
+        class="fixed bottom-6 right-6 z-50 hidden h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-lg transition hover:bg-teal-700">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('#tentang, #cara-kerja, #fitur, #peran');
+            const backToTop = document.getElementById('backToTop');
+            const header = document.querySelector('header');
+
+            function getHeaderOffset() {
+                return (header ? header.offsetHeight : 80) + 20;
+            }
+
+            function setActiveLink(sectionId) {
+                navLinks.forEach(function(link) {
+                    const isActive = link.dataset.section === sectionId;
+
+                    link.classList.toggle('active', isActive);
+                    link.classList.toggle('text-teal-700', isActive);
+                    link.classList.toggle('font-extrabold', isActive);
+
+                    if (!isActive) {
+                        link.classList.remove('text-teal-700', 'font-extrabold');
+                    }
+                });
+            }
+
+            function updateActiveSection() {
+                const scrollPosition = window.scrollY + getHeaderOffset() + 40;
+                let currentSectionId = '';
+
+                sections.forEach(function(section) {
+                    if (scrollPosition >= section.offsetTop) {
+                        currentSectionId = section.id;
+                    }
+                });
+
+                if (currentSectionId) {
+                    setActiveLink(currentSectionId);
+                } else {
+                    navLinks.forEach(function(link) {
+                        link.classList.remove('active', 'text-teal-700', 'font-extrabold');
+                    });
+                }
+
+                if (window.scrollY > 400) {
+                    backToTop.classList.remove('hidden');
+                    backToTop.classList.add('flex');
+                } else {
+                    backToTop.classList.add('hidden');
+                    backToTop.classList.remove('flex');
+                }
+            }
+
+            document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+                anchor.addEventListener('click', function(event) {
+                    const targetId = this.getAttribute('href');
+
+                    if (!targetId || targetId === '#') {
+                        return;
+                    }
+
+                    const target = document.querySelector(targetId);
+
+                    if (!target) {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    const targetPosition = target.offsetTop - getHeaderOffset();
+
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+
+                    const cleanId = targetId.replace('#', '');
+
+                    if (this.classList.contains('nav-link')) {
+                        setActiveLink(cleanId);
+                    }
+
+                    history.pushState(null, '', targetId);
+                });
+            });
+
+            let ticking = false;
+
+            window.addEventListener('scroll', function() {
+                if (!ticking) {
+                    window.requestAnimationFrame(function() {
+                        updateActiveSection();
+                        ticking = false;
+                    });
+
+                    ticking = true;
+                }
+            });
+
+            backToTop.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+
+                history.pushState(null, '', window.location.pathname);
+
+                navLinks.forEach(function(link) {
+                    link.classList.remove('active', 'text-teal-700', 'font-extrabold');
+                });
+            });
+
+            updateActiveSection();
+        });
+    </script>
 </body>
 
 </html>

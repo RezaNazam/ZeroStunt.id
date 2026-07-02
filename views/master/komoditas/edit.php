@@ -81,6 +81,39 @@ ob_start();
                     </select>
                 </div>
 
+                <div id="kategori_gizi_lain_wrapper"
+                    class="<?= $komoditas['kategori_gizi'] !== 'Lainnya' ? 'hidden' : '' ?>">
+                    <label for="kategori_gizi_lain" class="mb-2 block text-sm font-bold text-gray-700">
+                        Kategori Gizi Lainnya <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="kategori_gizi_lain" name="kategori_gizi_lain"
+                        placeholder="Masukkan kategori gizi jika tidak ada di daftar"
+                        value="<?= $komoditas['kategori_gizi'] === 'Lainnya' ? htmlspecialchars($komoditas['kategori_gizi_lain'] ?? '') : '' ?>"
+                        class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100" />
+                </div>
+
+                <script>
+                    document.getElementById('kategori_gizi').addEventListener('change', function() {
+                        document.getElementById('kategori_gizi_lain_wrapper').classList.toggle('hidden', this.value !== 'Lainnya');
+                    });
+                </script>
+                <!-- value="<?= !$isPengelolaKader ? htmlspecialchars($gudang['nama_pengelola'] ?? '') : '' ?>"
+                class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100" />
+        </div> -->
+
+                <script>
+                    document.getElementById('nama_pengelola_select').addEventListener('change', function() {
+                        const otherWrapper = document.getElementById('pengelola_other_wrapper');
+                        const otherInput = document.getElementById('nama_pengelola_text');
+                        if (this.value !== 'other') {
+                            otherWrapper.classList.add('hidden');
+                            otherInput.value = '';
+                        } else {
+                            otherWrapper.classList.remove('hidden');
+                        }
+                    });
+                </script>
+
                 <div>
                     <label for="id_satuan" class="mb-2 block text-sm font-bold text-gray-700">
                         Satuan <span class="text-red-500">*</span>

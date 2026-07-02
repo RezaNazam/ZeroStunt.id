@@ -13,6 +13,25 @@ $tablePagination = $tablePagination ?? ($data['pagination_bantuan'] ?? []);
 $tableRows = $bantuans;
 $tableEmptyMessage = 'Belum ada data bantuan.';
 
+$getBadgePaket = function ($row) {
+    $namaPaket = strtolower($row['nama_paket'] ?? '');
+    $idPaket = (int) ($row['id_paket'] ?? 0);
+
+    if (str_contains($namaPaket, 'prioritas 1') || $idPaket === 1) {
+        return 'bg-red-50 text-red-700';
+    }
+
+    if (str_contains($namaPaket, 'prioritas 2') || $idPaket === 2) {
+        return 'bg-amber-50 text-amber-700';
+    }
+
+    if (str_contains($namaPaket, 'prioritas 3') || $idPaket === 3) {
+        return 'bg-green-50 text-green-700';
+    }
+
+    return 'bg-teal-50 text-teal-700';
+};
+
 $tableColumns = [
     [
         'label' => 'No',
@@ -22,17 +41,61 @@ $tableColumns = [
     [
         'label' => 'Tanggal Bantuan',
         'render' => function ($row) {
-            $tanggal = $row['tanggal_bantuan']
-                ?? $row['tanggal_penyerahan']
-                ?? $row['tgl_penyerahan']
-                ?? $row['created_at']
-                ?? null;
+            $tanggal = $row['tanggal_penyerahan'] ?? null;
 
             if (empty($tanggal)) {
-                return '-';
+                $tanggalText = '-';
+            } else {
+                $dayNames = [
+                    'Sun' => 'Minggu',
+                    'Mon' => 'Senin',
+                    'Tue' => 'Selasa',
+                    'Wed' => 'Rabu',
+                    'Thu' => 'Kamis',
+                    'Fri' => "Jum'at",
+                    'Sat' => 'Sabtu'
+                ];
+
+                $monthNames = [
+                    'January' => 'Januari',
+                    'February' => 'Februari',
+                    'March' => 'Maret',
+                    'April' => 'April',
+                    'May' => 'Mei',
+                    'June' => 'Juni',
+                    'July' => 'Juli',
+                    'August' => 'Agustus',
+                    'September' => 'September',
+                    'October' => 'Oktober',
+                    'November' => 'November',
+                    'December' => 'Desember'
+                ];
+
+                $dayName = $dayNames[date('D', strtotime($tanggal))] ?? '';
+                $monthName = $monthNames[date('F', strtotime($tanggal))] ?? date('F', strtotime($tanggal));
+
+                $tanggalText = $dayName . ', ' . date('j', strtotime($tanggal)) . ' ' . $monthName . ' ' . date('Y', strtotime($tanggal));
             }
 
-            return htmlspecialchars(date('d/m/Y', strtotime($tanggal)));
+            $idPenyerahan = (int) ($row['id_penyerahan'] ?? 0);
+
+            $detailLink = '';
+
+            if ($idPenyerahan > 0) {
+                $detailLink = '
+                    <a href="/transaksi/penyerahan/detail?id=' . $idPenyerahan . '"
+                        class="mt-1 inline-flex text-xs font-bold text-teal-700 hover:text-teal-800">
+                        Lihat detail
+                    </a>
+                ';
+            }
+
+            return '
+                <div>
+                    <div class="font-semibold text-gray-700">' . htmlspecialchars($tanggalText) . '</div>
+                    ' . $detailLink . '
+                </div>
+            ';
         },
         'td_class' => 'text-gray-500'
     ],
@@ -45,41 +108,55 @@ $tableColumns = [
         }
     ],
     [
-        'label' => 'Bantuan',
-        'render' => function ($row) {
-            $namaBantuan = $row['nama_komoditas']
-                ?? $row['nama_bantuan']
-                ?? $row['jenis_bantuan']
-                ?? '-';
+        'label' => 'Paket Gizi',
+        'render' => function ($row) use ($getBadgePaket) {
+            $namaPaket = $row['nama_paket'] ?? 'Paket Bantuan';
+            $badgeClass = $getBadgePaket($row);
 
-            return '<span class="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">' .
-                htmlspecialchars($namaBantuan) .
-                '</span>';
+            return '
+            <div>
+                <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold ' . $badgeClass . '">' .
+                htmlspecialchars($namaPaket) .
+                '</span>
+                <div class="mt-0.5 text-xs px-3 text-gray-500">' .
+                (int) ($row['total_item'] ?? 0) . ' jenis komoditas
+                </div>
+            </div>
+        ';
         }
     ],
     [
-        'label' => 'Jumlah',
+        'label' => 'Ringkasan Isi',
         'render' => function ($row) {
-            $jumlah = $row['jumlah'] ?? '-';
-            $satuan = $row['satuan'] ?? $row['nama_satuan'] ?? '';
+            $detail = $row['detail_bantuan'] ?? '';
 
-            return htmlspecialchars($jumlah . ' ' . $satuan);
-        },
-        'td_class' => 'text-gray-500'
+            if ($detail === '') {
+                return '<span class="text-gray-400">-</span>';
+            }
+
+            $items = explode('||', $detail);
+
+            $html = '<ul class="space-y-1 text-gray-600">';
+
+            foreach ($items as $item) {
+                $html .= '<li class="text-sm">• ' . htmlspecialchars($item) . '</li>';
+            }
+
+            $html .= '</ul>';
+
+            return $html;
+        }
     ],
     [
         'label' => 'Status',
         'render' => function ($row) {
-            $status = $row['status_bantuan']
-                ?? $row['status_penyerahan']
-                ?? $row['status']
-                ?? 'Diterima';
+            $status = $row['status_penyerahan'] ?? 'Diterima';
 
             $class = 'bg-gray-100 text-gray-700';
 
-            if ($status === 'Diterima' || $status === 'Selesai') {
+            if ($status === 'Diterima' || $status === 'Selesai' || $status === 'Diserahkan') {
                 $class = 'bg-green-50 text-green-700';
-            } elseif ($status === 'Pending' || $status === 'Menunggu') {
+            } elseif ($status === 'Pending' || $status === 'Menunggu' || $status === 'Diproses') {
                 $class = 'bg-amber-50 text-amber-700';
             } elseif ($status === 'Ditolak' || $status === 'Gagal') {
                 $class = 'bg-red-50 text-red-700';

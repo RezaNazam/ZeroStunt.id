@@ -19,20 +19,22 @@ if ($isAdmin) {
         ['label' => 'Gudang', 'href' => '/master/gudang', 'icon' => '<i class="fa-solid fa-warehouse"></i>'],
         ['label' => 'Komoditas Pangan', 'href' => '/master/komoditas', 'icon' => '<i class="fa-solid fa-carrot"></i>'],
         ['label' => 'Satuan', 'href' => '/master/satuan', 'icon' => '<i class="fa-solid fa-weight-scale"></i>'],
-        ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
+        ['label' => 'Stok Gudang', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
+        ['label' => 'Paket Gizi', 'href' => '/master/paket-gizi', 'icon' => '<i class="fa-solid fa-boxes-stacked"></i>'],
         ['label' => 'Pengadaan', 'href' => '/transaksi/pengadaan', 'icon' => '<i class="fa-solid fa-box-open"></i>'],
-        ['label' => 'Distribusi', 'href' => '#', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
-        ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
-        ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
+        ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
+        ['label' => 'Pemeriksaan', 'href' => '/transaksi/pemeriksaan', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isKader) {
     $menus = [
         ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => '<i class="fa-solid fa-chart-pie"></i>'],
         ['label' => 'Standar Pertumbuhan', 'href' => '/master/standar-pertumbuhan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
-        ['label' => 'Pemeriksaan', 'href' => '#', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
-        ['label' => 'Penyerahan', 'href' => '#', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
+        ['label' => 'Pemeriksaan', 'href' => '/transaksi/pemeriksaan', 'icon' => '<i class="fa-solid fa-user-doctor"></i>'],
+        ['label' => 'Penyerahan', 'href' => '/transaksi/penyerahan', 'icon' => '<i class="fa-solid fa-hand-holding-heart"></i>'],
+        ['label' => 'Distribusi', 'href' => '/transaksi/distribusi', 'icon' => '<i class="fa-solid fa-truck-ramp-box"></i>'],
         ['label' => 'Stok Posyandu', 'href' => '/master/kader/stok', 'icon' => '<i class="fa-solid fa-cubes"></i>'],
-        ['label' => 'Laporan', 'href' => '#', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isPetani) {
     $menus = [
@@ -40,6 +42,7 @@ if ($isAdmin) {
         ['label' => 'Pengadaan Saya', 'href' => '/transaksi/pengadaan/ambil', 'icon' => '<i class="fa-solid fa-file-invoice-dollar"></i>'],
         ['label' => 'Riwayat Ekonomi', 'href' => '/master/petani/riwayat-ekonomi', 'icon' => '<i class="fa-solid fa-wallet"></i>'],
         ['label' => 'Profil Lahan', 'href' => '/master/petani/profil-lahan', 'icon' => '<i class="fa-solid fa-seedling"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 } elseif ($isIbu) {
     $menus = [
@@ -47,6 +50,7 @@ if ($isAdmin) {
         ['label' => 'Data Anak', 'href' => '/master/anak', 'icon' => '<i class="fa-solid fa-baby"></i>'],
         ['label' => 'Histori Bantuan', 'href' => '/master/ibu/histori-bantuan', 'icon' => '<i class="fa-solid fa-gift"></i>'],
         ['label' => 'Riwayat Periksa', 'href' => '/master/ibu/riwayat-periksa', 'icon' => '<i class="fa-solid fa-clipboard-list"></i>'],
+        ['label' => 'Laporan', 'href' => '/laporan', 'icon' => '<i class="fa-solid fa-chart-line"></i>'],
     ];
 }
 ?>
@@ -57,10 +61,11 @@ if ($isAdmin) {
     <div class="h-full flex flex-col">
         <div class="h-20 px-6 flex items-center justify-between border-b border-teal-700">
             <a href="/dashboard" class="flex items-center gap-3 font-bold text-xl">
-                <span class="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center shrink-0 text-base">
-                    🌱
+                <span class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shrink-0 text-sm font-extrabold text-teal-700">
+                    ZS
                 </span>
-                <span class="sidebar-logo-text whitespace-nowrap">
+
+                <span class="sidebar-logo-text whitespace-nowrap text-white">
                     ZeroStunt<span class="text-amber-400">.id</span>
                 </span>
             </a>
@@ -77,7 +82,7 @@ if ($isAdmin) {
 
         <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto no-scrollbar">
             <?php foreach ($menus as $menu): ?>
-                <?php $isActive = $menu['href'] !== '#' && $currentUri === $menu['href']; ?>
+                <?php $isActive = $menu['href'] !== '#' && ($currentUri === $menu['href'] || strpos($currentUri, $menu['href'] . '/') === 0); ?>
 
                 <a href="<?= $menu['href']; ?>" class="sidebar-menu-link flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition
                     <?= $isActive
@@ -93,13 +98,22 @@ if ($isAdmin) {
                     </span>
                 </a>
             <?php endforeach; ?>
+            <?php if ($isAdmin): ?>
+            <?php endif; ?>
         </nav>
 
         <a href="/auth/logout"
+            data-confirm
+            data-confirm-title="Keluar dari akun?"
+            data-confirm-message="Anda akan keluar dari sesi saat ini dan perlu login kembali untuk mengakses dashboard."
+            data-confirm-text="Ya, logout"
+            data-confirm-tone="warning"
             class="sidebar-logout flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-teal-100 hover:bg-red-500/20 hover:text-white transition">
+
             <span class="flex items-center justify-center w-5 h-5 text-lg shrink-0">
                 <i class="fa-solid fa-right-from-bracket"></i>
             </span>
+
             <span class="sidebar-label whitespace-nowrap">Logout</span>
         </a>
     </div>

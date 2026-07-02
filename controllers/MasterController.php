@@ -44,10 +44,15 @@ class MasterController
     // form tambah user baru (admin bisa tambah kader, admin bisa tambah admin laionnya)
     public function createUsers()
     {
-        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
             header('Location: /auth/login');
             exit;
         }
+
+        $gudangModel = new Gudang();
+
+        $gudangPusat = $gudangModel->getByJenis('pusat');
+        $posyandus = $gudangModel->getByJenis('posyandu');
 
         require '../views/master/user/create.php';
     }
@@ -56,51 +61,80 @@ class MasterController
     // fungsi stor ke database
     public function storeUsers()
     {
-        // pastiiin yg login admin
-        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+        // pastikan yang login admin
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
             header('Location: /auth/login');
             exit;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = trim($_POST['username'] ?? '');
-            $password = $_POST['password'] ?? '';
-            $roleInput = $_POST['role'] ?? 'Admin';
-
-            // Validasi input kosong
-            if ($username === '' || $password === '') {
-                $_SESSION['error'] = 'Username dan Password wajib diisi.';
-                header('Location: /master/users/create');
-                exit;
-            }
-
-            // Validasi keamanan: Kunci role input hanya boleh Admin atau Kader
-            if (!in_array($roleInput, ['Admin', 'Kader'])) {
-                $_SESSION['error'] = 'Role tidak valid.';
-                header('Location: /master/users/create');
-                exit;
-            }
-
-            $userModel = new User();
-
-            // Validasi duplikasi, Cek apakah username sudah terdaftar
-            if ($userModel->findByUsername($username)) {
-                $_SESSION['error'] = 'Username sudah digunakan, silakan cari nama lain.';
-                header('Location: /master/users/create');
-                exit;
-            }
-
-            // fungsi buat akun create di model user
-            if ($userModel->create($username, $password, $roleInput)) {
-                $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
-                header('Location: /master/users');
-                exit;
-            } else {
-                $_SESSION['error'] = 'Gagal menyimpan data pengguna.';
-                header('Location: /master/users/create');
-                exit;
-            }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/users/create');
+            exit;
         }
+
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        $roleInput = $_POST['role'] ?? '';
+        $idGudang = (int) ($_POST['id_gudang'] ?? 0);
+
+        // simpan input lama biar kalau error, username + role tidak hilang
+        $_SESSION['old'] = [
+            'username' => $username,
+            'role' => $roleInput
+        ];
+
+        $allowedRoles = [ROLE_ADMIN, ROLE_KADER];
+
+        if ($username === '' || $password === '' || $confirmPassword === '' || $roleInput === '') {
+            $_SESSION['error'] = 'Semua field wajib diisi.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if ($idGudang <= 0) {
+            $_SESSION['error'] = 'Gudang wajib dipilih sesuai role akun.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if (!in_array($roleInput, $allowedRoles, true)) {
+            $_SESSION['error'] = 'Role tidak valid.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if ($password !== $confirmPassword) {
+            $_SESSION['error'] = 'Konfirmasi password tidak sesuai.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if (strlen($password) < 8) {
+            $_SESSION['error'] = 'Password minimal 6 karakter.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        $userModel = new User();
+
+        if ($userModel->findByUsername($username)) {
+            $_SESSION['error'] = 'Username sudah digunakan, silakan cari nama lain.';
+            header('Location: /master/users/create');
+            exit;
+        }
+
+        if ($userModel->create($username, $password, $roleInput, $idGudang)) {
+            unset($_SESSION['old']);
+
+            $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
+            header('Location: /master/users');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal menyimpan data pengguna.';
+        header('Location: /master/users/create');
+        exit;
     }
 
     // nampilin form edit user
@@ -128,6 +162,12 @@ class MasterController
             exit;
         }
 
+        $gudangModel = new Gudang();
+        $allGudang = $gudangModel->all();
+        $posyandus = array_filter($allGudang, function ($g) {
+            return strtolower($g['jenis_gudang'] ?? '') === 'posyandu';
+        });
+
         require '../views/master/user/edit.php';
     }
 
@@ -143,6 +183,14 @@ class MasterController
             $id_user = (int) ($_POST['id_user'] ?? 0);
             $username = trim($_POST['username'] ?? '');
             $roleInput = $_POST['role'] ?? '';
+            $idGudang = isset($_POST['id_gudang']) && $_POST['id_gudang'] !== '' ? (int) $_POST['id_gudang'] : null;
+
+            if ($roleInput !== 'Kader') {
+                $idGudang = null;
+            }
+
+            $password = $_POST['password'] ?? '';
+            $isActive = (int) ($_POST['is_active'] ?? 1);
 
             if ($id_user === 0 || $username === '' || !in_array($roleInput, ['Admin', 'Kader'])) {
                 $_SESSION['error'] = 'Data input tidak valid.';
@@ -159,7 +207,7 @@ class MasterController
                 exit;
             }
 
-            if ($userModel->update($id_user, $username, $roleInput)) {
+            if ($userModel->update($id_user, $username, $roleInput, $idGudang, $password, $isActive)) {
                 $_SESSION['success'] = 'Data pengguna berhasil diperbarui.';
                 header('Location: /master/users');
                 exit;
@@ -179,22 +227,27 @@ class MasterController
             exit;
         }
 
-        $id_user = isset($_GET['id']) ? (int) $_GET['id'] : null;
+        $id_user = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-        // cegah Admin menghapus dirinya sendiri
+        if ($id_user <= 0) {
+            $_SESSION['error'] = 'ID user tidak valid.';
+            header('Location: /master/users');
+            exit;
+        }
+
+        // cegah admin menghapus dirinya sendiri
         if ($id_user === (int) $_SESSION['user_id']) {
             $_SESSION['error'] = 'Anda tidak bisa menghapus akun Anda sendiri yang sedang digunakan.';
             header('Location: /master/users');
             exit;
         }
 
-        if ($id_user) {
-            $userModel = new User();
-            if ($userModel->delete($id_user)) {
-                $_SESSION['success'] = 'Pengguna berhasil dihapus dari sistem.';
-            } else {
-                $_SESSION['error'] = 'Gagal menghapus pengguna.';
-            }
+        $userModel = new User();
+
+        if ($userModel->delete($id_user)) {
+            $_SESSION['success'] = 'Pengguna berhasil dihapus dari sistem.';
+        } else {
+            $_SESSION['error'] = 'Gagal menghapus pengguna.';
         }
 
         header('Location: /master/users');
@@ -214,7 +267,7 @@ class MasterController
 
 
         $gudangModel = new Gudang();
-        $gudangs = $gudangModel->all();
+        $gudangs = $gudangModel->getPosyanduOnly();
         require '../views/master/ibu/create.php';
     }
 
@@ -281,16 +334,166 @@ class MasterController
     // sidebar ibu n kader
     public function riwayatPeriksa()
     {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_IBU) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $pemeriksaanModel = new Pemeriksaan();
+        $id_ibu = $_SESSION['user_id'];
+
+        $limit = 10;
+        $search = trim($_GET['q'] ?? '');
+
+        // Fetch all pemeriksaan for this Ibu
+        $totalDataAwal = $pemeriksaanModel->countAll(null, $id_ibu);
+        $allPemeriksaan = $totalDataAwal > 0
+            ? $pemeriksaanModel->getPaginated($totalDataAwal, 0, null, $id_ibu)
+            : [];
+
+        // Format labels
+        $allPemeriksaan = array_map(function ($p) {
+            $p['berat_badan_label'] = $p['berat_badan'] !== null ? number_format($p['berat_badan'], 1, ',', '.') . ' Kg' : '-';
+            $p['tinggi_badan_label'] = $p['tinggi_badan'] !== null ? number_format($p['tinggi_badan'], 1, ',', '.') . ' Cm' : '-';
+            $p['tanggal_pemeriksaan_label'] = !empty($p['tanggal_pemeriksaan']) ? date('d/m/Y', strtotime($p['tanggal_pemeriksaan'])) : '-';
+            return $p;
+        }, $allPemeriksaan);
+
+        $searchedPemeriksaan = SearchHelper::searchArray($allPemeriksaan, $search, [
+            'nama_anak',
+            'status_gizi',
+            'tanggal_pemeriksaan_label'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedPemeriksaan, $limit);
+
+        $pemeriksaans = $pagination['data'];
+        $tablePagination = [
+            'total_data' => $pagination['total_data'],
+            'total_halaman' => $pagination['total_halaman'],
+            'halaman_aktif' => $pagination['halaman_aktif'],
+            'per_halaman' => $pagination['per_halaman'],
+            'parameter_page' => 'page',
+            'parameter_search' => 'q'
+        ];
         require '../views/master/ibu/riwayat-periksa.php';
     }
 
     public function historiBantuan()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+
+        $isIbu = defined('ROLE_IBU')
+            ? $role === ROLE_IBU
+            : strtolower($role) === 'ibu';
+
+        if (!$isIbu) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $penyerahanModel = new Penyerahan();
+
+        $search = trim($_GET['q'] ?? '');
+
+        $allBantuans = $penyerahanModel->getRiwayatBantuanByIbuUser($_SESSION['user_id']);
+
+        $allBantuans = array_map(function ($b) {
+            $b['tanggal_bantuan_label'] = !empty($b['tanggal_penyerahan'])
+                ? date('d/m/Y', strtotime($b['tanggal_penyerahan']))
+                : '-';
+
+            $b['jumlah_label'] = trim(($b['jumlah'] ?? '-') . ' ' . ($b['satuan'] ?? ''));
+
+            return $b;
+        }, $allBantuans);
+
+        $searchedBantuans = SearchHelper::searchArray($allBantuans, $search, [
+            'nama_anak',
+            'nama_komoditas',
+            'jumlah_label',
+            'status_penyerahan',
+            'tanggal_bantuan_label',
+            'nama_posyandu'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedBantuans, 20);
+
+        $data['bantuans'] = $pagination['data'];
+        $data['pagination_bantuan'] = $pagination;
+
         require '../views/master/ibu/histori-bantuan.php';
     }
 
     public function stokPosyandu()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $role = $_SESSION['role'] ?? '';
+
+        $isAdmin = defined('ROLE_ADMIN')
+            ? $role === ROLE_ADMIN
+            : strtolower($role) === 'admin';
+
+        $isKader = defined('ROLE_KADER')
+            ? $role === ROLE_KADER
+            : strtolower($role) === 'kader';
+
+        if (!$isAdmin && !$isKader) {
+            header('Location: /dashboard');
+            exit;
+        }
+
+        $stokModel = new Stok();
+        $search = trim($_GET['q'] ?? '');
+
+        $userModel = new User();
+        $currentUser = $userModel->findByid($_SESSION['user_id']);
+
+        $idGudangUser = (int) ($currentUser['id_gudang'] ?? 0);
+
+        if ($idGudangUser <= 0) {
+            $_SESSION['error'] = 'Akun ini belum terhubung dengan gudang/posyandu.';
+            $allStoks = [];
+        } else {
+            $allStoks = $stokModel->getByGudang($idGudangUser);
+        }
+
+        $allStoks = array_map(function ($row) {
+            $jumlah = (float) ($row['jumlah_stok'] ?? $row['qty_current'] ?? 0);
+
+            if ($jumlah <= 0) {
+                $row['status_label'] = 'Habis';
+            } elseif ($jumlah <= 10) {
+                $row['status_label'] = 'Menipis';
+            } else {
+                $row['status_label'] = 'Tersedia';
+            }
+
+            return $row;
+        }, $allStoks);
+
+        $searchedStoks = SearchHelper::searchArray($allStoks, $search, [
+            'nama_komoditas',
+            'nama_gudang',
+            'jenis_gudang',
+            'jumlah_stok',
+            'status_label'
+        ]);
+
+        $pagination = PaginationHelper::paginateArray($searchedStoks, 20);
+
+        $data['stoks'] = $pagination['data'];
+        $data['pagination_stok'] = $pagination;
+
         require '../views/master/kader/stok.php';
     }
 
@@ -312,7 +515,6 @@ class MasterController
         SELECT i.*, u.username 
         FROM ibu i
         JOIN users u ON i.id_ibu = u.id_user
-        WHERE i.deleted_at IS NULL 
         ORDER BY i.nama_ibu ASC
     ";
 
@@ -327,7 +529,6 @@ class MasterController
         FROM anak a
         JOIN ibu i ON a.id_ibu = i.id_ibu
         JOIN gudang g ON i.id_gudang = g.id_gudang
-        WHERE a.deleted_at IS NULL 
         ORDER BY a.nama_anak ASC
     ";
 
@@ -413,6 +614,14 @@ class MasterController
             exit;
         }
 
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if ($petani) {
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
         require '../views/master/petani/create.php';
     }
 
@@ -423,51 +632,238 @@ class MasterController
             exit;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            global $koneksi;
-
-            $id_petani = $_SESSION['user_id'];
-            $nama_lahan = trim($_POST['nama_lahan'] ?? '');
-            $alamat_lahan = trim($_POST['alamat_lahan'] ?? '');
-            $no_rekening = trim($_POST['no_rekening'] ?? '');
-            $kapasitas = $_POST['kapasitas_panen_bulan'] ?? 0;
-
-            // validasi input petani
-            if ($nama_lahan === '') {
-                $_SESSION['error'] = 'Nama lahan wajib diisi.';
-                header('Location: /master/petani/create');
-                exit;
-            }
-
-
-            // insert data petani ke tabel petani_lokal
-            // insert data ibu ke tabel ibu
-            $petaniModel = new PetaniLokal();
-            if ($petaniModel->create($id_petani, $nama_lahan, $alamat_lahan, $no_rekening, $kapasitas)) {
-
-                // validasi jika berhasil disimpan dan redirect ke dashboard, jika gagal kembali ke form dengan pesan error
-                $_SESSION['success'] = 'Profil berhasil disimpan.';
-                header('Location: /dashboard');
-                exit;
-            } else {
-                $_SESSION['error'] = 'Gagal menyimpan profil.';
-                header('Location: /master/petani/create');
-                exit;
-            }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/petani/create');
+            exit;
         }
 
+        $idUser = (int) $_SESSION['user_id'];
+
+        $nama_lahan = trim($_POST['nama_lahan'] ?? '');
+        $alamat_lahan = trim($_POST['alamat_lahan'] ?? '');
+        $no_rekening = trim($_POST['no_rekening'] ?? '');
+        $kapasitas = (float) ($_POST['kapasitas_panen_bulan'] ?? 0);
+
+        if ($nama_lahan === '') {
+            $_SESSION['error'] = 'Nama lahan wajib diisi.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+
+        if ($petaniModel->create($idUser, $nama_lahan, $alamat_lahan, $no_rekening, $kapasitas)) {
+            $_SESSION['success'] = 'Profil dasar berhasil disimpan. Lanjut lengkapi detail lahan.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal menyimpan profil.';
         header('Location: /master/petani/create');
         exit;
     }
 
     public function riwayatEkonomi()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Lengkapi profil petani terlebih dahulu.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $pengadaanModel = new Pengadaan();
+        $riwayat = $pengadaanModel->getRiwayatEkonomiByPetani($petani['id_petani']);
+
         require '../views/master/petani/riwayat-ekonomi.php';
     }
 
     public function profilLahan()
     {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Lengkapi profil petani terlebih dahulu.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $komoditas = $petaniModel->getKomoditasByPetani($petani['id_petani']);
+
+        $detailBelumLengkap =
+            empty($petani['luas_lahan']) ||
+            empty($petani['jenis_usaha']) ||
+            empty($petani['status_lahan']) ||
+            empty($komoditas);
+
+        if ($detailBelumLengkap) {
+            $_SESSION['error'] = 'Lengkapi detail lahan terlebih dahulu.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $totalLuasTerpakai = 0;
+
+        foreach ($komoditas as $item) {
+            $totalLuasTerpakai += (float) ($item['luas_area'] ?? 0);
+        }
+
+        $luasLahan = (float) ($petani['luas_lahan'] ?? 0);
+        $sisaLahan = max(0, $luasLahan - $totalLuasTerpakai);
+
         require '../views/master/petani/profil-lahan.php';
+    }
+
+    public function createLahanPetani()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Lengkapi profil petani terlebih dahulu.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $komoditasPetani = $petaniModel->getKomoditasByPetani($petani['id_petani']);
+
+        $sudahLengkap =
+            !empty($petani['luas_lahan']) &&
+            !empty($petani['jenis_usaha']) &&
+            !empty($petani['status_lahan']) &&
+            !empty($komoditasPetani);
+
+        if ($sudahLengkap) {
+            header('Location: /master/petani/profil-lahan');
+            exit;
+        }
+
+        $komoditas = $petaniModel->getKomoditasOptions();
+
+        require '../views/master/petani/lahan/create.php';
+    }
+
+    public function storeLahanPetani()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $petaniModel = new PetaniLokal();
+        $petani = $petaniModel->findByUserId($_SESSION['user_id']);
+
+        if (!$petani) {
+            $_SESSION['error'] = 'Data petani tidak ditemukan.';
+            header('Location: /master/petani/create');
+            exit;
+        }
+
+        $idPetani = (int) $petani['id_petani'];
+
+        $luasLahan = (float) ($_POST['luas_lahan'] ?? 0);
+        $satuanLuas = $_POST['satuan_luas'] ?? 'ha';
+        $jenisUsaha = trim($_POST['jenis_usaha'] ?? '');
+        $statusLahan = $_POST['status_lahan'] ?? 'Aktif';
+        $deskripsiLahan = trim($_POST['deskripsi_lahan'] ?? '');
+
+        $idKomoditasList = $_POST['id_komoditas'] ?? [];
+        $luasAreaList = $_POST['luas_area'] ?? [];
+        $estimasiPanenList = $_POST['estimasi_panen'] ?? [];
+        $catatanList = $_POST['catatan_komoditas'] ?? [];
+
+        if ($luasLahan <= 0) {
+            $_SESSION['error'] = 'Luas lahan wajib diisi.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        if ($jenisUsaha === '') {
+            $_SESSION['error'] = 'Jenis usaha wajib diisi.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        $details = [];
+        $totalLuasArea = 0;
+
+        foreach ($idKomoditasList as $index => $idKomoditas) {
+            $idKomoditas = (int) $idKomoditas;
+            $luasArea = (float) ($luasAreaList[$index] ?? 0);
+            $estimasiPanen = (float) ($estimasiPanenList[$index] ?? 0);
+            $catatan = trim($catatanList[$index] ?? '');
+
+            if ($idKomoditas > 0) {
+                if ($luasArea <= 0) {
+                    $_SESSION['error'] = 'Luas area setiap komoditas wajib lebih dari 0.';
+                    header('Location: /master/petani/lahan/create');
+                    exit;
+                }
+
+                if ($estimasiPanen < 0) {
+                    $_SESSION['error'] = 'Estimasi panen tidak boleh minus.';
+                    header('Location: /master/petani/lahan/create');
+                    exit;
+                }
+
+                $totalLuasArea += $luasArea;
+
+                $details[] = [
+                    'id_komoditas' => $idKomoditas,
+                    'luas_area' => $luasArea,
+                    'estimasi_panen' => $estimasiPanen,
+                    'catatan' => $catatan
+                ];
+            }
+        }
+
+        if (empty($details)) {
+            $_SESSION['error'] = 'Minimal pilih 1 komoditas yang dibudidayakan.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        if ($totalLuasArea > $luasLahan) {
+            $_SESSION['error'] = 'Total luas area komoditas tidak boleh melebihi total luas lahan.';
+            header('Location: /master/petani/lahan/create');
+            exit;
+        }
+
+        if (
+            $petaniModel->updateDetailLahan($idPetani, $luasLahan, $satuanLuas, $jenisUsaha, $statusLahan, $deskripsiLahan)
+            && $petaniModel->replaceKomoditas($idPetani, $details)
+        ) {
+            $_SESSION['success'] = 'Detail lahan berhasil disimpan.';
+            header('Location: /master/petani/profil-lahan');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal menyimpan detail lahan.';
+        header('Location: /master/petani/lahan/create');
+        exit;
     }
 
     // --- Master: Gudang ---
@@ -503,6 +899,12 @@ class MasterController
 
             if ($nama_gudang === '' || $lokasi_gudang === '' || $alamat_lengkap === '') {
                 $_SESSION['error'] = 'Nama gudang, lokasi, dan alamat wajib diisi.';
+                header('Location: /master/gudang/create');
+                exit;
+            }
+
+            if ($nama_pengelola_select === '') {
+                $_SESSION['error'] = 'Pengelola wajib dipilih.';
                 header('Location: /master/gudang/create');
                 exit;
             }
@@ -656,10 +1058,31 @@ class MasterController
             'tgl_created'
         ]);
 
+        $totalAktif = count(array_filter($searchedKomoditas, function ($item) {
+            return empty($item['is_deleted']);
+        }));
+
+        $totalNonaktif = count(array_filter($searchedKomoditas, function ($item) {
+            return !empty($item['is_deleted']);
+        }));
+
+        usort($searchedKomoditas, function ($a, $b) {
+            $statusA = !empty($a['is_deleted']) ? 1 : 0;
+            $statusB = !empty($b['is_deleted']) ? 1 : 0;
+
+            if ($statusA !== $statusB) {
+                return $statusA <=> $statusB;
+            }
+
+            return strcmp($a['nama_komoditas'] ?? '', $b['nama_komoditas'] ?? '');
+        });
+
         $pagination = PaginationHelper::paginateArray($searchedKomoditas, 25);
 
         $komoditas = $pagination['data'];
         $tablePagination = $pagination;
+        $totalAktif = $totalAktif;
+        $totalNonaktif = $totalNonaktif;
 
         require '../views/master/komoditas/index.php';
     }
@@ -686,7 +1109,9 @@ class MasterController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nama_komoditas = trim($_POST['nama_komoditas'] ?? '');
-            $kategori_gizi = trim($_POST['kategori_gizi'] ?? '');
+            $kategori_gizi_select = trim($_POST['kategori_gizi'] ?? '');
+            $kategori_gizi_text = trim($_POST['kategori_gizi_lain'] ?? '');
+            $kategori_gizi = ($kategori_gizi_select === 'Lainnya') ? $kategori_gizi_text : $kategori_gizi_select;
             $id_satuan = isset($_POST['id_satuan']) ? (int) $_POST['id_satuan'] : 0;
             $deskripsi = trim($_POST['deskripsi'] ?? '');
 
@@ -697,6 +1122,12 @@ class MasterController
             }
 
             $komoditasModel = new Komoditas();
+
+            if ($komoditasModel->findByNama($nama_komoditas)) {
+                $_SESSION['error'] = 'Nama komoditas sudah digunakan.';
+                header('Location: /master/komoditas/create');
+                exit;
+            }
 
             if ($komoditasModel->create($nama_komoditas, $kategori_gizi, $id_satuan, $deskripsi)) {
                 $_SESSION['success'] = 'Komoditas berhasil ditambahkan.';
@@ -790,6 +1221,33 @@ class MasterController
         if ($id_komoditas) {
             (new Komoditas())->delete($id_komoditas);
             $_SESSION['success'] = 'Komoditas berhasil dihapus.';
+        }
+
+        header('Location: /master/komoditas');
+        exit;
+    }
+
+    public function restoreKomoditas()
+    {
+        if (empty($_SESSION['user_id']) || $_SESSION['role'] !== ROLE_ADMIN) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $id_komoditas = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+        if ($id_komoditas <= 0) {
+            $_SESSION['error'] = 'ID komoditas tidak valid.';
+            header('Location: /master/komoditas');
+            exit;
+        }
+
+        $komoditasModel = new Komoditas();
+
+        if ($komoditasModel->restore($id_komoditas)) {
+            $_SESSION['success'] = 'Komoditas berhasil dipulihkan.';
+        } else {
+            $_SESSION['error'] = 'Gagal memulihkan komoditas.';
         }
 
         header('Location: /master/komoditas');
@@ -913,12 +1371,13 @@ class MasterController
 
         $anakModel = new Anak();
 
-        // Jika role Ibu: tampilkan hanya anak miliknya sendiri
-        // Jika role Admin/Kader: tampilkan semua anak
         if ($_SESSION['role'] === ROLE_IBU) {
-            $id_ibu = $_SESSION['user_id'];
-            $anaks = $anakModel->findByIbu($id_ibu);
+            $idIbu = (int) $_SESSION['user_id'];
+
+            // pakai query terbaru
+            $anaks = $anakModel->getByIbuIdWithLatestPemeriksaan($idIbu);
         } else {
+
             $anaks = $anakModel->all();
         }
 
@@ -1212,5 +1671,111 @@ class MasterController
         $data['search'] = $search;
 
         require '../views/master/standar_pertumbuhan/index.php';
+    }
+
+    // --- Master: Paket Gizi ---
+    public function paketGizi()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $paketModel = new PaketGizi();
+        $pakets = $paketModel->getAllWithDetails();
+
+        require '../views/master/paket-gizi/index.php';
+    }
+
+    public function editPaketGizi()
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /auth/login');
+            exit;
+        }
+
+        $idPaket = (int) ($_GET['id'] ?? 0);
+
+        if ($idPaket <= 0) {
+            $_SESSION['error'] = 'ID paket tidak valid.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $paketModel = new PaketGizi();
+        $paket = $paketModel->findWithDetails($idPaket);
+
+        if (!$paket) {
+            $_SESSION['error'] = 'Paket gizi tidak ditemukan.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $komoditas = $paketModel->getKomoditasOptions();
+
+        require '../views/master/paket-gizi/edit.php';
+    }
+
+    public function updatePaketGizi()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $idPaket = (int) ($_POST['id_paket'] ?? 0);
+        $namaPaket = trim($_POST['nama_paket'] ?? '');
+        $deskripsi = trim($_POST['deskripsi'] ?? '');
+        $isActive = isset($_POST['is_active']) ? 1 : 0;
+
+        $idKomoditasList = $_POST['id_komoditas'] ?? [];
+        $jumlahList = $_POST['jumlah'] ?? [];
+
+        if ($idPaket <= 0 || $namaPaket === '') {
+            $_SESSION['error'] = 'Data paket tidak valid.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $details = [];
+
+        foreach ($idKomoditasList as $index => $idKomoditas) {
+            $idKomoditas = (int) $idKomoditas;
+            $jumlah = (float) ($jumlahList[$index] ?? 0);
+
+            if ($idKomoditas > 0) {
+                if ($jumlah <= 0) {
+                    $_SESSION['error'] = 'Jumlah setiap komoditas wajib lebih dari 0.';
+                    header('Location: /master/paket-gizi/edit?id=' . $idPaket);
+                    exit;
+                }
+
+                $details[] = [
+                    'id_komoditas' => $idKomoditas,
+                    'jumlah' => $jumlah
+                ];
+            }
+        }
+
+        if (empty($details)) {
+            $_SESSION['error'] = 'Minimal isi 1 komoditas dalam paket.';
+            header('Location: /master/paket-gizi/edit?id=' . $idPaket);
+            exit;
+        }
+
+        $paketModel = new PaketGizi();
+
+        $updateHeader = $paketModel->updatePaket($idPaket, $namaPaket, $deskripsi, $isActive);
+        $updateDetail = $paketModel->replaceDetails($idPaket, $details);
+
+        if ($updateHeader && $updateDetail) {
+            $_SESSION['success'] = 'Paket gizi berhasil diperbarui.';
+            header('Location: /master/paket-gizi');
+            exit;
+        }
+
+        $_SESSION['error'] = 'Gagal memperbarui paket gizi.';
+        header('Location: /master/paket-gizi/edit?id=' . $idPaket);
+        exit;
     }
 }
