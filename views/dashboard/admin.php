@@ -154,8 +154,7 @@ ob_start();
 
                 <div class="flex-1 flex flex-col items-center gap-2">
                     <div class="w-full rounded-t-xl bg-teal-500/80 hover:bg-teal-600 transition"
-                        title="<?= $total; ?> pemeriksaan"
-                        style="height: <?= $height; ?>px;">
+                        title="<?= $total; ?> pemeriksaan" style="height: <?= $height; ?>px;">
                     </div>
                     <span class="text-xs text-gray-400">
                         <?= htmlspecialchars($item['bulan'] ?? '-'); ?>
@@ -261,7 +260,8 @@ ob_start();
                             </td>
 
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold <?= $getBadgePrioritas($row['skala_prioritas'] ?? 3); ?>">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-bold <?= $getBadgePrioritas($row['skala_prioritas'] ?? 3); ?>">
                                     Prioritas <?= htmlspecialchars($row['skala_prioritas'] ?? '-'); ?>
                                 </span>
                             </td>
@@ -329,7 +329,8 @@ ob_start();
                             </td>
 
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold <?= $getBadgeStatus($row['status_bayar'] ?? '-'); ?>">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-bold <?= $getBadgeStatus($row['status_bayar'] ?? '-'); ?>">
                                     <?= htmlspecialchars($row['status_bayar'] ?? '-'); ?>
                                 </span>
                             </td>
@@ -353,7 +354,7 @@ ob_start();
                 </p>
             </div>
 
-            <a href="/stok/pusat"
+            <a href="/master/kader/stok"
                 class="hidden sm:inline-flex rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100">
                 Detail
             </a>
@@ -458,7 +459,8 @@ ob_start();
                             </td>
 
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold <?= $getBadgeStatus($row['status_penyerahan'] ?? '-'); ?>">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-bold <?= $getBadgeStatus($row['status_penyerahan'] ?? '-'); ?>">
                                     <?= htmlspecialchars($row['status_penyerahan'] ?? '-'); ?>
                                 </span>
                             </td>

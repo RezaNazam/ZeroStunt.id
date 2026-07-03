@@ -195,33 +195,6 @@ class User
         return $user;
     }
 
-
-    // seeder admin kalo blom ada
-    public function ensureAdminExists()
-    {
-        $admin = $this->findByUsername('admin');
-        if ($admin) {
-            return $admin;
-        }
-
-        $hash = '$2y$12$eoq1NXMct2oLGC1LbLydZ.HzVB0wZQq5U3UtjJ9wia/JL1YjJh/rm';
-        $stmt = mysqli_prepare($this->db, "INSERT INTO users (username, password, role, is_active) VALUES (?, ?, 'Admin', 1)");
-        if (!$stmt) {
-            return null;
-        }
-
-        $username = 'admin';
-        mysqli_stmt_bind_param($stmt, 'ss', $username, $hash);
-        $executed = mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-
-        if ($executed) {
-            return $this->findByUsername('admin');
-        }
-
-        return null;
-    }
-
     public function updateProfile($id_user, $username)
     {
         $stmt = mysqli_prepare(
