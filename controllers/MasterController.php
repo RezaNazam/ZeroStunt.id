@@ -127,12 +127,12 @@ class MasterController
         if ($userModel->create($username, $password, $roleInput, $idGudang)) {
             unset($_SESSION['old']);
 
-            $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
+            $_SESSION['success'] = "Petugas dengan peran {$roleInput} berhasil ditambahkan.";
             header('Location: /master/users');
             exit;
         }
 
-        $_SESSION['error'] = 'Gagal menyimpan data pengguna.';
+        $_SESSION['error'] = 'Gagal menyimpan data petugas.';
         header('Location: /master/users/create');
         exit;
     }
@@ -157,7 +157,7 @@ class MasterController
         $user = $userModel->findById($id_user);
 
         if (!$user) {
-            $_SESSION['error'] = 'Data pengguna tidak ditemukan.';
+            $_SESSION['error'] = 'Data petugas tidak ditemukan.';
             header('Location: /master/users');
             exit;
         }
@@ -183,13 +183,49 @@ class MasterController
             $id_user = (int) ($_POST['id_user'] ?? 0);
             $username = trim($_POST['username'] ?? '');
             $roleInput = $_POST['role'] ?? '';
-            $idGudang = isset($_POST['id_gudang']) && $_POST['id_gudang'] !== '' ? (int) $_POST['id_gudang'] : null;
 
-            if ($roleInput !== 'Kader') {
-                $idGudang = null;
+            $userModel = new User();
+            $userLama = $userModel->findById($id_user);
+
+            $idGudang = $userLama['id_gudang'];
+
+            if (
+                $userLama['role'] === 'Kader'
+                && isset($_POST['id_gudang'])
+                && $_POST['id_gudang'] !== ''
+            ) {
+                $idGudang = (int)$_POST['id_gudang'];
             }
 
             $password = $_POST['password'] ?? '';
+
+            if ($password !== '') {
+                // Validasi panjang password
+                $passwordLength = strlen($password);
+
+                if ($passwordLength < 8) {
+                    $_SESSION['error'] = 'Password minimal harus terdiri dari 8 karakter.';
+                    header("Location: /master/users/edit?id={$id_user}");
+                    exit;
+                }
+
+                if ($passwordLength > 64) {
+                    $_SESSION['error'] = 'Password maksimal terdiri dari 64 karakter.';
+                    header("Location: /master/users/edit?id={$id_user}");
+                    exit;
+                }
+
+                // Password harus mengandung huruf dan angka
+                $hasLetter = preg_match('/[a-zA-Z]/', $password);
+                $hasNumber = preg_match('/[0-9]/', $password);
+
+                if (!$hasLetter || !$hasNumber) {
+                    $_SESSION['error'] = 'Password harus mengandung kombinasi huruf dan angka.';
+                    header("Location: /master/users/edit?id={$id_user}");
+                    exit;
+                }
+            }
+
             $isActive = (int) ($_POST['is_active'] ?? 1);
 
             if ($id_user === 0 || $username === '' || !in_array($roleInput, ['Admin', 'Kader'])) {
@@ -207,8 +243,14 @@ class MasterController
                 exit;
             }
 
+            if ($id_user === (int) $_SESSION['user_id'] && $isActive !== 1) {
+                $_SESSION['error'] = 'Anda tidak bisa menonaktifkan akun Anda sendiri.';
+                header("Location: /master/users/edit?id={$id_user}");
+                exit;
+            }
+
             if ($userModel->update($id_user, $username, $roleInput, $idGudang, $password, $isActive)) {
-                $_SESSION['success'] = 'Data pengguna berhasil diperbarui.';
+                $_SESSION['success'] = 'Data petugas berhasil diperbarui.';
                 header('Location: /master/users');
                 exit;
             }

@@ -99,7 +99,7 @@ class AuthController
 
             $userModel = new User();
 
-            $user = $userModel->findByUsername($username);
+            $user = $userModel->findByUsernameWithoutActiveCheck($username);
 
             if (!$user) {
                 $_SESSION['error'] = 'Akun tidak ditemukan. Silakan register.';
@@ -108,7 +108,7 @@ class AuthController
             }
 
             if (!empty($user['deleted_at'])) {
-                $_SESSION['error'] = 'Akun tidak ditemukan. Silakan register.';
+                $_SESSION['error'] = 'Akun anda sudah dihapus. Silakan register.';
                 header('Location: /auth/login');
                 exit;
             }

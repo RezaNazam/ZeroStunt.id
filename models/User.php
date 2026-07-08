@@ -14,7 +14,7 @@ class User
     // ambil semua data user
     public function all(): array
     {
-        $stmt = mysqli_prepare($this->db, "SELECT u.id_user, u.username, u.role, u.is_active, u.created_at, u.id_gudang, g.nama_gudang FROM users u LEFT JOIN gudang g ON u.id_gudang = g.id_gudang WHERE u.is_active = 1 ORDER BY u.role ASC");
+        $stmt = mysqli_prepare($this->db, "SELECT u.id_user, u.username, u.role, u.is_active, u.created_at, u.id_gudang, g.nama_gudang FROM users u LEFT JOIN gudang g ON u.id_gudang = g.id_gudang WHERE u.role IN ('Admin','Kader') ORDER BY u.role ASC");
         if (!$stmt) {
             return [];
         }
@@ -52,7 +52,7 @@ class User
     // ambik data user by id buat edit sama validas
     public function findByid($id_user)
     {
-        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active, created_at, id_gudang FROM users WHERE id_user = ? AND is_active = 1 LIMIT 1");
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active, created_at, id_gudang FROM users WHERE id_user = ? LIMIT 1");
         if (!$stmt) {
             return null;
         }
@@ -76,7 +76,7 @@ class User
             if (!$stmt) {
                 return false;
             }
-            mysqli_stmt_bind_param($stmt, 'sssiii', $username, $role, $id_gudang, $hash, $is_active, $id_user);
+            mysqli_stmt_bind_param($stmt, 'ssisii', $username, $role, $id_gudang, $hash, $is_active, $id_user);
         } else {
             $stmt = mysqli_prepare($this->db, "UPDATE users SET username = ?, role = ?, id_gudang = ?, is_active = ? WHERE id_user = ?");
             if (!$stmt) {
@@ -182,6 +182,23 @@ class User
     public function findByUsername($username)
     {
         $stmt = mysqli_prepare($this->db, "SELECT * FROM users WHERE username = ? AND is_active = 1 LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+
+        mysqli_stmt_bind_param($stmt, 's', $username);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $user = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+
+        return $user;
+    }
+
+    // additional method to find user by username without checking is_active
+    public function findByUsernameWithoutActiveCheck($username)
+    {
+        $stmt = mysqli_prepare($this->db, "SELECT * FROM users WHERE username = ? LIMIT 1");
         if (!$stmt) {
             return null;
         }
