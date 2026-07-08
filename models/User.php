@@ -195,6 +195,23 @@ class User
         return $user;
     }
 
+    // additional method to find user by username without checking is_active
+    public function findByUsernameWithoutActiveCheck($username)
+    {
+        $stmt = mysqli_prepare($this->db, "SELECT * FROM users WHERE username = ? LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+
+        mysqli_stmt_bind_param($stmt, 's', $username);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $user = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+
+        return $user;
+    }
+
     public function updateProfile($id_user, $username)
     {
         $stmt = mysqli_prepare(
