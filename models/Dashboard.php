@@ -738,6 +738,7 @@ class Dashboard
 
     private function getStokGudangPusatAdmin()
     {
+        $adminUser = $this->getUserById($_SESSION['user_id']);
         $query = "
         SELECT 
             sl.id_stok_log,
@@ -751,7 +752,7 @@ class Dashboard
         JOIN gudang g ON sl.id_gudang = g.id_gudang
         JOIN komoditas_pangan k ON sl.id_komoditas = k.id_komoditas
         LEFT JOIN satuan s ON k.id_satuan = s.id_satuan
-        WHERE LOWER(g.jenis_gudang) = 'pusat'
+        WHERE LOWER(g.jenis_gudang) = 'pusat' AND g.id_gudang = $adminUser[id_gudang]
         ORDER BY sl.qty_current DESC, k.nama_komoditas ASC
         LIMIT 5
     ";

@@ -121,6 +121,8 @@ return [
     '/transaksi/distribusi/store' => [TransaksiController::class, 'storeDistribusi', [ROLE_ADMIN]],
     '/transaksi/distribusi/terima' => [TransaksiController::class, 'terimaDistribusi', [ROLE_KADER]],
     '/transaksi/distribusi/batal' => [TransaksiController::class, 'batalDistribusi', [ROLE_ADMIN]],
+
+
     '/transaksi/pemeriksaan' => [TransaksiController::class, 'pemeriksaan', [ROLE_ADMIN, ROLE_KADER, ROLE_IBU]],
     '/transaksi/pemeriksaan/create' => [TransaksiController::class, 'createPemeriksaan', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/pemeriksaan/store' => [TransaksiController::class, 'storePemeriksaan', [ROLE_ADMIN, ROLE_KADER]],
