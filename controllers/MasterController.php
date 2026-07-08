@@ -183,13 +183,49 @@ class MasterController
             $id_user = (int) ($_POST['id_user'] ?? 0);
             $username = trim($_POST['username'] ?? '');
             $roleInput = $_POST['role'] ?? '';
-            $idGudang = isset($_POST['id_gudang']) && $_POST['id_gudang'] !== '' ? (int) $_POST['id_gudang'] : null;
 
-            if ($roleInput !== 'Kader') {
-                $idGudang = null;
+            $userModel = new User();
+            $userLama = $userModel->findById($id_user);
+
+            $idGudang = $userLama['id_gudang'];
+
+            if (
+                $userLama['role'] === 'Kader'
+                && isset($_POST['id_gudang'])
+                && $_POST['id_gudang'] !== ''
+            ) {
+                $idGudang = (int)$_POST['id_gudang'];
             }
 
             $password = $_POST['password'] ?? '';
+
+            if ($password !== '') {
+                // Validasi panjang password
+                $passwordLength = strlen($password);
+
+                if ($passwordLength < 8) {
+                    $_SESSION['error'] = 'Password minimal harus terdiri dari 8 karakter.';
+                    header("Location: /master/users/edit?id={$id_user}");
+                    exit;
+                }
+
+                if ($passwordLength > 64) {
+                    $_SESSION['error'] = 'Password maksimal terdiri dari 64 karakter.';
+                    header("Location: /master/users/edit?id={$id_user}");
+                    exit;
+                }
+
+                // Password harus mengandung huruf dan angka
+                $hasLetter = preg_match('/[a-zA-Z]/', $password);
+                $hasNumber = preg_match('/[0-9]/', $password);
+
+                if (!$hasLetter || !$hasNumber) {
+                    $_SESSION['error'] = 'Password harus mengandung kombinasi huruf dan angka.';
+                    header("Location: /master/users/edit?id={$id_user}");
+                    exit;
+                }
+            }
+
             $isActive = (int) ($_POST['is_active'] ?? 1);
 
             if ($id_user === 0 || $username === '' || !in_array($roleInput, ['Admin', 'Kader'])) {

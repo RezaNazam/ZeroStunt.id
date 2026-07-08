@@ -76,7 +76,7 @@ class User
             if (!$stmt) {
                 return false;
             }
-            mysqli_stmt_bind_param($stmt, 'sssiii', $username, $role, $id_gudang, $hash, $is_active, $id_user);
+            mysqli_stmt_bind_param($stmt, 'ssisii', $username, $role, $id_gudang, $hash, $is_active, $id_user);
         } else {
             $stmt = mysqli_prepare($this->db, "UPDATE users SET username = ?, role = ?, id_gudang = ?, is_active = ? WHERE id_user = ?");
             if (!$stmt) {
