@@ -127,12 +127,12 @@ class MasterController
         if ($userModel->create($username, $password, $roleInput, $idGudang)) {
             unset($_SESSION['old']);
 
-            $_SESSION['success'] = "Pengguna dengan peran {$roleInput} berhasil ditambahkan.";
+            $_SESSION['success'] = "Petugas dengan peran {$roleInput} berhasil ditambahkan.";
             header('Location: /master/users');
             exit;
         }
 
-        $_SESSION['error'] = 'Gagal menyimpan data pengguna.';
+        $_SESSION['error'] = 'Gagal menyimpan data petugas.';
         header('Location: /master/users/create');
         exit;
     }
@@ -207,8 +207,14 @@ class MasterController
                 exit;
             }
 
+            if ($id_user === (int) $_SESSION['user_id'] && $isActive !== 1) {
+                $_SESSION['error'] = 'Anda tidak bisa menonaktifkan akun Anda sendiri.';
+                header("Location: /master/users/edit?id={$id_user}");
+                exit;
+            }
+
             if ($userModel->update($id_user, $username, $roleInput, $idGudang, $password, $isActive)) {
-                $_SESSION['success'] = 'Data pengguna berhasil diperbarui.';
+                $_SESSION['success'] = 'Data petugas berhasil diperbarui.';
                 header('Location: /master/users');
                 exit;
             }
