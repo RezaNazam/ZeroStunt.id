@@ -157,7 +157,7 @@ class MasterController
         $user = $userModel->findById($id_user);
 
         if (!$user) {
-            $_SESSION['error'] = 'Data pengguna tidak ditemukan.';
+            $_SESSION['error'] = 'Data petugas tidak ditemukan.';
             header('Location: /master/users');
             exit;
         }

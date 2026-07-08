@@ -14,7 +14,7 @@ class User
     // ambil semua data user
     public function all(): array
     {
-        $stmt = mysqli_prepare($this->db, "SELECT u.id_user, u.username, u.role, u.is_active, u.created_at, u.id_gudang, g.nama_gudang FROM users u LEFT JOIN gudang g ON u.id_gudang = g.id_gudang WHERE u.is_active = 1 ORDER BY u.role ASC");
+        $stmt = mysqli_prepare($this->db, "SELECT u.id_user, u.username, u.role, u.is_active, u.created_at, u.id_gudang, g.nama_gudang FROM users u LEFT JOIN gudang g ON u.id_gudang = g.id_gudang WHERE u.role IN ('Admin','Kader') ORDER BY u.role ASC");
         if (!$stmt) {
             return [];
         }
@@ -52,7 +52,7 @@ class User
     // ambik data user by id buat edit sama validas
     public function findByid($id_user)
     {
-        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active, created_at, id_gudang FROM users WHERE id_user = ? AND is_active = 1 LIMIT 1");
+        $stmt = mysqli_prepare($this->db, "SELECT id_user, username, role, is_active, created_at, id_gudang FROM users WHERE id_user = ? LIMIT 1");
         if (!$stmt) {
             return null;
         }

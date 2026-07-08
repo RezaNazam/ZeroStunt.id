@@ -684,7 +684,7 @@
                 <div class="flex flex-col sm:flex-row justify-center gap-4">
                     <a href="/auth/login"
                         class="px-7 py-3 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition text-center">
-                        Coba Demo Sekarang
+                        Coba Sekarang
                     </a>
 
                     <a href="mailto:official@zerostunt.id"
