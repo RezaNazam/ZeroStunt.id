@@ -111,7 +111,7 @@ class MasterController
         }
 
         if (strlen($password) < 8) {
-            $_SESSION['error'] = 'Password minimal 6 karakter.';
+            $_SESSION['error'] = 'Password minimal 8 karakter.';
             header('Location: /master/users/create');
             exit;
         }
