@@ -1618,6 +1618,22 @@ class MasterController
                 exit;
             }
 
+            if ($nik_anak !== $anak['NIK_anak']) {
+
+                if ($anakModel->isNikExists($nik_anak)) {
+                    $_SESSION['error'] = 'NIK sudah terdaftar pada data anak lain. Gunakan NIK yang valid.';
+                    header("Location: /master/anak/edit?id={$id_anak}");
+                    exit;
+                }
+            }
+            
+            $hari_ini = date('Y-m-d');
+            if ($tgl_lahir > $hari_ini) {
+                $_SESSION['error'] = 'Tanggal lahir tidak valid (tidak boleh di masa depan).';
+                header("Location: /master/anak/edit?id={$id_anak}");
+                exit;
+            }
+
             if ($anakModel->update($id_anak, $id_ibu, $nik_anak, $nama_anak, $tgl_lahir, $jenis_kelamin)) {
                 $_SESSION['success'] = 'Data anak berhasil diperbarui.';
                 header("Location: /master/anak/edit?id={$id_anak}");

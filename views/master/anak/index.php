@@ -107,6 +107,24 @@ if (!empty($anak['tanggal_pemeriksaan_terakhir'])) {
 ob_start();
 ?>
 
+<?php if (isset($_SESSION['success'])): ?>
+    <div class="bg-green-100 text-green-800 p-4 rounded-xl mb-4 w-full max-w-lg mx-auto text-sm font-medium">
+        <?= htmlspecialchars($_SESSION['success']) ?>
+    </div>
+    <script>
+        setTimeout(function() {
+            window.location.href = '/master/anak';
+        }, 2000);
+    </script>
+    <?php unset($_SESSION['success']); ?>
+<?php endif; ?>
+<?php if (isset($_SESSION['error'])): ?>
+    <div class="bg-red-100 text-red-800 p-4 rounded-xl mb-4 w-full max-w-lg mx-auto text-sm font-medium">
+        <?= htmlspecialchars($_SESSION['error']) ?>
+    </div>
+    <?php unset($_SESSION['error']); ?>
+<?php endif; ?>
+
 <!-- Page Content -->
 <div class="w-full bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="px-8 py-6 border-b border-gray-100 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
