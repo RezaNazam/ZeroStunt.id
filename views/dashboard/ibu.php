@@ -5,6 +5,7 @@ $pageTitle = 'Dashboard Ibu';
 $pageSubtitle = 'Ringkasan data anak, status gizi, dan riwayat bantuan.';
 
 $anaks = $anaks ?? [];
+$ibu = $ibu ?? [];
 
 $formatAngka = function ($value) {
     $value = (float) $value;
@@ -66,6 +67,10 @@ foreach ($anaks as $anak) {
     if ($prioritasTertinggi === null || $prioritas < $prioritasTertinggi) {
         $prioritasTertinggi = $prioritas;
     }
+}
+
+if ((int)($ibu['is_pregnant'] ?? 0) === 1) {
+    $prioritasTertinggi = 1;
 }
 
 $anakTerbaru = null;
@@ -273,6 +278,17 @@ ob_start();
         </h2>
 
         <div class="space-y-4">
+            <?php if (($ibu['is_pregnant'] ?? 0) === 1): ?>
+                <div class="rounded-2xl bg-red-50 p-4 border border-red-100">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-sm font-bold text-red-700">Status Ibu: Hamil</p>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-red-600 text-white">Prioritas 1</span>
+                    </div>
+                    <p class="text-xs text-red-600/90">
+                        Karena status sedang hamil, Anda otomatis mendapatkan Prioritas 1 untuk pemantauan dan paket bantuan.
+                    </p>
+                </div>
+            <?php endif; ?>
             <div class="rounded-2xl bg-teal-50 p-4">
                 <p class="text-sm text-teal-700/80">
                     Paket bantuan akan mengikuti prioritas anak.
