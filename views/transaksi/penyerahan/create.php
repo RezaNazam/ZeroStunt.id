@@ -45,7 +45,7 @@ ob_start();
 
             <!-- ANAK -->
             <div>
-                <label class="block text-sm font-bold mb-2">Anak Penerima</label>
+                <label class="block text-sm font-bold mb-2">Penerima Bantuan (Anak / Ibu Hamil)</label>
                 <select name="id_anak" id="id_anak" required
                     class="w-full rounded-xl border border-gray-200 px-4 py-3">
                     <option value="" disabled selected>Pilih Ibu terlebih dahulu</option>
@@ -118,6 +118,7 @@ ob_start();
 </div>
 
 <script>
+    const ibuData = <?= json_encode($ibus, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     const anakData = <?= json_encode($anaks, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     const paketData = <?= json_encode($pakets, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
@@ -132,54 +133,7 @@ ob_start();
         });
     }
 
-    function renderAnakOptions() {
-        const idIbu = ibuSelect.value;
-
-        anakSelect.innerHTML = '<option value="" disabled selected>Pilih Anak</option>';
-        anakInfo.innerHTML = 'Pilih anak untuk melihat status gizi dan prioritas.';
-        paketPreview.innerHTML = 'Isi paket akan muncul setelah anak dipilih.';
-
-        const filteredAnak = anakData.filter(function(anak) {
-            return String(anak.id_ibu) === String(idIbu);
-        });
-
-        if (filteredAnak.length === 0) {
-            anakSelect.innerHTML = '<option value="" disabled selected>Ibu ini belum memiliki data anak</option>';
-            return;
-        }
-
-        filteredAnak.forEach(function(anak) {
-            const option = document.createElement('option');
-            option.value = anak.id_anak;
-            option.textContent = anak.nama_anak + ' - Prioritas ' + anak.skala_prioritas;
-            anakSelect.appendChild(option);
-        });
-    }
-
-    function renderPaketOtomatis() {
-        const idAnak = anakSelect.value;
-
-        const anak = anakData.find(function(item) {
-            return String(item.id_anak) === String(idAnak);
-        });
-
-        if (!anak) {
-            anakInfo.innerHTML = 'Pilih anak untuk melihat status gizi dan prioritas.';
-            paketPreview.innerHTML = 'Isi paket akan muncul setelah anak dipilih.';
-            return;
-        }
-
-        const prioritas = anak.skala_prioritas;
-        const paket = getPaketByPrioritas(prioritas);
-
-        anakInfo.innerHTML = `
-            <div class="flex flex-col gap-1">
-                <p class="font-bold text-gray-900">${anak.nama_anak}</p>
-                <p>Status gizi: <span class="font-bold">${anak.st_gizi_skrg || '-'}</span></p>
-                <p>Skala prioritas: <span class="font-bold text-teal-700">Prioritas ${prioritas}</span></p>
-            </div>
-        `;
-
+    function renderPaketHTML(paket, prioritas) {
         if (!paket || !paket.details || paket.details.length === 0) {
             paketPreview.innerHTML = `
                 <div class="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-red-700">
@@ -203,6 +157,94 @@ ob_start();
                 </div>
             `;
         }).join('');
+    }
+
+    function renderAnakOptions() {
+        const idIbu = ibuSelect.value;
+
+        anakSelect.innerHTML = '<option value="" disabled selected>Pilih Penerima Bantuan</option>';
+        anakInfo.innerHTML = 'Pilih penerima untuk melihat status gizi dan prioritas.';
+        paketPreview.innerHTML = 'Isi paket akan muncul setelah penerima dipilih.';
+
+        // 1. Cari data Ibu yang dipilih
+        const ibu = ibuData.find(function(item) {
+            return String(item.id_ibu) === String(idIbu);
+        });
+
+        // 2. Filter data Anak berdasarkan Ibu
+        const filteredAnak = anakData.filter(function(anak) {
+            return String(anak.id_ibu) === String(idIbu);
+        });
+
+        let hasOptions = false;
+
+        // 3. Cek apakah Ibu sedang hamil
+        if (ibu && (String(ibu.is_pregnant) === '1' || ibu.is_pregnant === 1)) {
+            const option = document.createElement('option');
+            option.value = 'ibu_hamil'; // Value penanda khusus untuk backend
+            option.textContent = '[Bantuan Ibu Hamil] - Prioritas 1';
+            anakSelect.appendChild(option);
+            hasOptions = true;
+        }
+
+        // 4. Tambahkan list anak jika ada
+        filteredAnak.forEach(function(anak) {
+            const option = document.createElement('option');
+            option.value = anak.id_anak;
+            option.textContent = anak.nama_anak + ' - Prioritas ' + anak.skala_prioritas;
+            anakSelect.appendChild(option);
+            hasOptions = true;
+        });
+
+        // 5. Jika tidak hamil DAN tidak punya anak
+        if (!hasOptions) {
+            anakSelect.innerHTML = '<option value="" disabled selected>Ibu ini tidak hamil dan belum memiliki data anak</option>';
+        }
+    }
+
+    function renderPaketOtomatis() {
+        const selectedValue = anakSelect.value;
+
+        // Jika yang dipilih adalah opsi Ibu Hamil
+        if (selectedValue === 'ibu_hamil') {
+            const prioritas = 1;
+            const paket = getPaketByPrioritas(prioritas);
+
+            anakInfo.innerHTML = `
+                <div class="flex flex-col gap-1">
+                    <p class="font-bold text-gray-900">Penerima: Ibu Hamil</p>
+                    <p>Status: <span class="font-bold text-amber-600">Sedang Hamil</span></p>
+                    <p>Skala prioritas: <span class="font-bold text-teal-700">Prioritas ${prioritas}</span></p>
+                </div>
+            `;
+
+            renderPaketHTML(paket, prioritas);
+            return;
+        }
+
+        // Jika yang dipilih adalah Anak (normal flow)
+        const anak = anakData.find(function(item) {
+            return String(item.id_anak) === String(selectedValue);
+        });
+
+        if (!anak) {
+            anakInfo.innerHTML = 'Pilih penerima untuk melihat status gizi dan prioritas.';
+            paketPreview.innerHTML = 'Isi paket akan muncul setelah penerima dipilih.';
+            return;
+        }
+
+        const prioritas = anak.skala_prioritas;
+        const paket = getPaketByPrioritas(prioritas);
+
+        anakInfo.innerHTML = `
+            <div class="flex flex-col gap-1">
+                <p class="font-bold text-gray-900">${anak.nama_anak}</p>
+                <p>Status gizi: <span class="font-bold">${anak.st_gizi_skrg || '-'}</span></p>
+                <p>Skala prioritas: <span class="font-bold text-teal-700">Prioritas ${prioritas}</span></p>
+            </div>
+        `;
+
+        renderPaketHTML(paket, prioritas);
     }
 
     ibuSelect.addEventListener('change', renderAnakOptions);

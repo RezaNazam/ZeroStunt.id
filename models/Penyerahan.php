@@ -456,7 +456,8 @@ class Penyerahan
             NIK_ibu,
             alamat,
             no_telp,
-            id_gudang
+            id_gudang,
+            is_pregnant
         FROM ibu
         WHERE id_gudang = ?
         ORDER BY nama_ibu ASC
