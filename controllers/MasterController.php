@@ -226,6 +226,14 @@ class MasterController
                 }
             }
 
+            $isDelete = $userLama['deleted_at'] !== null;
+
+            if ($isDelete) {
+                $_SESSION['error'] = 'Data petugas sudah dihapus dan tidak bisa diperbarui.';
+                header("Location: /master/users");
+                exit;
+            }
+
             $isActive = (int) ($_POST['is_active'] ?? 1);
 
             if ($id_user === 0 || $username === '' || !in_array($roleInput, ['Admin', 'Kader'])) {
