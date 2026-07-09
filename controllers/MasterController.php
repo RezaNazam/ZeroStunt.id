@@ -111,7 +111,7 @@ class MasterController
         }
 
         if (strlen($password) < 8) {
-            $_SESSION['error'] = 'Password minimal 6 karakter.';
+            $_SESSION['error'] = 'Password minimal 8 karakter.';
             header('Location: /master/users/create');
             exit;
         }
@@ -224,6 +224,14 @@ class MasterController
                     header("Location: /master/users/edit?id={$id_user}");
                     exit;
                 }
+            }
+
+            $isDelete = $userLama['deleted_at'] !== null;
+
+            if ($isDelete) {
+                $_SESSION['error'] = 'Data petugas sudah dihapus dan tidak bisa diperbarui.';
+                header("Location: /master/users");
+                exit;
             }
 
             $isActive = (int) ($_POST['is_active'] ?? 1);
@@ -1482,6 +1490,14 @@ class MasterController
                 exit;
             }
 
+            $hari_ini = date('Y-m-d');
+            
+            if ($tgl_lahir > $hari_ini) {
+                $_SESSION['error'] = 'Tanggal lahir tidak valid (tidak boleh di masa depan).';
+                header('Location: /master/anak/create');
+                exit;
+            }
+
             $anakModel = new Anak();
 
             if ($anakModel->isNikExists($nik_anak)) {
@@ -1598,6 +1614,22 @@ class MasterController
 
             if (!preg_match('/^\d{16}$/', $nik_anak)) {
                 $_SESSION['error'] = 'NIK harus terdiri dari 16 digit angka.';
+                header("Location: /master/anak/edit?id={$id_anak}");
+                exit;
+            }
+
+            if ($nik_anak !== $anak['NIK_anak']) {
+
+                if ($anakModel->isNikExists($nik_anak)) {
+                    $_SESSION['error'] = 'NIK sudah terdaftar pada data anak lain. Gunakan NIK yang valid.';
+                    header("Location: /master/anak/edit?id={$id_anak}");
+                    exit;
+                }
+            }
+            
+            $hari_ini = date('Y-m-d');
+            if ($tgl_lahir > $hari_ini) {
+                $_SESSION['error'] = 'Tanggal lahir tidak valid (tidak boleh di masa depan).';
                 header("Location: /master/anak/edit?id={$id_anak}");
                 exit;
             }

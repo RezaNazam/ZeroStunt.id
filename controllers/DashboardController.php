@@ -43,6 +43,10 @@ class DashboardController
         // Kalo rolenya ibu, redirect ke dashboard ibu
         if ($_SESSION['role'] === ROLE_IBU) {
             $anakModel = new Anak();
+            $ibuModel = new Ibu();
+
+            $dashboardData = $ibuModel->getIbuDashboard($_SESSION['user_id']);
+            $ibu = $dashboardData['ibu']; 
 
             $idIbu = (int) $_SESSION['user_id'];
             $anaks = $anakModel->getByIbuIdWithLatestPemeriksaan($idIbu);

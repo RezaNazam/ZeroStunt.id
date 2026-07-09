@@ -56,6 +56,15 @@ $tableColumns = [
     [
         'label' => 'Status',
         'render' => function ($row) {
+            if (!empty($row['deleted_at'])) {
+                return '
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-red-700">
+                        <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                        Dihapus
+                    </span>
+                ';
+            }
+
             if (!empty($row['is_active'])) {
                 return '
                     <span class="inline-flex items-center gap-1.5 font-semibold text-green-700">
@@ -80,6 +89,12 @@ $tableColumns = [
         'render' => function ($row) {
             $id = urlencode($row['id_user']);
 
+            // Pengecekan: Jika data sudah dihapus, jangan tampilkan tombol aksi
+            if (!empty($row['deleted_at'])) {
+                return '<span class="text-xs font-semibold text-gray-400 italic">-</span>';
+            }
+
+            // Jika data belum dihapus, tampilkan tombol Edit dan Hapus
             return '
                 <div class="flex justify-end gap-2">
                     <a href="/master/users/edit?id=' . $id . '"

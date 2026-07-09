@@ -107,6 +107,12 @@ class AuthController
                 exit;
             }
 
+            if ($user['username'] !== $username) {
+                $_SESSION['error'] = 'Username tidak valid. Perhatikan huruf kapital/kecil.';
+                header('Location: /auth/login');
+                exit;
+            }
+
             if (!empty($user['deleted_at'])) {
                 $_SESSION['error'] = 'Akun anda sudah dihapus. Silakan register.';
                 header('Location: /auth/login');

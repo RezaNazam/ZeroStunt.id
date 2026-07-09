@@ -122,7 +122,7 @@ class Anak
 
     public function delete($id_anak)
     {
-        $stmt = mysqli_prepare($this->db, "DELETE FROM anak WHERE id_anak = ?");
+        $stmt = mysqli_prepare($this->db, "UPDATE anak SET deleted_at = NOW() WHERE id_anak = ?");
         if (!$stmt) {
             return false;
         }

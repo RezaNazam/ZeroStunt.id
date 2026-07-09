@@ -3,7 +3,14 @@
 // ENTRY POINT
 // Semua request masuk ke sini dulu sebelum ke controller
 // ============================================================
-
+session_set_cookie_params([
+    'lifetime' => 0,          // 0 berarti session hancur saat browser ditutup
+    'path' => '/',            // Berlaku untuk seluruh path di website kamu
+    'domain' => '',           // Kosongkan atau isi dengan domainmu (misal: zerostunt.id)
+    'secure' => false,        // Ubah jadi true JIKA kamu sudah pakai HTTPS
+    'httponly' => true,       // Sangat penting agar session aman dari serangan XSS
+    'samesite' => 'Strict'    // Opsional, untuk mencegah serangan CSRF
+]);
 session_start();
 
 // --- Load Config ---

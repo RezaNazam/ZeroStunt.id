@@ -14,7 +14,7 @@ class User
     // ambil semua data user
     public function all(): array
     {
-        $stmt = mysqli_prepare($this->db, "SELECT u.id_user, u.username, u.role, u.is_active, u.created_at, u.id_gudang, g.nama_gudang FROM users u LEFT JOIN gudang g ON u.id_gudang = g.id_gudang WHERE u.role IN ('Admin','Kader') ORDER BY u.role ASC");
+        $stmt = mysqli_prepare($this->db, "SELECT u.id_user, u.username, u.role, u.is_active, u.created_at, u.id_gudang, u.deleted_at, g.nama_gudang FROM users u LEFT JOIN gudang g ON u.id_gudang = g.id_gudang WHERE u.role IN ('Admin','Kader') ORDER BY u.role ASC");
         if (!$stmt) {
             return [];
         }
@@ -94,7 +94,7 @@ class User
     // buat delete user
     public function delete($id_user)
     {
-        $stmt = mysqli_prepare($this->db, "UPDATE users SET is_active = 0 WHERE id_user = ?");
+        $stmt = mysqli_prepare($this->db, "UPDATE users SET is_active = 0, deleted_at = NOW() WHERE id_user = ?");
         if (!$stmt) {
             return false;
         }
