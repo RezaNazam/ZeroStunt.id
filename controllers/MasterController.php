@@ -1490,6 +1490,14 @@ class MasterController
                 exit;
             }
 
+            $hari_ini = date('Y-m-d');
+            
+            if ($tgl_lahir > $hari_ini) {
+                $_SESSION['error'] = 'Tanggal lahir tidak valid (tidak boleh di masa depan).';
+                header('Location: /master/anak/create');
+                exit;
+            }
+
             $anakModel = new Anak();
 
             if ($anakModel->isNikExists($nik_anak)) {
