@@ -81,8 +81,8 @@
             <div class="w-full max-w-md">
                 <!-- Mobile Logo -->
                 <a href="/" class="lg:hidden inline-flex items-center gap-3 font-bold text-2xl text-teal-700 mb-10">
-                    <span class="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center">
-                        🌱
+                    <span class="w-12 h-12 rounded-2xl bg-white text-teal-700 flex items-center justify-center text-sm font-extrabold shadow-lg">
+                        ZS
                     </span>
                     ZeroStunt<span class="text-amber-500">.id</span>
                 </a>
@@ -121,7 +121,7 @@
                                     <input type="radio" name="role" value="Ibu" checked class="peer sr-only">
 
                                     <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 transition peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:ring-4 peer-checked:ring-teal-100">
-                                        <div class="text-2xl mb-2">👩‍👧</div>
+                                        <div class="text-2xl mb-2"><i class="fa-solid fa-person-breastfeeding"></i></i></div>
                                         <p class="font-bold text-gray-900">Saya Ibu</p>
                                         <p class="text-xs text-gray-500 mt-1">
                                             Penerima manfaat
@@ -133,7 +133,7 @@
                                     <input type="radio" name="role" value="Petani" class="peer sr-only">
 
                                     <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 transition peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:ring-4 peer-checked:ring-amber-100">
-                                        <div class="text-2xl mb-2">🌾</div>
+                                        <div class="text-2xl mb-2"><i class="fa-solid fa-wheat-awn"></i></div>
                                         <p class="font-bold text-gray-900">Saya Petani</p>
                                         <p class="text-xs text-gray-500 mt-1">
                                             Mitra komoditas
