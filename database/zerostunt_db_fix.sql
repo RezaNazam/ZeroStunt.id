@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 02, 2026 at 06:24 AM
+-- Generation Time: Jul 10, 2026 at 04:07 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -147,19 +147,31 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_prioritas_a
 
     START TRANSACTION;
 
-    SELECT COALESCE(skala_prioritas, 0)
-    INTO v_skala_prioritas
-    FROM anak
-    WHERE id_anak = p_id_anak
-      AND id_ibu = p_id_ibu
-      AND deleted_at IS NULL
-    LIMIT 1;
+    -- ==========================================
+    -- 1. PENENTUAN PRIORITAS (BARU)
+    -- ==========================================
+    -- Cek jika p_id_anak adalah NULL atau 0 (Artinya ini untuk Ibu Hamil)
+    IF p_id_anak IS NULL OR p_id_anak = 0 THEN
+        SET v_skala_prioritas = 1;
+    ELSE
+        -- Jika ada id_anak, cari prioritas dari tabel anak
+        SELECT COALESCE(skala_prioritas, 0)
+        INTO v_skala_prioritas
+        FROM anak
+        WHERE id_anak = p_id_anak
+          AND id_ibu = p_id_ibu
+          AND deleted_at IS NULL
+        LIMIT 1;
+    END IF;
 
     IF v_skala_prioritas NOT IN (1, 2, 3) THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Skala prioritas anak tidak valid atau belum diisi.';
+        SET MESSAGE_TEXT = 'Skala prioritas penerima tidak valid atau belum diisi.';
     END IF;
 
+    -- ==========================================
+    -- 2. PENGECEKAN PAKET
+    -- ==========================================
     SELECT COALESCE(id_paket, 0)
     INTO v_id_paket
     FROM paket_gizi
@@ -169,7 +181,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_prioritas_a
 
     IF v_id_paket <= 0 THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Paket gizi untuk prioritas anak belum tersedia atau tidak aktif.';
+        SET MESSAGE_TEXT = 'Paket gizi untuk prioritas ini belum tersedia atau tidak aktif.';
     END IF;
 
     SELECT COUNT(*)
@@ -182,6 +194,9 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_prioritas_a
         SET MESSAGE_TEXT = 'Paket gizi belum memiliki detail komoditas.';
     END IF;
 
+    -- ==========================================
+    -- 3. PENGECEKAN STOK
+    -- ==========================================
     SELECT COUNT(*)
     INTO v_stok_kurang
     FROM paket_gizi_detail pgd
@@ -193,9 +208,12 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_prioritas_a
 
     IF v_stok_kurang > 0 THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Stok posyandu tidak mencukupi untuk paket prioritas anak.';
+        SET MESSAGE_TEXT = 'Stok posyandu tidak mencukupi untuk paket prioritas ini.';
     END IF;
 
+    -- ==========================================
+    -- 4. INSERT DATA PENYERAHAN
+    -- ==========================================
     SET v_no_penyerahan = CONCAT(
         'PNY-',
         DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
@@ -215,7 +233,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_prioritas_a
     ) VALUES (
         v_no_penyerahan,
         p_id_ibu,
-        p_id_anak,
+        NULLIF(p_id_anak, 0), -- Akan menjadi NULL di database jika dikirim 0/NULL
         p_id_gudang,
         v_id_paket,
         p_tanggal_penyerahan,
@@ -225,6 +243,9 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_buat_penyerahan_dari_prioritas_a
 
     SET p_id_penyerahan = LAST_INSERT_ID();
 
+    -- ==========================================
+    -- 5. INSERT DATA DETAIL PENYERAHAN
+    -- ==========================================
     INSERT INTO t_penyerahan_detail (
         id_penyerahan,
         id_komoditas,
@@ -266,7 +287,7 @@ CREATE TABLE `anak` (
 --
 
 INSERT INTO `anak` (`id_anak`, `id_ibu`, `NIK_anak`, `nama_anak`, `tgl_lahir`, `jenis_kelamin`, `st_gizi_skrg`, `skala_prioritas`, `tgl_created`, `deleted_at`) VALUES
-(1, 7, '3275011503210001', 'Bima Pratama', '2021-03-15', 'L', 'Prioritas 1', '1', '2026-07-02 06:22:01', NULL),
+(1, 7, '3275012011230001', 'Bima Pratama', '2021-03-15', 'L', 'Prioritas 1', '1', '2026-07-02 06:22:01', NULL),
 (2, 7, '3275011006220002', 'Citra Aulia', '2022-06-10', 'P', 'Prioritas 2', '2', '2026-07-02 06:22:01', NULL),
 (3, 8, '3275012011230003', 'Daffa Alfarizi', '2023-11-20', 'L', 'Prioritas 3', '3', '2026-07-02 06:22:01', NULL),
 (4, 9, '3275010505210004', 'Eka Maharani', '2021-05-05', 'P', 'Prioritas 1', '1', '2026-07-02 06:22:01', NULL),
@@ -298,7 +319,8 @@ INSERT INTO `gudang` (`id_gudang`, `nama_gudang`, `lokasi_gudang`, `jenis_gudang
 (1, 'Gudang Pusat Sehat Sentosa', 'Bekasi Selatan', 'Pusat', 'Jl. Sentosa Raya No. 10, Bekasi Selatan', 'Admin Pusat', '2026-07-02 06:22:01', 0),
 (2, 'Gudang Pusat Harapan Gizi', 'Bekasi Timur', 'Pusat', 'Jl. Harapan Gizi No. 22, Bekasi Timur', 'Admin Cabang', '2026-07-02 06:22:01', 0),
 (3, 'Posyandu Melati', 'Rawalumbu', 'Posyandu', 'Jl. Melati Indah No. 5, Rawalumbu', 'Kader Melati', '2026-07-02 06:22:01', 0),
-(4, 'Posyandu Kenanga', 'Mustika Jaya', 'Posyandu', 'Jl. Kenanga Asri No. 8, Mustika Jaya', 'Kader Kenanga', '2026-07-02 06:22:01', 0);
+(4, 'Posyandu Kenanga', 'Mustika Jaya', 'Posyandu', 'Jl. Kenanga Asri No. 8, Mustika Jaya', 'Kader Kenanga', '2026-07-02 06:22:01', 0),
+(5, 'Posyandu Kamboja', 'Kamboja kembang', 'Posyandu', 'kembang kamboja raya', 'kader kamboja', '2026-07-08 18:18:25', 0);
 
 -- --------------------------------------------------------
 
@@ -401,19 +423,19 @@ CREATE TABLE `paket_gizi_detail` (
 --
 
 INSERT INTO `paket_gizi_detail` (`id_paket_detail`, `id_paket`, `id_komoditas`, `jumlah`, `tgl_created`) VALUES
-(1, 1, 1, '1.50', '2026-07-02 06:22:01'),
-(2, 1, 2, '10.00', '2026-07-02 06:22:01'),
-(3, 1, 3, '2.00', '2026-07-02 06:22:01'),
-(4, 1, 4, '1.00', '2026-07-02 06:22:01'),
-(5, 1, 5, '5.00', '2026-07-02 06:22:01'),
 (6, 2, 1, '1.00', '2026-07-02 06:22:01'),
 (7, 2, 2, '8.00', '2026-07-02 06:22:01'),
 (8, 2, 3, '1.00', '2026-07-02 06:22:01'),
 (9, 2, 5, '3.00', '2026-07-02 06:22:01'),
 (10, 2, 6, '1.00', '2026-07-02 06:22:01'),
-(11, 3, 2, '4.00', '2026-07-02 06:22:01'),
-(12, 3, 3, '1.00', '2026-07-02 06:22:01'),
-(13, 3, 5, '2.00', '2026-07-02 06:22:01');
+(31, 3, 5, '2.00', '2026-07-10 03:13:19'),
+(32, 3, 3, '1.00', '2026-07-10 03:13:19'),
+(33, 3, 2, '4.00', '2026-07-10 03:13:19'),
+(39, 1, 5, '5.00', '2026-07-10 03:16:19'),
+(40, 1, 1, '1.50', '2026-07-10 03:16:19'),
+(41, 1, 3, '2.00', '2026-07-10 03:16:19'),
+(42, 1, 2, '10.00', '2026-07-10 03:16:19'),
+(43, 1, 4, '1.00', '2026-07-10 03:16:19');
 
 -- --------------------------------------------------------
 
@@ -791,10 +813,10 @@ CREATE TABLE `stok_log` (
 --
 
 INSERT INTO `stok_log` (`id_stok_log`, `id_gudang`, `id_komoditas`, `qty_in`, `qty_out`, `last_updated`) VALUES
-(1, 1, 1, '420.00', '20.00', '2026-07-02 06:22:01'),
+(1, 1, 1, '420.00', '30.00', '2026-07-10 03:30:33'),
 (2, 1, 2, '3000.00', '200.00', '2026-07-02 06:22:01'),
 (3, 1, 3, '280.00', '30.00', '2026-07-02 06:22:01'),
-(4, 1, 4, '150.00', '0.00', '2026-07-02 06:22:01'),
+(4, 1, 4, '150.00', '5.00', '2026-07-10 04:21:17'),
 (5, 1, 5, '600.00', '60.00', '2026-07-02 06:22:01'),
 (6, 1, 6, '150.00', '0.00', '2026-07-02 06:22:01'),
 (7, 1, 7, '200.00', '0.00', '2026-07-02 06:22:01'),
@@ -805,7 +827,7 @@ INSERT INTO `stok_log` (`id_stok_log`, `id_gudang`, `id_komoditas`, `qty_in`, `q
 (12, 2, 5, '350.00', '0.00', '2026-07-02 06:22:01'),
 (13, 2, 6, '145.00', '0.00', '2026-07-02 06:22:01'),
 (14, 2, 7, '150.00', '0.00', '2026-07-02 06:22:01'),
-(15, 3, 1, '60.00', '1.50', '2026-07-02 06:22:01'),
+(15, 3, 1, '70.00', '1.50', '2026-07-10 04:41:48'),
 (16, 3, 2, '440.00', '10.00', '2026-07-02 06:22:01'),
 (17, 3, 3, '90.00', '2.00', '2026-07-02 06:22:01'),
 (18, 3, 4, '25.00', '1.00', '2026-07-02 06:22:01'),
@@ -815,7 +837,7 @@ INSERT INTO `stok_log` (`id_stok_log`, `id_gudang`, `id_komoditas`, `qty_in`, `q
 (22, 4, 1, '30.00', '1.50', '2026-07-02 06:22:01'),
 (23, 4, 2, '180.00', '10.00', '2026-07-02 06:22:01'),
 (24, 4, 3, '45.00', '2.00', '2026-07-02 06:22:01'),
-(25, 4, 4, '20.00', '1.00', '2026-07-02 06:22:01'),
+(25, 4, 4, '25.00', '1.00', '2026-07-10 04:21:17'),
 (26, 4, 5, '90.00', '5.00', '2026-07-02 06:22:01'),
 (27, 4, 6, '35.00', '0.00', '2026-07-02 06:22:01'),
 (28, 4, 7, '25.00', '0.00', '2026-07-02 06:22:01');
@@ -849,7 +871,30 @@ CREATE TABLE `t_distribusi` (
 INSERT INTO `t_distribusi` (`id_distribusi`, `no_distribusi`, `id_gudang_asal`, `id_gudang_tujuan`, `tanggal_distribusi`, `status_distribusi`, `catatan`, `created_by`, `received_by`, `received_at`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
 (1, 'DIST-202607-001', 1, 3, '2026-07-02', 'Diterima', 'Distribusi rutin untuk Posyandu Melati.', 1, 3, '2026-07-02 09:00:00', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
 (2, 'DIST-202607-002', 1, 4, '2026-07-03', 'Dikirim', 'Distribusi menunggu diterima oleh Posyandu Kenanga.', 1, NULL, NULL, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(3, 'DIST-202607-003', 2, 4, '2026-07-03', 'Dibatalkan', 'Distribusi contoh yang dibatalkan.', 2, NULL, NULL, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
+(3, 'DIST-202607-003', 2, 4, '2026-07-03', 'Dibatalkan', 'Distribusi contoh yang dibatalkan.', 2, NULL, NULL, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(4, 'DIST-20260710-001', 1, 3, '2026-07-10', 'Diterima', 'cjvkb', 1, 3, '2026-07-10 10:30:33', '2026-07-10 03:30:02', '2026-07-10 03:30:33', NULL),
+(5, 'DIST-20260710-002', 1, 3, '2026-07-10', 'Dibatalkan', 'cjvkb', 1, NULL, NULL, '2026-07-10 03:31:43', '2026-07-10 03:31:45', NULL),
+(6, 'DIST-20260710-003', 1, 4, '2026-07-10', 'Diterima', '', 1, 4, '2026-07-10 11:21:17', '2026-07-10 04:20:45', '2026-07-10 04:21:17', NULL),
+(7, 'DIST-20260710-004', 1, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:23:46', '2026-07-10 04:23:46', NULL),
+(8, 'DIST-20260710-005', 1, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:25:23', '2026-07-10 04:25:23', NULL),
+(9, 'DIST-20260710-006', 1, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:25:32', '2026-07-10 04:25:32', NULL),
+(10, 'DIST-20260710-007', 2, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:25:53', '2026-07-10 04:25:53', NULL),
+(11, 'DIST-20260710-008', 2, 3, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:26:05', '2026-07-10 04:26:05', NULL),
+(12, 'DIST-20260710-009', 1, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:26:13', '2026-07-10 04:26:13', NULL),
+(13, 'DIST-20260710-010', 1, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:26:20', '2026-07-10 04:26:20', NULL),
+(14, 'DIST-20260710-011', 1, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:26:28', '2026-07-10 04:26:28', NULL),
+(15, 'DIST-20260710-012', 1, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:26:35', '2026-07-10 04:26:35', NULL),
+(16, 'DIST-20260710-013', 1, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:27:32', '2026-07-10 04:27:32', NULL),
+(17, 'DIST-20260710-014', 2, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:27:39', '2026-07-10 04:27:39', NULL),
+(18, 'DIST-20260710-015', 2, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:27:46', '2026-07-10 04:27:46', NULL),
+(19, 'DIST-20260710-016', 2, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:27:55', '2026-07-10 04:27:55', NULL),
+(20, 'DIST-20260710-017', 1, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:28:12', '2026-07-10 04:28:12', NULL),
+(21, 'DIST-20260710-018', 1, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:28:19', '2026-07-10 04:28:19', NULL),
+(22, 'DIST-20260710-019', 2, 5, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:28:24', '2026-07-10 04:28:24', NULL),
+(23, 'DIST-20260710-020', 2, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:28:30', '2026-07-10 04:28:30', NULL),
+(24, 'DIST-20260710-021', 2, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:28:36', '2026-07-10 04:28:36', NULL),
+(25, 'DIST-20260710-022', 2, 3, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:28:43', '2026-07-10 04:28:43', NULL),
+(26, 'DIST-20260710-023', 1, 4, '2026-07-10', 'Dikirim', '', 1, NULL, NULL, '2026-07-10 04:28:49', '2026-07-10 04:28:49', NULL);
 
 --
 -- Triggers `t_distribusi`
@@ -947,7 +992,30 @@ INSERT INTO `t_distribusi_detail` (`id_distribusi_detail`, `id_distribusi`, `id_
 (6, 2, 2, '120.00', '2026-07-02 06:22:01'),
 (7, 2, 3, '25.00', '2026-07-02 06:22:01'),
 (8, 2, 5, '40.00', '2026-07-02 06:22:01'),
-(9, 3, 7, '20.00', '2026-07-02 06:22:01');
+(9, 3, 7, '20.00', '2026-07-02 06:22:01'),
+(10, 4, 1, '10.00', '2026-07-10 03:30:02'),
+(11, 5, 2, '10.00', '2026-07-10 03:31:43'),
+(12, 6, 4, '5.00', '2026-07-10 04:20:45'),
+(13, 7, 2, '1.50', '2026-07-10 04:23:46'),
+(14, 8, 3, '3.00', '2026-07-10 04:25:23'),
+(15, 9, 7, '6.00', '2026-07-10 04:25:32'),
+(16, 10, 2, '6.00', '2026-07-10 04:25:53'),
+(17, 11, 7, '1.00', '2026-07-10 04:26:05'),
+(18, 12, 3, '1.00', '2026-07-10 04:26:13'),
+(19, 13, 7, '5.00', '2026-07-10 04:26:20'),
+(20, 14, 2, '1.00', '2026-07-10 04:26:28'),
+(21, 15, 1, '4.00', '2026-07-10 04:26:35'),
+(22, 16, 7, '3.00', '2026-07-10 04:27:32'),
+(23, 17, 2, '1.00', '2026-07-10 04:27:39'),
+(24, 18, 3, '4.00', '2026-07-10 04:27:46'),
+(25, 19, 7, '1.00', '2026-07-10 04:27:55'),
+(26, 20, 3, '1.00', '2026-07-10 04:28:12'),
+(27, 21, 5, '1.00', '2026-07-10 04:28:19'),
+(28, 22, 2, '1.00', '2026-07-10 04:28:24'),
+(29, 23, 1, '4.00', '2026-07-10 04:28:30'),
+(30, 24, 1, '5.00', '2026-07-10 04:28:36'),
+(31, 25, 3, '2.00', '2026-07-10 04:28:43'),
+(32, 26, 3, '2.00', '2026-07-10 04:28:49');
 
 -- --------------------------------------------------------
 
@@ -980,7 +1048,7 @@ INSERT INTO `t_pemeriksaan` (`id_pemeriksaan`, `id_anak`, `id_kader`, `tanggal_p
 (1, 1, 3, '2026-07-01', '11.20', '91.00', NULL, 63, 'Prioritas 1', 'Berat dan tinggi perlu pemantauan intensif.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
 (2, 2, 3, '2026-06-20', '12.80', '88.50', NULL, 48, 'Prioritas 2', 'Perlu dukungan pangan tambahan.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
 (3, 3, 3, '2026-06-22', '11.50', '81.00', NULL, 31, 'Prioritas 3', 'Pertumbuhan dalam pemantauan rutin.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(4, 4, 4, '2026-07-01', '10.90', '89.20', NULL, 62, 'Prioritas 1', 'Masuk prioritas tinggi untuk bantuan.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(4, 4, 4, '2026-07-01', '10.90', '89.20', NULL, 62, 'Prioritas 1', 'Masuk prioritas tinggi untuk bantuan.', '2026-07-02 06:22:01', '2026-07-10 07:44:50', NULL),
 (5, 5, 4, '2026-06-24', '12.20', '87.00', NULL, 46, 'Prioritas 2', 'Perlu pemantauan bulan berikutnya.', '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
 
 -- --------------------------------------------------------
@@ -1012,7 +1080,8 @@ INSERT INTO `t_pengadaan` (`id_pengadaan`, `id_petani`, `id_gudang`, `no_kontrak
 (2, 6, 1, 'REQ-202607-002', '2026-07-02', '1600000.00', 'Pending', 'Disetujui', 'Kontrak sudah disanggupi petani, menunggu verifikasi barang fisik.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
 (3, NULL, 2, 'REQ-202607-003', '2026-07-02', '1250000.00', 'Pending', 'Mencari Petani', 'Lowongan pengadaan terbuka untuk petani.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
 (4, NULL, 2, 'REQ-202607-004', '2026-07-02', '650000.00', 'Pending', 'Dibatalkan', 'Contoh pengadaan yang salah input lalu dibatalkan admin.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
-(5, 6, 2, 'REQ-202607-005', '2026-07-03', '1825000.00', 'Lunas', 'Disetujui', 'Pasokan telur, tempe, dan kacang hijau dari Kebun Sari Sejahtera.', '2026-07-02 06:22:01', '2026-07-02 06:22:01');
+(5, 6, 2, 'REQ-202607-005', '2026-07-03', '1825000.00', 'Lunas', 'Disetujui', 'Pasokan telur, tempe, dan kacang hijau dari Kebun Sari Sejahtera.', '2026-07-02 06:22:01', '2026-07-02 06:22:01'),
+(6, NULL, 1, 'REQ-202607-006', '2026-07-10', '0.00', 'Pending', 'Mencari Petani', '', '2026-07-10 03:25:52', '2026-07-10 03:25:52');
 
 --
 -- Triggers `t_pengadaan`
@@ -1065,7 +1134,8 @@ INSERT INTO `t_pengadaan_detail` (`id_pengadaan_detail`, `id_pengadaan`, `id_kom
 (8, 4, 7, '50.00', '13000.00'),
 (9, 5, 2, '500.00', '2500.00'),
 (10, 5, 4, '40.00', '10000.00'),
-(11, 5, 6, '25.00', '7000.00');
+(11, 5, 6, '25.00', '7000.00'),
+(12, 6, 5, '100.50', '1000.00');
 
 -- --------------------------------------------------------
 
@@ -1096,7 +1166,30 @@ CREATE TABLE `t_penyerahan` (
 INSERT INTO `t_penyerahan` (`id_penyerahan`, `no_penyerahan`, `id_ibu`, `id_anak`, `id_gudang`, `id_paket`, `tanggal_penyerahan`, `status_penyerahan`, `catatan`, `created_by`, `tgl_created`, `tgl_updated`, `deleted_at`) VALUES
 (1, 'PNY-20260702132201-144', 7, 1, 3, 1, '2026-07-02', 'Diserahkan', 'Bantuan prioritas tinggi untuk Bima.', 3, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
 (2, 'PNY-20260702132201-056', 8, 3, 3, 3, '2026-07-03', 'Diproses', 'Bantuan rutin untuk Daffa, masih diproses.', 3, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(3, 'PNY-20260702132201-851', 9, 4, 4, 1, '2026-07-02', 'Diserahkan', 'Bantuan prioritas tinggi untuk Eka.', 4, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
+(3, 'PNY-20260702132201-851', 9, 4, 4, 1, '2026-07-02', 'Diserahkan', 'Bantuan prioritas tinggi untuk Eka.', 4, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(4, 'PNY-20260710101330-013', 8, 3, 3, 3, '2026-07-10', 'Diproses', '', NULL, '2026-07-10 03:13:30', '2026-07-10 03:13:30', NULL),
+(5, 'PNY-20260710153859-557', 8, NULL, 3, 1, '2026-07-13', 'Diproses', '', NULL, '2026-07-10 08:38:59', '2026-07-10 08:38:59', NULL),
+(6, 'PNY-20260710153907-374', 7, 1, 3, 1, '2026-07-26', 'Diproses', '', NULL, '2026-07-10 08:39:07', '2026-07-10 08:39:07', NULL),
+(7, 'PNY-20260710153914-268', 7, 2, 3, 2, '2026-07-13', 'Diproses', '', NULL, '2026-07-10 08:39:14', '2026-07-10 08:39:14', NULL),
+(8, 'PNY-20260710153923-681', 8, 3, 3, 3, '2026-07-20', 'Diproses', '', NULL, '2026-07-10 08:39:23', '2026-07-10 08:39:23', NULL),
+(9, 'PNY-20260710153934-588', 8, NULL, 3, 1, '2026-07-12', 'Diproses', '', NULL, '2026-07-10 08:39:34', '2026-07-10 08:39:34', NULL),
+(10, 'PNY-20260710153940-989', 8, NULL, 3, 1, '2026-07-26', 'Diproses', '', NULL, '2026-07-10 08:39:40', '2026-07-10 08:39:40', NULL),
+(11, 'PNY-20260710153947-613', 7, 1, 3, 1, '2026-07-26', 'Diproses', '', NULL, '2026-07-10 08:39:47', '2026-07-10 08:39:47', NULL),
+(12, 'PNY-20260710153953-719', 8, NULL, 3, 1, '2026-07-21', 'Diproses', '', NULL, '2026-07-10 08:39:53', '2026-07-10 08:39:53', NULL),
+(13, 'PNY-20260710154002-298', 7, 1, 3, 1, '2026-07-06', 'Diproses', '', NULL, '2026-07-10 08:40:02', '2026-07-10 08:40:02', NULL),
+(14, 'PNY-20260710154008-801', 8, 3, 3, 3, '2026-07-12', 'Diproses', '', NULL, '2026-07-10 08:40:08', '2026-07-10 08:40:08', NULL),
+(15, 'PNY-20260710154015-404', 8, NULL, 3, 1, '2026-07-31', 'Diproses', '', NULL, '2026-07-10 08:40:15', '2026-07-10 08:40:15', NULL),
+(16, 'PNY-20260710154027-018', 8, NULL, 3, 1, '2026-07-10', 'Diproses', '', NULL, '2026-07-10 08:40:27', '2026-07-10 08:40:27', NULL),
+(17, 'PNY-20260710154035-923', 8, NULL, 3, 1, '2026-07-10', 'Diproses', '', NULL, '2026-07-10 08:40:35', '2026-07-10 08:40:35', NULL),
+(18, 'PNY-20260710154049-691', 8, NULL, 3, 1, '2026-07-21', 'Diproses', '', NULL, '2026-07-10 08:40:49', '2026-07-10 08:40:49', NULL),
+(19, 'PNY-20260710154055-722', 7, 1, 3, 1, '2026-07-08', 'Diproses', '', NULL, '2026-07-10 08:40:55', '2026-07-10 08:40:55', NULL),
+(20, 'PNY-20260710154102-457', 8, NULL, 3, 1, '2026-07-01', 'Diproses', '', NULL, '2026-07-10 08:41:02', '2026-07-10 08:41:02', NULL),
+(21, 'PNY-20260710154112-453', 8, NULL, 3, 1, '2026-07-01', 'Diproses', '', NULL, '2026-07-10 08:41:12', '2026-07-10 08:41:12', NULL),
+(22, 'PNY-20260710154121-280', 7, 1, 3, 1, '2026-07-01', 'Diproses', '', NULL, '2026-07-10 08:41:21', '2026-07-10 08:41:21', NULL),
+(23, 'PNY-20260710154127-533', 8, 3, 3, 3, '2026-07-20', 'Diproses', '', NULL, '2026-07-10 08:41:27', '2026-07-10 08:41:27', NULL),
+(24, 'PNY-20260710154134-414', 8, NULL, 3, 1, '2026-07-30', 'Diproses', '', NULL, '2026-07-10 08:41:34', '2026-07-10 08:41:34', NULL),
+(25, 'PNY-20260710154140-123', 7, 1, 3, 1, '2026-07-28', 'Diproses', '', NULL, '2026-07-10 08:41:40', '2026-07-10 08:41:40', NULL),
+(26, 'PNY-20260710154147-047', 7, 2, 3, 2, '2026-07-30', 'Diproses', '', NULL, '2026-07-10 08:41:47', '2026-07-10 08:41:47', NULL);
 
 --
 -- Triggers `t_penyerahan`
@@ -1180,7 +1273,114 @@ INSERT INTO `t_penyerahan_detail` (`id_penyerahan_detail`, `id_penyerahan`, `id_
 (12, 3, 2, '10.00', '2026-07-02 06:22:01'),
 (13, 3, 3, '2.00', '2026-07-02 06:22:01'),
 (14, 3, 4, '1.00', '2026-07-02 06:22:01'),
-(15, 3, 5, '5.00', '2026-07-02 06:22:01');
+(15, 3, 5, '5.00', '2026-07-02 06:22:01'),
+(20, 4, 5, '2.00', '2026-07-10 03:13:30'),
+(21, 4, 3, '1.00', '2026-07-10 03:13:30'),
+(22, 4, 2, '4.00', '2026-07-10 03:13:30'),
+(23, 5, 5, '5.00', '2026-07-10 08:38:59'),
+(24, 5, 1, '1.50', '2026-07-10 08:38:59'),
+(25, 5, 3, '2.00', '2026-07-10 08:38:59'),
+(26, 5, 2, '10.00', '2026-07-10 08:38:59'),
+(27, 5, 4, '1.00', '2026-07-10 08:38:59'),
+(30, 6, 5, '5.00', '2026-07-10 08:39:07'),
+(31, 6, 1, '1.50', '2026-07-10 08:39:07'),
+(32, 6, 3, '2.00', '2026-07-10 08:39:07'),
+(33, 6, 2, '10.00', '2026-07-10 08:39:07'),
+(34, 6, 4, '1.00', '2026-07-10 08:39:07'),
+(37, 7, 1, '1.00', '2026-07-10 08:39:14'),
+(38, 7, 2, '8.00', '2026-07-10 08:39:14'),
+(39, 7, 3, '1.00', '2026-07-10 08:39:14'),
+(40, 7, 5, '3.00', '2026-07-10 08:39:14'),
+(41, 7, 6, '1.00', '2026-07-10 08:39:14'),
+(44, 8, 5, '2.00', '2026-07-10 08:39:23'),
+(45, 8, 3, '1.00', '2026-07-10 08:39:23'),
+(46, 8, 2, '4.00', '2026-07-10 08:39:23'),
+(47, 9, 5, '5.00', '2026-07-10 08:39:34'),
+(48, 9, 1, '1.50', '2026-07-10 08:39:34'),
+(49, 9, 3, '2.00', '2026-07-10 08:39:34'),
+(50, 9, 2, '10.00', '2026-07-10 08:39:34'),
+(51, 9, 4, '1.00', '2026-07-10 08:39:34'),
+(54, 10, 5, '5.00', '2026-07-10 08:39:40'),
+(55, 10, 1, '1.50', '2026-07-10 08:39:40'),
+(56, 10, 3, '2.00', '2026-07-10 08:39:40'),
+(57, 10, 2, '10.00', '2026-07-10 08:39:40'),
+(58, 10, 4, '1.00', '2026-07-10 08:39:40'),
+(61, 11, 5, '5.00', '2026-07-10 08:39:47'),
+(62, 11, 1, '1.50', '2026-07-10 08:39:47'),
+(63, 11, 3, '2.00', '2026-07-10 08:39:47'),
+(64, 11, 2, '10.00', '2026-07-10 08:39:47'),
+(65, 11, 4, '1.00', '2026-07-10 08:39:47'),
+(68, 12, 5, '5.00', '2026-07-10 08:39:53'),
+(69, 12, 1, '1.50', '2026-07-10 08:39:53'),
+(70, 12, 3, '2.00', '2026-07-10 08:39:53'),
+(71, 12, 2, '10.00', '2026-07-10 08:39:53'),
+(72, 12, 4, '1.00', '2026-07-10 08:39:53'),
+(75, 13, 5, '5.00', '2026-07-10 08:40:02'),
+(76, 13, 1, '1.50', '2026-07-10 08:40:02'),
+(77, 13, 3, '2.00', '2026-07-10 08:40:02'),
+(78, 13, 2, '10.00', '2026-07-10 08:40:02'),
+(79, 13, 4, '1.00', '2026-07-10 08:40:02'),
+(82, 14, 5, '2.00', '2026-07-10 08:40:08'),
+(83, 14, 3, '1.00', '2026-07-10 08:40:08'),
+(84, 14, 2, '4.00', '2026-07-10 08:40:08'),
+(85, 15, 5, '5.00', '2026-07-10 08:40:15'),
+(86, 15, 1, '1.50', '2026-07-10 08:40:15'),
+(87, 15, 3, '2.00', '2026-07-10 08:40:15'),
+(88, 15, 2, '10.00', '2026-07-10 08:40:15'),
+(89, 15, 4, '1.00', '2026-07-10 08:40:15'),
+(92, 16, 5, '5.00', '2026-07-10 08:40:27'),
+(93, 16, 1, '1.50', '2026-07-10 08:40:27'),
+(94, 16, 3, '2.00', '2026-07-10 08:40:27'),
+(95, 16, 2, '10.00', '2026-07-10 08:40:27'),
+(96, 16, 4, '1.00', '2026-07-10 08:40:27'),
+(99, 17, 5, '5.00', '2026-07-10 08:40:35'),
+(100, 17, 1, '1.50', '2026-07-10 08:40:35'),
+(101, 17, 3, '2.00', '2026-07-10 08:40:35'),
+(102, 17, 2, '10.00', '2026-07-10 08:40:35'),
+(103, 17, 4, '1.00', '2026-07-10 08:40:35'),
+(106, 18, 5, '5.00', '2026-07-10 08:40:49'),
+(107, 18, 1, '1.50', '2026-07-10 08:40:49'),
+(108, 18, 3, '2.00', '2026-07-10 08:40:49'),
+(109, 18, 2, '10.00', '2026-07-10 08:40:49'),
+(110, 18, 4, '1.00', '2026-07-10 08:40:49'),
+(113, 19, 5, '5.00', '2026-07-10 08:40:55'),
+(114, 19, 1, '1.50', '2026-07-10 08:40:55'),
+(115, 19, 3, '2.00', '2026-07-10 08:40:55'),
+(116, 19, 2, '10.00', '2026-07-10 08:40:55'),
+(117, 19, 4, '1.00', '2026-07-10 08:40:55'),
+(120, 20, 5, '5.00', '2026-07-10 08:41:02'),
+(121, 20, 1, '1.50', '2026-07-10 08:41:02'),
+(122, 20, 3, '2.00', '2026-07-10 08:41:02'),
+(123, 20, 2, '10.00', '2026-07-10 08:41:02'),
+(124, 20, 4, '1.00', '2026-07-10 08:41:02'),
+(127, 21, 5, '5.00', '2026-07-10 08:41:12'),
+(128, 21, 1, '1.50', '2026-07-10 08:41:12'),
+(129, 21, 3, '2.00', '2026-07-10 08:41:12'),
+(130, 21, 2, '10.00', '2026-07-10 08:41:12'),
+(131, 21, 4, '1.00', '2026-07-10 08:41:12'),
+(134, 22, 5, '5.00', '2026-07-10 08:41:21'),
+(135, 22, 1, '1.50', '2026-07-10 08:41:21'),
+(136, 22, 3, '2.00', '2026-07-10 08:41:21'),
+(137, 22, 2, '10.00', '2026-07-10 08:41:21'),
+(138, 22, 4, '1.00', '2026-07-10 08:41:21'),
+(141, 23, 5, '2.00', '2026-07-10 08:41:27'),
+(142, 23, 3, '1.00', '2026-07-10 08:41:27'),
+(143, 23, 2, '4.00', '2026-07-10 08:41:27'),
+(144, 24, 5, '5.00', '2026-07-10 08:41:34'),
+(145, 24, 1, '1.50', '2026-07-10 08:41:34'),
+(146, 24, 3, '2.00', '2026-07-10 08:41:34'),
+(147, 24, 2, '10.00', '2026-07-10 08:41:34'),
+(148, 24, 4, '1.00', '2026-07-10 08:41:34'),
+(151, 25, 5, '5.00', '2026-07-10 08:41:40'),
+(152, 25, 1, '1.50', '2026-07-10 08:41:40'),
+(153, 25, 3, '2.00', '2026-07-10 08:41:40'),
+(154, 25, 2, '10.00', '2026-07-10 08:41:40'),
+(155, 25, 4, '1.00', '2026-07-10 08:41:40'),
+(158, 26, 1, '1.00', '2026-07-10 08:41:47'),
+(159, 26, 2, '8.00', '2026-07-10 08:41:47'),
+(160, 26, 3, '1.00', '2026-07-10 08:41:47'),
+(161, 26, 5, '3.00', '2026-07-10 08:41:47'),
+(162, 26, 6, '1.00', '2026-07-10 08:41:47');
 
 -- --------------------------------------------------------
 
@@ -1205,16 +1405,17 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id_user`, `username`, `password`, `role`, `id_gudang`, `is_active`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'admin_pusat', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Admin', 1, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(2, 'admin_cabang', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Admin', 2, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(3, 'kader_melati', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Kader', 3, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(4, 'kader_kenanga', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Kader', 4, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(1, 'admin_pusat', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Admin', 1, 1, '2026-07-02 06:22:01', '2026-07-08 17:48:07', NULL),
+(2, 'admin_cabang', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Admin', 2, 1, '2026-07-02 06:22:01', '2026-07-09 02:08:27', NULL),
+(3, 'kader_melati', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Kader', 3, 1, '2026-07-02 06:22:01', '2026-07-08 18:12:53', NULL),
+(4, 'kader_kenanga', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Kader', 4, 1, '2026-07-02 06:22:01', '2026-07-08 08:23:18', NULL),
 (5, 'petani_budi', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Petani', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
 (6, 'petani_sari', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Petani', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
 (7, 'ibu_ani', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(8, 'ibu_rina', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(8, 'ibu_rina', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-09 06:39:24', NULL),
 (9, 'ibu_dewi', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
-(10, 'ibu_maya', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL);
+(10, 'ibu_maya', '$2y$12$y7daeVOsdQ.kHXYeRtl0b.TU9GP9aXAZC6pE7E6D2pzYWYoLG7RNW', 'Ibu', NULL, 1, '2026-07-02 06:22:01', '2026-07-02 06:22:01', NULL),
+(14, 'petani', '$2y$10$6d6/451w8rlbFApweLN7Yu8QmOVxVTU4HkwrTk3lIAWgsOC0T2IDO', 'Petani', NULL, 1, '2026-07-10 07:54:55', '2026-07-10 07:54:55', NULL);
 
 --
 -- Indexes for dumped tables
@@ -1387,13 +1588,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `anak`
 --
 ALTER TABLE `anak`
-  MODIFY `id_anak` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_anak` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `gudang`
 --
 ALTER TABLE `gudang`
-  MODIFY `id_gudang` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_gudang` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `komoditas_pangan`
@@ -1411,7 +1612,7 @@ ALTER TABLE `paket_gizi`
 -- AUTO_INCREMENT for table `paket_gizi_detail`
 --
 ALTER TABLE `paket_gizi_detail`
-  MODIFY `id_paket_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id_paket_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT for table `petani_lahan_komoditas`
@@ -1435,55 +1636,55 @@ ALTER TABLE `standar_pertumbuhan`
 -- AUTO_INCREMENT for table `stok_log`
 --
 ALTER TABLE `stok_log`
-  MODIFY `id_stok_log` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id_stok_log` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `t_distribusi`
 --
 ALTER TABLE `t_distribusi`
-  MODIFY `id_distribusi` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_distribusi` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `t_distribusi_detail`
 --
 ALTER TABLE `t_distribusi_detail`
-  MODIFY `id_distribusi_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_distribusi_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `t_pemeriksaan`
 --
 ALTER TABLE `t_pemeriksaan`
-  MODIFY `id_pemeriksaan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_pemeriksaan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `t_pengadaan`
 --
 ALTER TABLE `t_pengadaan`
-  MODIFY `id_pengadaan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_pengadaan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `t_pengadaan_detail`
 --
 ALTER TABLE `t_pengadaan_detail`
-  MODIFY `id_pengadaan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id_pengadaan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `t_penyerahan`
 --
 ALTER TABLE `t_penyerahan`
-  MODIFY `id_penyerahan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_penyerahan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `t_penyerahan_detail`
 --
 ALTER TABLE `t_penyerahan_detail`
-  MODIFY `id_penyerahan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id_penyerahan_detail` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=163;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id_user` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_user` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- Constraints for dumped tables
