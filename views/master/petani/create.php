@@ -134,7 +134,7 @@
 
                             <input
                                 id="no_rekening"
-                                type="text"
+                                type="number"
                                 name="no_rekening"
                                 placeholder="Contoh: 1234567890"
                                 class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-100">

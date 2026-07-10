@@ -5,6 +5,7 @@ $pageTitle = 'Dashboard Ibu';
 $pageSubtitle = 'Ringkasan data anak, status gizi, dan riwayat bantuan.';
 
 $anaks = $anaks ?? [];
+$ibu = $ibu ?? [];
 
 $formatAngka = function ($value) {
     $value = (float) $value;
@@ -66,6 +67,10 @@ foreach ($anaks as $anak) {
     if ($prioritasTertinggi === null || $prioritas < $prioritasTertinggi) {
         $prioritasTertinggi = $prioritas;
     }
+}
+
+if ((int)($ibu['is_pregnant'] ?? 0) === 1) {
+    $prioritasTertinggi = 1;
 }
 
 $anakTerbaru = null;
@@ -246,6 +251,16 @@ ob_start();
                             </span>
                         </div>
 
+                        <div class="rounded-2xl bg-white p-4 mt-4">
+                            <p class="text-sm font-bold text-gray-700 mb-3">Tren Pertumbuhan</p>
+                            <?php if (count($anak['riwayat_grafik']) >= 2): ?>
+                                <canvas id="chart-anak-<?= $anak['id_anak']; ?>" height="120"></canvas>
+                            <?php else: ?>
+                                <p class="text-xs text-gray-400">Data belum cukup untuk menampilkan tren (minimal 2
+                                    pemeriksaan).</p>
+                            <?php endif; ?>
+                        </div>
+
                         <?php if (!empty($anak['tanggal_pemeriksaan_terakhir'])): ?>
                             <p class="text-sm text-gray-500">
                                 Pemeriksaan terakhir:
@@ -273,6 +288,17 @@ ob_start();
         </h2>
 
         <div class="space-y-4">
+            <?php if (($ibu['is_pregnant'] ?? 0) === 1): ?>
+                <div class="rounded-2xl bg-red-50 p-4 border border-red-100">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-sm font-bold text-red-700">Status Ibu: Hamil</p>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-red-600 text-white">Prioritas 1</span>
+                    </div>
+                    <p class="text-xs text-red-600/90">
+                        Karena status sedang hamil, Anda otomatis mendapatkan Prioritas 1 untuk pemantauan dan paket bantuan.
+                    </p>
+                </div>
+            <?php endif; ?>
             <div class="rounded-2xl bg-teal-50 p-4">
                 <p class="text-sm text-teal-700/80">
                     Paket bantuan akan mengikuti prioritas anak.
@@ -303,6 +329,33 @@ ob_start();
         </div>
     </div>
 </section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+<?php foreach ($anaks as $anak): ?>
+    <?php if (count($anak['riwayat_grafik']) >= 2): ?>
+                new Chart(document.getElementById('chart-anak-<?= $anak['id_anak']; ?>'), {
+                    type: 'line',
+                    data: {
+                        labels: <?= json_encode(array_map(fn($r) => date('M Y', strtotime($r['tanggal_pemeriksaan'])), $anak['riwayat_grafik'])); ?>,
+                    datasets: [{
+                        label: 'Berat Badan (Kg)',
+                        data: <?= json_encode(array_map(fn($r) => (float) $r['berat_badan'], $anak['riwayat_grafik'])); ?>,
+                        borderColor: '#0f766e',
+                        backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                }]
+            },
+                    options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: false } }
+                }
+        });
+    <?php endif; ?>
+<?php endforeach; ?>
+</script>
 
 <?php
 $content = ob_get_clean();

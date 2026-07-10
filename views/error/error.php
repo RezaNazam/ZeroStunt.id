@@ -19,8 +19,8 @@
             <!-- Logo -->
             <a href="/landing"
                 class="mb-10 inline-flex items-center gap-3 text-xl font-extrabold text-teal-800">
-                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-100">
-                    🌱
+                <span class="w-11 h-11 rounded-2xl bg-white text-teal-700 flex items-center justify-center text-sm font-extrabold shadow-lg">
+                    ZS
                 </span>
 
                 <span>
@@ -36,11 +36,11 @@
                 <div class="relative z-10">
                     <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50 text-4xl">
                         <?php if ($errorCode === 404): ?>
-                            🔍
+                            <i class="fa-solid fa-file-circle-question text-blue-500"></i>
                         <?php elseif ($errorCode === 403): ?>
-                            🛡️
+                            <i class="fa-solid fa-user-lock text-red-500"></i>
                         <?php else: ?>
-                            ⚠️
+                            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
                         <?php endif; ?>
                     </div>
 

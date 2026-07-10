@@ -1,6 +1,6 @@
 <?php
-$pageTitle = 'Master User';
-$pageSubtitle = 'Kelola data user untuk pengelola sistem ZeroStunt.id.';
+$pageTitle = 'Data Petugas';
+$pageSubtitle = 'Kelola data petugas pengelola sistem ZeroStunt.id.';
 
 $users = $users ?? [];
 $tablePagination = $tablePagination ?? [];
@@ -11,7 +11,7 @@ $tablePagination = $tablePagination ?? [];
 |--------------------------------------------------------------------------
 */
 $tableRows = $users;
-$tableEmptyMessage = 'Belum ada data user.';
+$tableEmptyMessage = 'Belum ada data petugas.';
 
 $tableColumns = [
     [
@@ -56,6 +56,15 @@ $tableColumns = [
     [
         'label' => 'Status',
         'render' => function ($row) {
+            if (!empty($row['deleted_at'])) {
+                return '
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-red-700">
+                        <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                        Dihapus
+                    </span>
+                ';
+            }
+
             if (!empty($row['is_active'])) {
                 return '
                     <span class="inline-flex items-center gap-1.5 font-semibold text-green-700">
@@ -80,6 +89,12 @@ $tableColumns = [
         'render' => function ($row) {
             $id = urlencode($row['id_user']);
 
+            // Pengecekan: Jika data sudah dihapus, jangan tampilkan tombol aksi
+            if (!empty($row['deleted_at'])) {
+                return '<span class="text-xs font-semibold text-gray-400 italic">-</span>';
+            }
+
+            // Jika data belum dihapus, tampilkan tombol Edit dan Hapus
             return '
                 <div class="flex justify-end gap-2">
                     <a href="/master/users/edit?id=' . $id . '"
@@ -120,16 +135,16 @@ ob_start();
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h2 class="text-2xl font-extrabold text-gray-900">
-                Data User
+                Data Petugas
             </h2>
             <p class="text-sm text-gray-500 mt-1">
-                Daftar User dalam sistem ZeroStunt.id yang digunakan untuk mengelola aplikasi.
+                Daftar Petugas dalam sistem ZeroStunt.id yang digunakan untuk mengelola aplikasi.
             </p>
         </div>
 
         <a href="/master/users/create"
             class="inline-flex items-center justify-center rounded-2xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700">
-            + Tambah User
+            + Tambah Petugas
         </a>
     </div>
 
@@ -153,7 +168,7 @@ ob_start();
         <div class="border-b border-gray-100 px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h3 class="text-lg font-extrabold text-gray-900">
-                    Tabel User
+                    Tabel Data Petugas
                 </h3>
                 <p class="text-sm text-gray-500 mt-1">
                     Total data: <?= $tablePagination['total_data'] ?? count($users); ?> user

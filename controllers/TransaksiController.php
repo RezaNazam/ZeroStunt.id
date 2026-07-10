@@ -235,6 +235,7 @@ class TransaksiController
                 s.singkat AS nama_satuan 
             FROM komoditas_pangan k
             JOIN satuan s ON k.id_satuan = s.id_satuan
+            WHERE k.is_deleted = 0
             ORDER BY k.nama_komoditas ASC
         ";
 
@@ -439,15 +440,23 @@ class TransaksiController
         $userModel = new User();
         $currentUser = $userModel->findByid($_SESSION['user_id']);
 
-        // Ini yang penting: id_gudang tidak dipercaya dari POST
         $idGudang = (int) ($currentUser['id_gudang'] ?? 0);
-
         $idIbu = (int) ($_POST['id_ibu'] ?? 0);
-        $idAnak = (int) ($_POST['id_anak'] ?? 0);
+        
+        // --- 1. TANGKAP DATA POST ANAK SEBAGAI STRING DULU ---
+        $idAnakPost = $_POST['id_anak'] ?? ''; 
         $tanggalPenyerahan = $_POST['tanggal_penyerahan'] ?? '';
         $catatan = trim($_POST['catatan'] ?? '');
 
-        if ($idIbu <= 0 || $idAnak <= 0 || $idGudang <= 0 || $tanggalPenyerahan === '') {
+        // --- 2. CEK APAKAH INI UNTUK IBU HAMIL ATAU ANAK ---
+        $isIbuHamil = ($idAnakPost === 'ibu_hamil');
+        
+        // Jika ibu hamil, set idAnak = null. Jika bukan, ubah jadi integer
+        $idAnak = $isIbuHamil ? null : (int) $idAnakPost;
+
+        // --- 3. UBAH VALIDASI FORM KOSONG ---
+        // Jika bukan ibu hamil, pastikan $idAnak > 0
+        if ($idIbu <= 0 || $idGudang <= 0 || $tanggalPenyerahan === '' || (!$isIbuHamil && $idAnak <= 0)) {
             $_SESSION['error'] = 'Data penyerahan belum lengkap atau akun belum terhubung dengan gudang.';
             header('Location: /transaksi/penyerahan/create');
             exit;
@@ -463,26 +472,34 @@ class TransaksiController
                 exit;
             }
 
-            // Validasi: anak harus milik ibu tersebut dan dari gudang yang sama
-            if (!$penyerahanModel->isAnakValidForPenyerahan($idAnak, $idIbu, $idGudang)) {
-                $_SESSION['error'] = 'Data anak tidak sesuai dengan ibu penerima atau posyandu Anda.';
-                header('Location: /transaksi/penyerahan/create');
-                exit;
+            // --- 4. LEWATI VALIDASI ANAK JIKA YANG DIPILIH ADALAH IBU HAMIL ---
+            if (!$isIbuHamil) {
+                if (!$penyerahanModel->isAnakValidForPenyerahan($idAnak, $idIbu, $idGudang)) {
+                    $_SESSION['error'] = 'Data anak tidak sesuai dengan ibu penerima atau posyandu Anda.';
+                    header('Location: /transaksi/penyerahan/create');
+                    exit;
+                }
             }
 
+            // --- 5. SIMPAN KE DATABASE ---
+            // Pastikan model createFromPrioritasAnak bisa menerima parameter $idAnak bernilai NULL
             $idPenyerahan = $penyerahanModel->createFromPrioritasAnak(
                 $idIbu,
-                $idAnak,
+                $idAnak, // <-- Ini sekarang bernilai null kalau milih opsi Ibu Hamil
                 $idGudang,
                 $tanggalPenyerahan,
                 $catatan
             );
 
             if ($idPenyerahan <= 0) {
-                throw new Exception('Gagal membuat penyerahan berdasarkan prioritas anak.');
+                throw new Exception('Gagal membuat penyerahan bantuan.');
             }
 
-            $_SESSION['success'] = 'Penyerahan bantuan berhasil dibuat berdasarkan prioritas anak.';
+            $pesanSukses = $isIbuHamil 
+                ? 'Penyerahan bantuan untuk Ibu Hamil (Prioritas 1) berhasil dibuat.' 
+                : 'Penyerahan bantuan berhasil dibuat berdasarkan prioritas anak.';
+
+            $_SESSION['success'] = $pesanSukses;
             header('Location: /transaksi/penyerahan');
             exit;
         } catch (Throwable $e) {
@@ -1155,21 +1172,6 @@ class TransaksiController
 
         header('Location: /transaksi/pemeriksaan');
         exit;
-    }
-
-    private function getSkalaPrioritasByStatusGizi($statusGizi)
-    {
-        $status = strtolower(trim($statusGizi));
-
-        if (str_contains($status, 'stunting') || str_contains($status, 'risiko')) {
-            return 1;
-        }
-
-        if (str_contains($status, 'kurang')) {
-            return 2;
-        }
-
-        return 3;
     }
 
     public function kalkulasiGizi()
