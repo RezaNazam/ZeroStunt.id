@@ -28,10 +28,17 @@ $tableColumns = [
     [
         'label' => 'Lokasi Gudang',
         'render' => function ($row) {
-            return '<span class="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">' .
+            return '<span class="truncate inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">' .
                 htmlspecialchars($row['lokasi_gudang']) .
                 '</span>';
         }
+    ],
+    [
+        'label' => 'Alamat Gudang',
+        'render' => function ($row) {
+            return htmlspecialchars($row['alamat_lengkap'] ?? '-');
+        },
+        'td_class' => 'text-gray-500'
     ],
     [
         'label' => 'Jenis Gudang',
