@@ -51,8 +51,22 @@ class DashboardController
             $idIbu = (int) $_SESSION['user_id'];
             $anaks = $anakModel->getByIbuIdWithLatestPemeriksaan($idIbu);
 
-            require '../views/dashboard/ibu.php';
-            exit;
+            if ($_SESSION['role'] === ROLE_IBU) {
+                $anakModel = new Anak();
+                $pemeriksaanModel = new Pemeriksaan();
+
+                $idIbu = (int) $_SESSION['user_id'];
+                $anaks = $anakModel->getByIbuIdWithLatestPemeriksaan($idIbu);
+
+                // Siapkan data grafik per anak
+                foreach ($anaks as &$anak) {
+                    $anak['riwayat_grafik'] = $pemeriksaanModel->getRiwayatUntukGrafik($anak['id_anak']);
+                }
+                unset($anak);
+
+                require '../views/dashboard/ibu.php';
+                exit;
+            }
         }
 
         // Kalo rolenya petani, redirect ke dashboard petani

@@ -14,7 +14,7 @@ class Pemeriksaan
     // Hitung status gizi dan skala prioritas otomatis
     // berdasarkan standar pertumbuhan WHO (BB/U & TB/U)
     // Logika:
-    //   - Cek BB/U dan TB/U, ambil z-score (perkiraan)
+    //   - Cek BB/U dan TB/U, klasifikasi berbasis ambang batas SD (perkiraan)
     //   - Z < -3 SD → Gizi Buruk/Stunting (Prioritas 1)
     //   - -3 SD <= Z < -2 SD → Gizi Kurang (Prioritas 2)
     //   - Z >= -2 SD → Normal (Prioritas 3)
@@ -71,7 +71,7 @@ class Pemeriksaan
         }
 
         return [
-            'status_gizi'     => $statusGizi,
+            'status_gizi' => $statusGizi,
             'skala_prioritas' => $skalaPrioritas,
         ];
     }
@@ -121,8 +121,8 @@ class Pemeriksaan
         while ($row = mysqli_fetch_assoc($result)) {
             $key = $row['jenis_kelamin'] . '_' . $row['tipe_standar'] . '_' . $row['usia_bulan'];
             $data[$key] = [
-                'median'     => (float) $row['median'],
-                'sd_plus_1'  => (float) $row['sd_plus_1'],
+                'median' => (float) $row['median'],
+                'sd_plus_1' => (float) $row['sd_plus_1'],
                 'sd_minus_1' => (float) $row['sd_minus_1'],
                 'sd_minus_2' => (float) $row['sd_minus_2'],
                 'sd_minus_3' => (float) $row['sd_minus_3'],
@@ -158,7 +158,8 @@ class Pemeriksaan
         ";
 
         $result = mysqli_query($this->db, $query);
-        if (!$result) return 0;
+        if (!$result)
+            return 0;
         $row = mysqli_fetch_assoc($result);
 
         return (int) ($row['total'] ?? 0);
@@ -419,5 +420,23 @@ class Pemeriksaan
         mysqli_stmt_close($stmt);
 
         return $executed;
+    }
+
+    // Ambil riwayat berat/tinggi badan per anak, untuk grafik tren
+    public function getRiwayatUntukGrafik($idAnak)
+    {
+        $query = "
+        SELECT tanggal_pemeriksaan, berat_badan, tinggi_badan
+        FROM t_pemeriksaan
+        WHERE id_anak = ? AND deleted_at IS NULL
+        ORDER BY tanggal_pemeriksaan ASC
+    ";
+
+        $stmt = mysqli_prepare($this->db, $query);
+        mysqli_stmt_bind_param($stmt, 'i', $idAnak);
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+        return mysqli_fetch_all($result, MYSQLI_ASSOC);
     }
 }

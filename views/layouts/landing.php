@@ -16,30 +16,27 @@
     <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
         <nav class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2 font-bold text-xl text-teal-700">
-                <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
+                <span
+                    class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
                     ZS
                 </span>
                 ZeroStunt<span class="text-amber-500">.id</span>
             </a>
 
             <div class="hidden md:flex items-center gap-8 text-sm text-gray-600">
-                <a href="#tentang" data-section="tentang"
-                    class="nav-link transition hover:text-teal-700">
+                <a href="#tentang" data-section="tentang" class="nav-link transition hover:text-teal-700">
                     Tentang
                 </a>
 
-                <a href="#cara-kerja" data-section="cara-kerja"
-                    class="nav-link transition hover:text-teal-700">
+                <a href="#cara-kerja" data-section="cara-kerja" class="nav-link transition hover:text-teal-700">
                     Cara Kerja
                 </a>
 
-                <a href="#fitur" data-section="fitur"
-                    class="nav-link transition hover:text-teal-700">
+                <a href="#fitur" data-section="fitur" class="nav-link transition hover:text-teal-700">
                     Fitur
                 </a>
 
-                <a href="#peran" data-section="peran"
-                    class="nav-link transition hover:text-teal-700">
+                <a href="#peran" data-section="peran" class="nav-link transition hover:text-teal-700">
                     Peran
                 </a>
             </div>
@@ -54,7 +51,8 @@
     <main>
         <section class="scroll-mt-24 max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-12 items-center">
             <div>
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-700 text-sm font-semibold mb-6">
+                <div
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-700 text-sm font-semibold mb-6">
                     Sistem Pencegahan Stunting Terintegrasi
                 </div>
 
@@ -63,7 +61,8 @@
                 </h1>
 
                 <p class="text-lg text-gray-500 leading-relaxed mb-8">
-                    ZeroStunt.id membantu puskesmas, kader posyandu, petani lokal, dan ibu penerima manfaat dalam pemantauan stunting, stok pangan, pengadaan, serta distribusi paket gizi.
+                    ZeroStunt.id membantu puskesmas, kader posyandu, petani lokal, dan ibu penerima manfaat dalam
+                    pemantauan stunting, stok pangan, pengadaan, serta distribusi paket gizi.
                 </p>
 
                 <div class="flex flex-col sm:flex-row gap-4">
@@ -112,23 +111,31 @@
                     </h2>
 
                     <p class="text-lg text-gray-500 leading-relaxed mb-8">
-                        ZeroStunt.id menghubungkan puskesmas, posyandu, petani lokal, dan ibu penerima manfaat dalam satu sistem untuk memantau status gizi anak, mengelola stok pangan, serta memastikan distribusi paket gizi tepat sasaran.
+                        ZeroStunt.id menghubungkan puskesmas, posyandu, petani lokal, dan ibu penerima manfaat dalam
+                        satu sistem untuk memantau status gizi anak, mengelola stok pangan, serta memastikan distribusi
+                        paket gizi tepat sasaran.
                     </p>
 
                     <div class="space-y-4">
                         <div class="flex gap-3">
-                            <span class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">✓</span>
-                            <p class="text-gray-700 font-medium">Pemantauan pertumbuhan anak berbasis Z-Score WHO 2006.</p>
+                            <span
+                                class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">✓</span>
+                            <p class="text-gray-700 font-medium">Pemantauan pertumbuhan anak berbasis Standar
+                                Antropometri WHO 2006.
+                            </p>
                         </div>
 
                         <div class="flex gap-3">
-                            <span class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">✓</span>
+                            <span
+                                class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">✓</span>
                             <p class="text-gray-700 font-medium">Supply chain pangan lokal dari petani ke posyandu.</p>
                         </div>
 
                         <div class="flex gap-3">
-                            <span class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">✓</span>
-                            <p class="text-gray-700 font-medium">Distribusi paket gizi berdasarkan prioritas kondisi anak.</p>
+                            <span
+                                class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">✓</span>
+                            <p class="text-gray-700 font-medium">Distribusi paket gizi berdasarkan prioritas kondisi
+                                anak.</p>
                         </div>
                     </div>
                 </div>
@@ -138,28 +145,32 @@
                         <div class="text-3xl mb-4 text-teal-600"><i class="fa-solid fa-fish-fins"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Ikan Nila Segar</h3>
                         <p class="text-sm text-gray-500 mb-3">Protein Hewani</p>
-                        <span class="text-xs bg-white text-teal-700 px-3 py-1 rounded-full font-semibold">Satuan: Kg</span>
+                        <span class="text-xs bg-white text-teal-700 px-3 py-1 rounded-full font-semibold">Satuan:
+                            Kg</span>
                     </div>
 
                     <div class="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                         <div class="text-3xl mb-4 text-amber-600"><i class="fa-solid fa-egg"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Telur Ayam Kampung</h3>
                         <p class="text-sm text-gray-500 mb-3">Protein + Mikronutrien</p>
-                        <span class="text-xs bg-white text-amber-700 px-3 py-1 rounded-full font-semibold">Satuan: Butir</span>
+                        <span class="text-xs bg-white text-amber-700 px-3 py-1 rounded-full font-semibold">Satuan:
+                            Butir</span>
                     </div>
 
                     <div class="bg-green-50 p-6 rounded-3xl border border-green-100">
                         <div class="text-3xl mb-4 text-green-600"><i class="fa-solid fa-leaf"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Sayur Hijau</h3>
                         <p class="text-sm text-gray-500 mb-3">Vitamin & Mineral</p>
-                        <span class="text-xs bg-white text-green-700 px-3 py-1 rounded-full font-semibold">Satuan: Kg</span>
+                        <span class="text-xs bg-white text-green-700 px-3 py-1 rounded-full font-semibold">Satuan:
+                            Kg</span>
                     </div>
 
                     <div class="bg-blue-50 p-6 rounded-3xl border border-blue-100">
                         <div class="text-3xl mb-4 text-blue-600"><i class="fa-solid fa-seedling"></i></div>
                         <h3 class="font-bold text-gray-900 mb-1">Kacang-kacangan</h3>
                         <p class="text-sm text-gray-500 mb-3">Protein Nabati</p>
-                        <span class="text-xs bg-white text-blue-700 px-3 py-1 rounded-full font-semibold">Satuan: Kg</span>
+                        <span class="text-xs bg-white text-blue-700 px-3 py-1 rounded-full font-semibold">Satuan:
+                            Kg</span>
                     </div>
                 </div>
             </div>
@@ -184,12 +195,15 @@
 
                 <!-- Supply Chain Steps -->
                 <div class="grid md:grid-cols-4 gap-6">
-                    <div class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-3xl mb-5">
+                    <div
+                        class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-3xl mb-5">
                             <i class="fa-solid fa-wheat-awn"></i>
                         </div>
 
-                        <span class="inline-block px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold mb-4">
+                        <span
+                            class="inline-block px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold mb-4">
                             Sumber
                         </span>
 
@@ -201,17 +215,21 @@
                             Petani lokal menyuplai komoditas pangan bergizi tinggi langsung ke sistem pengadaan.
                         </p>
 
-                        <div class="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 w-10 h-10 rounded-full bg-teal-600 text-white items-center justify-center font-bold z-10">
+                        <div
+                            class="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 w-10 h-10 rounded-full bg-teal-600 text-white items-center justify-center font-bold z-10">
                             →
                         </div>
                     </div>
 
-                    <div class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-3xl mb-5">
+                    <div
+                        class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-3xl mb-5">
                             <i class="fa-solid fa-box-archive"></i>
                         </div>
 
-                        <span class="inline-block px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-bold mb-4">
+                        <span
+                            class="inline-block px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-bold mb-4">
                             Pusat
                         </span>
 
@@ -223,17 +241,21 @@
                             Admin mencatat pengadaan, mengelola stok pusat, dan menyalurkan bahan pangan ke posyandu.
                         </p>
 
-                        <div class="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 w-10 h-10 rounded-full bg-teal-600 text-white items-center justify-center font-bold z-10">
+                        <div
+                            class="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 w-10 h-10 rounded-full bg-teal-600 text-white items-center justify-center font-bold z-10">
                             →
                         </div>
                     </div>
 
-                    <div class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-3xl mb-5">
+                    <div
+                        class="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-3xl mb-5">
                             <i class="fa-solid fa-truck"></i>
                         </div>
 
-                        <span class="inline-block px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold mb-4">
+                        <span
+                            class="inline-block px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold mb-4">
                             Distribusi
                         </span>
 
@@ -245,17 +267,20 @@
                             Kader menerima stok, melakukan pemeriksaan anak, dan menyerahkan paket gizi.
                         </p>
 
-                        <div class="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 w-10 h-10 rounded-full bg-teal-600 text-white items-center justify-center font-bold z-10">
+                        <div
+                            class="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 w-10 h-10 rounded-full bg-teal-600 text-white items-center justify-center font-bold z-10">
                             →
                         </div>
                     </div>
 
                     <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition">
-                        <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl mb-5">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl mb-5">
                             <i class="fa-solid fa-person-breastfeeding"></i>
                         </div>
 
-                        <span class="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-4">
+                        <span
+                            class="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-4">
                             Penerima
                         </span>
 
@@ -314,7 +339,8 @@
 
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-5">
-                                        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                                        <span
+                                            class="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
                                             Prioritas 2
                                         </span>
                                     </td>
@@ -333,7 +359,8 @@
 
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-5">
-                                        <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                                        <span
+                                            class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
                                             Prioritas 3
                                         </span>
                                     </td>
@@ -377,7 +404,8 @@
                     <!-- Feature 1 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-3xl">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-3xl">
                                 <i class="fa-solid fa-arrow-trend-up"></i>
                             </div>
 
@@ -387,7 +415,7 @@
                         </div>
 
                         <h3 class="text-xl font-bold text-gray-900 mb-3">
-                            Pemantauan Z-Score WHO
+                            Pemantauan Standar WHO
                         </h3>
 
                         <p class="text-sm text-gray-500 leading-relaxed">
@@ -399,7 +427,8 @@
                     <!-- Feature 2 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-3xl">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-3xl">
                                 <i class="fa-solid fa-seedling"></i>
                             </div>
 
@@ -421,7 +450,8 @@
                     <!-- Feature 3 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-3xl">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-3xl">
                                 <i class="fa-solid fa-box-archive"></i>
                             </div>
 
@@ -443,7 +473,8 @@
                     <!-- Feature 4 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl">
                                 <i class="fa-solid fa-chart-simple"></i>
                             </div>
 
@@ -465,7 +496,8 @@
                     <!-- Feature 5 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-3xl">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-3xl">
                                 <i class="fa-solid fa-shield-halved"></i>
                             </div>
 
@@ -475,7 +507,7 @@
                         </div>
 
                         <h3 class="text-xl font-bold text-gray-900 mb-3">
-                            RBAC Multi-Peran
+                            Akses Berbasis Peran
                         </h3>
 
                         <p class="text-sm text-gray-500 leading-relaxed">
@@ -487,7 +519,8 @@
                     <!-- Feature 6 -->
                     <div class="bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="flex items-start justify-between mb-5">
-                            <div class="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-3xl">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-3xl">
                                 <i class="fa-solid fa-hand-holding-heart"></i>
                             </div>
 
@@ -528,9 +561,11 @@
 
                 <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Role 1 -->
-                    <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
+                    <div
+                        class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="bg-gradient-to-br from-teal-700 to-teal-900 p-6">
-                            <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
                                 <i class="fa-solid fa-user-shield"></i>
                             </div>
 
@@ -562,9 +597,11 @@
                     </div>
 
                     <!-- Role 2 -->
-                    <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
+                    <div
+                        class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="bg-gradient-to-br from-green-600 to-green-800 p-6">
-                            <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
                                 <i class="fa-solid fa-users"></i>
                             </div>
 
@@ -596,9 +633,11 @@
                     </div>
 
                     <!-- Role 3 -->
-                    <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
+                    <div
+                        class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="bg-gradient-to-br from-amber-600 to-amber-800 p-6">
-                            <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
                                 <i class="fa-solid fa-wheat-awn"></i>
                             </div>
 
@@ -630,9 +669,11 @@
                     </div>
 
                     <!-- Role 4 -->
-                    <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
+                    <div
+                        class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition">
                         <div class="bg-gradient-to-br from-blue-600 to-blue-800 p-6">
-                            <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl mb-5">
                                 <i class="fa-solid fa-person-breastfeeding"></i>
                             </div>
 
@@ -702,7 +743,8 @@
                     <!-- Brand -->
                     <div class="md:col-span-2">
                         <a href="/" class="inline-flex items-center gap-2 font-bold text-xl text-teal-700 mb-4">
-                            <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
+                            <span
+                                class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-extrabold">
                                 ZS
                             </span>
                             ZeroStunt<span class="text-amber-500">.id</span>
@@ -766,15 +808,13 @@
         </footer>
     </main>
 
-    <button id="backToTop"
-        type="button"
-        aria-label="Kembali ke atas"
+    <button id="backToTop" type="button" aria-label="Kembali ke atas"
         class="fixed bottom-6 right-6 z-50 hidden h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-lg transition hover:bg-teal-700">
         <i class="fa-solid fa-arrow-up"></i>
     </button>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const navLinks = document.querySelectorAll('.nav-link');
             const sections = document.querySelectorAll('#tentang, #cara-kerja, #fitur, #peran');
             const backToTop = document.getElementById('backToTop');
@@ -785,7 +825,7 @@
             }
 
             function setActiveLink(sectionId) {
-                navLinks.forEach(function(link) {
+                navLinks.forEach(function (link) {
                     const isActive = link.dataset.section === sectionId;
 
                     link.classList.toggle('active', isActive);
@@ -802,7 +842,7 @@
                 const scrollPosition = window.scrollY + getHeaderOffset() + 40;
                 let currentSectionId = '';
 
-                sections.forEach(function(section) {
+                sections.forEach(function (section) {
                     if (scrollPosition >= section.offsetTop) {
                         currentSectionId = section.id;
                     }
@@ -811,7 +851,7 @@
                 if (currentSectionId) {
                     setActiveLink(currentSectionId);
                 } else {
-                    navLinks.forEach(function(link) {
+                    navLinks.forEach(function (link) {
                         link.classList.remove('active', 'text-teal-700', 'font-extrabold');
                     });
                 }
@@ -825,8 +865,8 @@
                 }
             }
 
-            document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
-                anchor.addEventListener('click', function(event) {
+            document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+                anchor.addEventListener('click', function (event) {
                     const targetId = this.getAttribute('href');
 
                     if (!targetId || targetId === '#') {
@@ -860,9 +900,9 @@
 
             let ticking = false;
 
-            window.addEventListener('scroll', function() {
+            window.addEventListener('scroll', function () {
                 if (!ticking) {
-                    window.requestAnimationFrame(function() {
+                    window.requestAnimationFrame(function () {
                         updateActiveSection();
                         ticking = false;
                     });
@@ -871,7 +911,7 @@
                 }
             });
 
-            backToTop.addEventListener('click', function() {
+            backToTop.addEventListener('click', function () {
                 window.scrollTo({
                     top: 0,
                     behavior: 'smooth'
@@ -879,7 +919,7 @@
 
                 history.pushState(null, '', window.location.pathname);
 
-                navLinks.forEach(function(link) {
+                navLinks.forEach(function (link) {
                     link.classList.remove('active', 'text-teal-700', 'font-extrabold');
                 });
             });

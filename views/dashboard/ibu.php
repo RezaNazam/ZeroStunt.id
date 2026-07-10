@@ -251,6 +251,16 @@ ob_start();
                             </span>
                         </div>
 
+                        <div class="rounded-2xl bg-white p-4 mt-4">
+                            <p class="text-sm font-bold text-gray-700 mb-3">Tren Pertumbuhan</p>
+                            <?php if (count($anak['riwayat_grafik']) >= 2): ?>
+                                <canvas id="chart-anak-<?= $anak['id_anak']; ?>" height="120"></canvas>
+                            <?php else: ?>
+                                <p class="text-xs text-gray-400">Data belum cukup untuk menampilkan tren (minimal 2
+                                    pemeriksaan).</p>
+                            <?php endif; ?>
+                        </div>
+
                         <?php if (!empty($anak['tanggal_pemeriksaan_terakhir'])): ?>
                             <p class="text-sm text-gray-500">
                                 Pemeriksaan terakhir:
@@ -319,6 +329,33 @@ ob_start();
         </div>
     </div>
 </section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+<?php foreach ($anaks as $anak): ?>
+    <?php if (count($anak['riwayat_grafik']) >= 2): ?>
+                new Chart(document.getElementById('chart-anak-<?= $anak['id_anak']; ?>'), {
+                    type: 'line',
+                    data: {
+                        labels: <?= json_encode(array_map(fn($r) => date('M Y', strtotime($r['tanggal_pemeriksaan'])), $anak['riwayat_grafik'])); ?>,
+                    datasets: [{
+                        label: 'Berat Badan (Kg)',
+                        data: <?= json_encode(array_map(fn($r) => (float) $r['berat_badan'], $anak['riwayat_grafik'])); ?>,
+                        borderColor: '#0f766e',
+                        backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                }]
+            },
+                    options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: false } }
+                }
+        });
+    <?php endif; ?>
+<?php endforeach; ?>
+</script>
 
 <?php
 $content = ob_get_clean();
