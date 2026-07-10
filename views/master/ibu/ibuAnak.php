@@ -8,6 +8,42 @@ $daftarAnak = $data['anak'] ?? [];
 $paginationIbu = $data['pagination_ibu'] ?? [];
 $paginationAnak = $data['pagination_anak'] ?? [];
 
+$getBadgeStatusGizi = function ($status) {
+    $status = strtolower(trim($status ?? ''));
+
+    if (
+        str_contains($status, 'prioritas 1') ||
+        str_contains($status, 'berisiko stunting') ||
+        str_contains($status, 'stunting') ||
+        str_contains($status, 'buruk')
+    ) {
+        return 'bg-red-100 text-red-700';
+    }
+
+    if (
+        str_contains($status, 'prioritas 2') ||
+        str_contains($status, 'perlu pemantauan') ||
+        str_contains($status, 'pemantauan') ||
+        str_contains($status, 'kurang')
+    ) {
+        return 'bg-amber-100 text-amber-700';
+    }
+
+    return 'bg-green-100 text-green-700';
+};
+
+$getBadgePrioritas = function ($prioritas) {
+    if ((int) $prioritas === 1) {
+        return 'bg-red-600 text-white';
+    }
+
+    if ((int) $prioritas === 2) {
+        return 'bg-amber-500 text-white';
+    }
+
+    return 'bg-gray-200 text-gray-700';
+};
+
 $ibuColumns = [
     [
         'label' => 'NIK',
@@ -83,7 +119,36 @@ $anakColumns = [
         'td_class' => 'font-medium text-gray-700'
     ],
     [
-        'label' => 'Posyandu/Gudang',
+        'label' => 'Status Gizi',
+        'render' => function ($anak) use ($getBadgeStatusGizi) {
+
+            if (($anak['st_gizi_skrg'] ?? '') === 'Prioritas 1') {
+                $status = 'Berisiko Stunting';
+            } elseif (($anak['st_gizi_skrg'] ?? '') === 'Prioritas 2') {
+                $status = 'Perlu Pemantauan';
+            } else {
+                $status = 'Normal';
+            }
+
+            return '<span class="px-2.5 py-1 text-xs font-bold rounded-full ' .
+                $getBadgeStatusGizi($status) .
+                '">' .
+                htmlspecialchars($status) .
+                '</span>';
+        }
+    ],
+    [
+        'label' => 'Prioritas',
+        'render' => function ($anak) use ($getBadgePrioritas) {
+            return '<span class="px-2.5 py-1 text-xs font-bold rounded-full ' .
+                $getBadgePrioritas($anak['skala_prioritas']) .
+                '">' .
+                htmlspecialchars($anak['skala_prioritas'] ?? '-') .
+                '</span>';
+        }
+    ],
+    [
+        'label' => 'Posyandu',
         'render' => function ($anak) {
             return '<span class="bg-teal-50 px-2 py-1 rounded-md text-xs font-semibold text-teal-700">' .
                 htmlspecialchars($anak['nama_gudang'] ?? '-') .
@@ -131,7 +196,7 @@ ob_start();
 
 <div class="space-y-8">
 
-<!-- Table Ibu -->
+    <!-- Table Ibu -->
     <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -161,7 +226,7 @@ ob_start();
         </div>
     </div>
 
-<!-- Table Anak -->
+    <!-- Table Anak -->
     <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>

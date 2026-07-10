@@ -235,6 +235,7 @@ class TransaksiController
                 s.singkat AS nama_satuan 
             FROM komoditas_pangan k
             JOIN satuan s ON k.id_satuan = s.id_satuan
+            WHERE k.is_deleted = 0
             ORDER BY k.nama_komoditas ASC
         ";
 
@@ -1171,21 +1172,6 @@ class TransaksiController
 
         header('Location: /transaksi/pemeriksaan');
         exit;
-    }
-
-    private function getSkalaPrioritasByStatusGizi($statusGizi)
-    {
-        $status = strtolower(trim($statusGizi));
-
-        if (str_contains($status, 'stunting') || str_contains($status, 'risiko')) {
-            return 1;
-        }
-
-        if (str_contains($status, 'kurang')) {
-            return 2;
-        }
-
-        return 3;
     }
 
     public function kalkulasiGizi()
