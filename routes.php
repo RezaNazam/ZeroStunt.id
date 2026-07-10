@@ -123,7 +123,7 @@ return [
     '/transaksi/distribusi/batal' => [TransaksiController::class, 'batalDistribusi', [ROLE_ADMIN]],
 
 
-    '/transaksi/pemeriksaan' => [TransaksiController::class, 'pemeriksaan', [ROLE_ADMIN, ROLE_KADER, ROLE_IBU]],
+    '/transaksi/pemeriksaan' => [TransaksiController::class, 'pemeriksaan', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/pemeriksaan/create' => [TransaksiController::class, 'createPemeriksaan', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/pemeriksaan/store' => [TransaksiController::class, 'storePemeriksaan', [ROLE_ADMIN, ROLE_KADER]],
     '/transaksi/pemeriksaan/delete' => [TransaksiController::class, 'deletePemeriksaan', [ROLE_ADMIN]],
